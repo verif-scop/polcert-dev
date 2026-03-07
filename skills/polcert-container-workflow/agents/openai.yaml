@@ -1,0 +1,4 @@
+interface:
+  display_name: "PolCert Workflow"
+  short_description: "Work on PolCert in gifted_curie container"
+  default_prompt: "Use this skill when auditing, proving, and testing PolCert in the gifted_curie container."
