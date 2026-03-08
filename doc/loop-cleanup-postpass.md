@@ -7,6 +7,17 @@ Date: 2026-03-06
 - Record a plausible verified `Loop -> Loop` post-pass design for cleaning those shapes.
 - Do not change codegen or implement the pass yet.
 
+## Current status
+- As of 2026-03-08, the strict proved-path `polopt` suite is back to `62 / 62`.
+- Therefore this cleanup pass is no longer part of the semantic blocker set.
+- It is now purely about:
+  - improving the readability / normal form of generated `Loop` code
+  - keeping the cleanup inside the proved pipeline later, instead of leaving it
+    as an OCaml-only pretty-print effect
+- This strengthens the engineering recommendation:
+  - do not change `CodeGen` first
+  - add a separate verified `Loop -> Loop` cleanup pass after codegen
+
 ## Current Position
 - The experimental path
   - parser/elaboration
@@ -201,6 +212,59 @@ If implemented later, the minimal verified cleanup pass should do:
 4. singleton loop elimination by substitution
 
 That is enough to materially improve the current generated shape.
+
+## Recommended proof decomposition
+
+The current implementation experience suggests the pass should be split into
+three separately testable and separately provable layers.
+
+### Layer 1: pure expression normalization
+- Scope:
+  - `Loop.expr`
+  - `Loop.test`
+- Examples:
+  - additive flattening
+  - constant folding
+  - `1 + (N + -1) -> N`
+  - `(-1 * N) <= -1 -> 1 <= N`
+- Proof burden:
+  - direct semantic preservation of expression/test evaluation
+- This is the lowest-risk first step.
+
+### Layer 2: structural cleanup
+- Scope:
+  - `Seq`
+  - trivial `Guard`
+  - recursive simplification of loop bounds / tests / bodies
+- Examples:
+  - flatten nested sequences
+  - remove `Guard true`
+  - rewrite `Guard false` to `Skip`
+- Proof burden:
+  - straightforward induction on `Loop.stmt`
+- This is also low-risk.
+
+### Layer 3: singleton-loop elimination
+- Scope:
+  - loops whose upper bound simplifies to lower-bound `+ 1`
+- Example:
+  - `for x in range(e, e+1) { body } -> body[x := e]`
+- Proof burden:
+  - substitution lemma for `Loop.expr` / `Loop.test` / `Loop.stmt`
+  - loop-semantics equivalence for the singleton case
+- This is the first part that is not purely local rewriting, but it is still a
+  standard proof-engineering task.
+
+## Practical recommendation
+
+If this is taken on later, the order should be:
+
+1. implement Layer 1 in Coq and prove it
+2. implement Layer 2 in Coq and prove it
+3. only then implement Layer 3
+
+This keeps the cleanup effort isolated from the now-stable verified optimizer
+pipeline and avoids mixing readability work with scheduler/codegen correctness.
 
 ## Current OCaml Prototype vs Future Coq Pass
 
