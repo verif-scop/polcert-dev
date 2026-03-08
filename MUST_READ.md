@@ -87,6 +87,18 @@
   - `opam exec -- make polcert`
   - strict suite rerun: `62 / 62`
 
+## Pending engineering follow-ups
+- Add GitHub CI to the source repo:
+  - run the README build flow under `opam exec`
+  - run `check-admitted`
+  - run `make test`
+  - run the strict `polopt` generated-suite regression
+- Move the current OCaml-only loop simplification/pretty normalization toward a verified Coq cleanup pass after codegen:
+  - expression/test simplification
+  - guard/seq cleanup
+  - singleton-loop elimination via verified substitution
+  - keep the pretty-printer thin once the Coq pass exists
+
 ## Current `mxv` / `mxv-seq3` diagnosis
 - The earlier diagnosis was correct in substance: the bug was in compact/pad design, not in `Validator`.
 - The broken behaviour came from local per-statement compaction losing the program-wide shared schedule skeleton.

@@ -97,3 +97,14 @@ Date: 2026-03-08
 - Remaining work, if any, is now about:
   - strengthening the source-model fidelity argument
   - or broadening the benchmark set
+
+## Follow-up TODOs
+- Add GitHub CI to the source repo:
+  - run the README/opam build flow
+  - run `check-admitted`
+  - run `make test`
+  - run the strict `polopt` generated-suite regression
+- Evaluate moving the current OCaml-only post-codegen simplification into a verified Coq cleanup pass:
+  - expr/test simplification
+  - guard/seq cleanup
+  - singleton-loop elimination via verified substitution

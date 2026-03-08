@@ -73,3 +73,30 @@ Date: 2026-03-05
   - `opam exec -- coqc ... src/Extractor.v`
   - `opam exec -- coqc ... driver/PolOpt.v`
   - `make -s check-admitted` unchanged (single entry).
+
+## Current TODOs
+1. GitHub CI for source repo
+- Add a GitHub Actions workflow to the code repo so every push/PR runs:
+  - `make clean`
+  - `opam exec -- make depend`
+  - `opam exec -- make proof`
+  - `opam exec -- make -s check-admitted`
+  - `opam exec -- make extraction`
+  - `opam exec -- make polopt`
+  - `opam exec -- make polcert.ini`
+  - `opam exec -- make polcert`
+  - strict `polopt` regression suite (`tests/polopt-generated/tools/materialize_polopt_cases.py`)
+  - `make test`
+- Prefer one canonical workflow that uses the same README build order as local acceptance.
+- Cache opam where possible, but do not change the build semantics to chase cache hits.
+
+2. Verified cleanup pass
+- Current `syntax/SLoopPretty.ml` still performs display-layer simplification only.
+- Desired direction:
+  - move the simplification logic to a Coq `Loop -> Loop` pass after codegen
+  - prove semantic preservation
+  - then optionally keep a thin pretty-printer normalization on top
+- Candidate subpasses:
+  - algebraic simplification of `expr` / `test`
+  - `Seq` / trivial `Guard` cleanup
+  - singleton-loop elimination (`for x in [e, e+1)`) via verified substitution
