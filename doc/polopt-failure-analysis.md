@@ -2,96 +2,78 @@
 
 Date: 2026-03-08
 
-Scope:
-- strict runtime path only
-- `polopt` runs the proved path directly
-- suite root: `/polcert/tests/polopt-generated`
+## Current state
+- Current strict proved-path result: `62 / 62`
+- There is no remaining semantic blocker in the generated suite.
 
-All `62 / 62` benchmarks now have semantics-preserving `.loop` inputs.
+## Historical blockers that were resolved
 
-The old `8 / 62` failing set is no longer current after the latest
-source-scattering exporter fix.
+### 1. Source scattering exporter bug
+- `schedule_to_source_like_rows` used to drop a middle dynamic schedule
+  dimension.
+- Effect:
+  - source `before.scop` no longer matched the C-path scheduling problem
+  - Pluto solved the wrong source scheduling problem
+- Resolution:
+  - fix the exporter so all dynamic source schedule dimensions are preserved
 
-Two previously failing cases already recovered:
-- `fusion1`
-- `multi-stmt-stencil-seq`
+### 2. Missing parameter-only domain strengthening
+- Some cases needed parameter-only rows that are logically implied by the
+  iterator bounds of the statement domain.
+- Effect:
+  - Pluto chose a different optimized schedule family on the weaker source
+    domain
+- Resolution:
+  - strengthen statement domains before export
+  - do not treat those rows as global program assumptions
 
-The blockers that are now firmly classified are:
-- `mxv`
-- `mxv-seq3`
-- `advect3d`
+### 3. Broken compact/pad schedule design
+- The old compact design removed zero rows locally per statement.
+- Effect:
+  - it destroyed the program-wide shared schedule skeleton
+  - multi-statement cases such as `mxv` and `mxv-seq3` failed even though
+    `Validator` itself was not the bug
+- Resolution:
+  - preserve source-like schedule structure for export
+  - import optimized schedules with `from_openscop_schedule_only`
+  - canonicalize schedules with a program-wide row mask
 
-All current failures stop in the same outer phase:
-- scheduler validation
-- user-visible error: `Scheduler validation failed.`
+### 4. `advect3d` performance
+- `advect3d` was the last case that looked like a suite failure after the
+  semantic blockers were fixed.
+- Diagnosis:
+  - not parser
+  - not Pluto
+  - not validator
+  - almost all cost was in `CodeGen.codegen`
+- Resolution:
+  - treat it as a codegen performance issue, not a semantic blocker
+  - with a realistic timeout budget it succeeds on the strict path
 
-For every failing supported case:
-- `validate(extracted, extracted) = true`
+### 5. Clean-build discipline correction
+- The earlier clean-build failure was not related to VPL.
+- The real issue was:
+  - `make depend` had been run outside `opam exec`
+  - `coqdep` was missing from PATH
+- Clean rebuild now succeeds under:
+  - `make clean`
+  - `opam exec -- make depend`
+  - `opam exec -- make proof`
+  - `opam exec -- make extraction`
+  - `opam exec -- make polopt`
+  - `opam exec -- make polcert.ini`
+  - `opam exec -- make polcert`
 
-## Current split
+## What did not become the repair path
+- `Validator` was not modified as a fix.
+- No validation-only runtime branch was introduced.
+- The runtime path stayed aligned with the proved path.
 
-### A. `mxv` and `mxv-seq3`: raw/source vs complete/padded schedule representation mismatch
-
-Current facts:
-- `validate(strengthened, roundtrip-before) = true`
-- `validate(complete-before, complete-after)` has `eqdom=true` and `res=true`
-- `validate(strengthened, scheduled)` still has `res=false`
-- the imported optimized compact schedule for statement 2 is `[1; i; j]`
-- the complete/padded optimized view uses the same compact schedule
-
-Interpretation:
-- this is no longer a simple importer bug
-- the remaining mismatch is between:
-  - the strengthened raw/source schedule representation
-  - and the complete/padded validation representation
-- the validator accepts the optimized schedule in the complete view, but rejects
-  it in the raw/source view
-- `mxv-seq3` shows the same pattern:
-  - `validate(strengthened, roundtrip-before) = true`
-  - `validate(complete-before, complete-after)` has `eqdom=true` and `res=true`
-  - `validate(strengthened, scheduled)` still has `res=false`
-
-### B. `advect3d`: no longer a source-fidelity mismatch
-
-After the source-scattering exporter fix:
-- source `before.scop` scattering metadata matches the C-path extractor shape
-- `advect3d` should no longer be classified with the old source-model
-  mismatches
-
-Current observation:
-- `--debug-scheduler` reaches and prints the extracted source OpenScop
-- the remaining issue happens downstream of source export
-- this currently looks more like scheduler/import runtime cost or a later
-  representation problem than a source extractor mismatch
-
-## What changed after extending the frontend language
-
-The old mixed bucket is gone. The current failure set is now cleaner because:
-
-- `/` is preserved end-to-end instead of being rewritten to `*`
-- pure calls are preserved
-- ternary expressions are preserved
-- float literals are preserved as exact text
-
-Interpretation:
-- remaining failures are no longer frontend expression-language gaps
-- they are true optimizer-path failures on semantics-preserving inputs
-
-## What changed in the diagnosis
-
-The old "nine remaining failures" picture is no longer current.
-
-Two earlier issues were already removed:
-- source-scattering exporter bug that dropped a middle dynamic schedule dimension
-- missing source-domain strengthening on parameter-only guards
-
-After those fixes, the remaining failures no longer support a single explanation.
-The real split is now:
-- schedule representation mismatch (`mxv`)
-- downstream runtime/representation cost after source export (`advect3d`)
-
-## Practical next steps
-
-1. Do not regress the strengthened true proved path while fixing `mxv`.
-2. For `mxv`, compare the raw/source validation view and complete/padded validation view until the exact representation mismatch is isolated.
-3. For `advect3d`, measure where the cost appears after source export instead of continuing to treat it as a source-fidelity bug.
+## Oracle discipline
+- Do not use cross-source `polcert(our_before, c_before)` or
+  `polcert(our_after, c_after)` as an equality oracle.
+- OpenScop metadata differs by origin.
+- Use the C-path Pluto route as the behavioral oracle:
+  - compare raw Pluto `before.scop` / `after.scop`
+  - compare `SCATTERING` metadata and optimization family
+  - require the strict proved path to succeed on our route

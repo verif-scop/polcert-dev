@@ -1,129 +1,121 @@
 # Must Read
 
-## Workspace layout
-- Real code repo: `gifted_curie:/polcert` on branch `extractor`
-- This outer workspace stores notes, logs, plans, and scratch context
+## Workspace
+- Real code repo: `gifted_curie:/polcert`
+- Active code branch: `extractor`
+- This outer repo stores notes, logs, plans, and reports only
 
-## Proof state
+## Operating rules
+- Before and after substantial diagnosis work, update `LOG.md` and keep this file current.
+- Use already-approved container commands only:
+  - `docker exec gifted_curie sh -lc '...'`
+  - `docker cp ...`
+- Avoid `rm`; prefer overwrite or unique temp paths.
+- Follow the README build flow in the container, but invoke it under `opam exec`.
+- `make depend` exists and is valid here; the earlier failure was not a VPL issue, it was running `make depend` outside `opam exec`, so `coqdep` was missing from PATH.
+- `all` / `make -j4` will auto-create `.depend`; a step-by-step clean rebuild should do:
+  - `make clean`
+  - `opam exec -- make depend`
+  - `opam exec -- make proof`
+  - `opam exec -- make extraction`
+  - `opam exec -- make polopt`
+  - `opam exec -- make polcert.ini`
+  - `opam exec -- make polcert`
+- Before any final status report, do a clean acceptance rerun:
+  - `make clean`
+  - `opam exec -- make depend`
+  - `opam exec -- make proof`
+  - `opam exec -- make extraction`
+  - `opam exec -- make polopt`
+  - `opam exec -- make polcert.ini`
+  - `opam exec -- make polcert`
+  - rerun the strict `polopt` suite
+
+## Repair constraints
+- Do not modify `Validator` as a repair path.
+- Do not add a validation-only runtime branch.
+- Keep runtime path aligned with the proved path.
+- Do not change the proved pipeline structure just to make runtime pass.
+- Do not "fix" `mxv` by special-casing the validation path.
+- The remaining `mxv` issue is a schedule representation/design issue, not a validator bug.
+- The key `mxv` lesson must remain explicit:
+  - the old compact design was local per statement
+  - that dropped zero rows without preserving the program-wide shared schedule skeleton
+  - fixes must stay at the schedule representation level, not drift back to validator-side or domain-only explanations
+
+## Oracle / acceptance criterion
+- C-path Pluto is the reference behavior.
+- For any benchmark:
+  - `polcert(c_before, c_after)` should be `EQ`
+  - cross-source `polcert(our_before, c_before)` is not an oracle because OpenScop metadata differs
+  - re-exported scheduled OpenScop from `polopt --debug-scheduler` is also not a raw Pluto-after oracle; it is importer -> internal poly -> exporter again
+  - when comparing optimization family with C-path, compare Pluto raw `after.scop` against C-path Pluto raw `after.scop`, not importer-reexported OpenScop
+- Runtime success alone is not enough.
+- Goal:
+  - strict `polopt` succeeds
+  - source `before.scop` matches the C-path scheduling problem as closely as possible
+  - resulting optimization matches the same Pluto optimization family
+  - use raw Pluto `after.scop` as the optimization oracle, not importer-reexported scheduled OpenScop
+- `pluto --readscop` behavior must be treated as empirical, not assumed:
+  - output file naming may differ from naive expectations
+  - in degenerate/no-change cases it may not emit a separate `afterscheduling.scop`
+  - any comparison script must handle that explicitly instead of hard-coding one filename pattern
+
+## Build discipline
+- Follow the repository README build order directly.
+- For a full clean acceptance rerun, explicitly run `opam exec -- make depend` after `make clean`.
+- Do not reintroduce the temporary top-level VPL symlink workaround; it was a mistaken local workaround and polluted the namespace / build artifacts.
+
+## Current proved state
 - `src/Extractor.v`: `extractor_correct` is `Qed`
 - `src/PrepareCodegen.v`: `prepare_codegen_semantics_correct` is `Qed`
-- `driver/PolOptPrepared.v` exposes:
-  - `Definition Opt := Opt_prepared`
-  - `Theorem Opt_correct`
-- `check-admitted` reports `Nothing admitted.`
+- `driver/PolOptPrepared.v`: `Opt_correct` is `Qed`
+- `check-admitted`: `Nothing admitted.`
 
-## Runtime state
-- `opam exec -- make test` is green
-- `polcert` still uses `from_openscop_complete`
-- `polopt` is back on the single proved path:
-  - `syntax/SPolOpt.v: opt = PreparedOpt.Opt`
-  - `syntax/SPolOpt.v: opt_poly = CoreOpt.scheduler' ; Prepare.prepared_codegen`
-- `syntax/SInstr.v` now has a real lightweight store semantics:
-  - `State.t := MemCell -> Z`
-  - `SSkip` preserves state
-  - `SAssign` functionally updates one `MemCell`
+## Current runtime state
+- `make test` is green
+- Current proved-path `polopt` strict suite: `62 / 62` succeed
+- `advect3d` is not a semantic blocker; most runtime is still in `CodeGen.codegen`
+- `mxv` / `mxv-seq3` were fixed by repairing compact/pad design at the schedule representation level, not by modifying `Validator` and not by a validation-only branch
+- Current clean acceptance rerun status:
+  - `opam exec -- make depend`
+  - `opam exec -- make proof`
+  - `opam exec -- make -s check-admitted`
+  - `opam exec -- make extraction`
+  - `opam exec -- make polopt`
+  - `opam exec -- make polcert.ini`
+  - `opam exec -- make polcert`
+  - strict suite rerun: `62 / 62`
 
-## Key runtime fixes already identified
+## Current `mxv` / `mxv-seq3` diagnosis
+- The earlier diagnosis was correct in substance: the bug was in compact/pad design, not in `Validator`.
+- The broken behaviour came from local per-statement compaction losing the program-wide shared schedule skeleton.
+- The effective repair is now in the schedule representation itself:
+  - keep source-like schedule structure for export
+  - import optimized schedules with `from_openscop_schedule_only`
+  - canonicalize schedules with a program-wide row mask, not per-statement local zero-row deletion
+- With that repair in place, both `mxv` and `mxv-seq3` now pass on the proved path, and the full strict suite is `62 / 62`.
+- Record this explicitly when resuming work:
+  - the key design bug was that compaction was local to each instruction schedule
+  - zero rows were treated as removable formatting, but in multi-statement programs they carry the shared global schedule skeleton
+  - any future compact/pad change must preserve that program-wide skeleton
+- Do not revert to local per-statement zero-row removal.
+- Do not introduce validation-only normalization branches.
+- Do not modify `Validator` for this issue.
 
-### 1. Generic extractor fix
-- In `src/Extractor.v`, extracted access functions must use:
-  - `normalize_access_list`
-- They must not use:
-  - `normalize_access_list_rev`
+## Historical but still relevant lessons
+- `normalize_access_list_rev` for extracted accesses was wrong; extractor now uses `normalize_access_list`.
+- `schedule_to_source_like_rows` used to drop a middle dynamic schedule dimension; that exporter bug is fixed.
+- `StrengthenDomain` is needed, but it is domain-only. Do not reintroduce schedule rewriting there.
+- The earlier top-level VPL symlink workaround was wrong. Do not reintroduce it.
+- The direct cause of the earlier clean-build failure was running `make depend` outside `opam exec`; `coqdep` was simply missing from PATH.
+- C-path Pluto remains the oracle for optimization behavior, but do not use cross-source `polcert(our_before, c_before)` as an equality oracle because OpenScop metadata differs.
+- For whole-suite source/after comparisons:
+  - exact row-string equality is too strong because comments, names, and IDs differ
+  - `SCATTERING` metadata and row-count shape are the first useful structural signal
+  - only after structural agreement should finer mismatches be investigated
 
-This restored the official `CInstr` validation line and fixed `CSample2/covcol`.
-
-### 2. Syntax-only follow-up
-- `syntax/SInstr.v` had an outdated `access_function_checker`
-- It only accepted:
-  - raw access
-  - reverse-normalized access
-- After the extractor fix, syntax extractor output became:
-  - plain normalized access
-- The syntax checker now accepts:
-  - raw
-  - normalized
-  - reverse-normalized
-
-This restored:
-- `validate(extracted, extracted) = true`
-- `validate(extracted, roundtrip-before) = true`
-- `validate(extracted, scheduled) = true`
-
-on `covcol`
-
-## Important non-conclusions
-- The last `covcol` blocker was not a proof issue
-- It was not a Pluto parameter issue
-- It was not a validator-algorithm regression
-- It was not necessary to keep the old normalized/raw split workaround in `syntax/SPolOpt.v`
-
-## Current focus after recovery
-- consolidate and commit the container fixes
-- then move back up to output-shape cleanup / post-pass work if desired
-
-## Reference note
-- [doc/openscop-representation-gap.md](doc/openscop-representation-gap.md)
-- [doc/polopt-loop-suite-status.md](doc/polopt-loop-suite-status.md)
-- [doc/polopt-success-summary.md](doc/polopt-success-summary.md)
-- [doc/polopt-failure-analysis.md](doc/polopt-failure-analysis.md)
-
-- Read `doc/polopt-loop-suite-status.md` before continuing Pluto `.loop` suite work.
-- Read `doc/polopt-success-summary.md` before making claims about what strict-path `polopt` is actually optimizing.
-- Read `doc/polopt-failure-analysis.md` before debugging the remaining strict-path failures.
-- Read `doc/polopt-remaining-9-cases.md` before touching the remaining scheduler-validation failures.
-- Read `doc/sinstr-semantics.md` before changing `syntax/SInstr.v` again.
-- Read `doc/source-model-fidelity-goal.md` before evaluating `polopt` success claims against Pluto.
-- Current strict suite artifacts live under:
-  - `tests/polopt-generated/inputs/*.loop`
-  - `tests/polopt-generated/cases/<case>/`
-- 2026-03-08 current `.loop` suite status:
-  - total Pluto benchmark cases: `62`
-  - semantics-preserving generated `.loop` inputs: `62`
-  - explicitly unsupported inputs: `0`
-  - strict proved-path successes: `59 / 62` (30s per-case timeout rerun)
-  - strict failing set:
-    - `advect3d`
-    - `mxv`
-    - `mxv-seq3`
-- Runtime success is no longer the main acceptance criterion; source-model fidelity with the C/Clan `before.scop` remains the north star.
-- The current source-model fidelity bug that was identified and fixed:
-  - `src/PolyLang.v: schedule_to_source_like_rows`
-  - old implementation dropped a middle dynamic schedule dimension during source OpenScop export
-  - minimal Coq reproducer showed extractor internal schedules were correct; the loss happened in source OpenScop export
-  - after the fix, representative extracted `before.scop` scattering metadata now matches C-path source scop on `covcol` and `matmul`
-- The current north star is source-model fidelity with the C/Clan `before.scop`, then parity of Pluto's actual optimization behavior.
-- Important correction:
-  - the remaining `mxv` / `mxv-seq3` issue should not be treated as a reason to
-    insert an ad hoc validation-only normalization pass
-  - the design bug is in compact schedule handling itself
-  - source-like zero rows are semantically relevant for cross-statement global
-    timestamp alignment
-  - current local zero-row removal is not trustworthy as a semantics-preserving
-    compact representation
-  - the repair target is a correct global compact/canonical schedule design,
-    while keeping strict runtime path = proved path
-- New key diagnosis after adding `StrengthenDomain`:
-  - strengthening is necessary, but it is not the current top blocker
-  - on representative cases such as `covcol`, strengthened `before.scop`
-    plus Pluto raw `after.scop` already satisfy `polcert = EQ`
-  - the remaining failures are now:
-    - `mxv`, `mxv-seq3`
-      - complete/padded validation view accepts the optimized schedule
-      - strengthened raw/source validation view still rejects it with `res=false`
-      - this is now a schedule-representation mismatch, not a simple source exporter bug
-    - `advect3d`
-      - source scattering metadata now matches the C-path extractor
-      - remaining issue is downstream of source export and currently manifests as runtime cost / timeout
-      - temporary extracted-OCaml timing showed:
-        - `strengthen+scheduler+validate`: about `1.6s`
-        - `codegen`: about `38.5s`
-        - parser / elaboration / pretty-print are negligible
-      - so `advect3d` is a `CodeGen.codegen` performance issue, not a validator issue
-- Division is now preserved end-to-end in the syntax frontend.
-- Pure calls, ternaries, and exact float literals are also preserved.
-- The CLI fallback exporter is no longer in the default path.
-- `SPolOpt.opt` now points back to `PreparedOpt.Opt`; any remaining failures are now on the true proved path, not on a wrapper path.
-- `syntax/SLoopPretty.ml` now does display-only cleanup:
-  - singleton `range(e, e+1)` loops print as let-like substitutions
-  - loop/instruction expressions and tests are simplified before printing
+## Files to consult before continuing
+- `doc/polopt-loop-suite-status.md`
+- `doc/source-model-fidelity-goal.md`
+- `LOG.md`
