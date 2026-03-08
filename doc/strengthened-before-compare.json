@@ -1,0 +1,1662 @@
+{
+  "cases": [
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 6 1 0 0 3"
+        ],
+        "scattering_meta": [
+          "3 9 3 1 0 3"
+        ]
+      },
+      "case": "1dloop-invar",
+      "our_before": {
+        "domain_meta": [
+          "3 6 1 0 0 3"
+        ],
+        "scattering_meta": [
+          "3 9 3 1 0 3"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "9 7 3 0 0 2",
+          "9 7 3 0 0 2",
+          "9 7 3 0 0 2",
+          "9 7 3 0 0 2"
+        ],
+        "scattering_meta": [
+          "7 14 7 3 0 2",
+          "7 14 7 3 0 2",
+          "7 14 7 3 0 2",
+          "7 14 7 3 0 2"
+        ]
+      },
+      "case": "adi",
+      "our_before": {
+        "domain_meta": [
+          "9 7 3 0 0 2",
+          "9 7 3 0 0 2",
+          "9 7 3 0 0 2",
+          "9 7 3 0 0 2"
+        ],
+        "scattering_meta": [
+          "7 14 7 3 0 2",
+          "7 14 7 3 0 2",
+          "7 14 7 3 0 2",
+          "7 14 7 3 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "9 8 3 0 0 3",
+          "9 8 3 0 0 3",
+          "9 8 3 0 0 3",
+          "9 8 3 0 0 3"
+        ],
+        "scattering_meta": [
+          "7 15 7 3 0 3",
+          "7 15 7 3 0 3",
+          "7 15 7 3 0 3",
+          "7 15 7 3 0 3"
+        ]
+      },
+      "case": "advect3d",
+      "our_before": {
+        "domain_meta": [
+          "9 8 3 0 0 3",
+          "9 8 3 0 0 3",
+          "9 8 3 0 0 3",
+          "9 8 3 0 0 3"
+        ],
+        "scattering_meta": [
+          "7 15 7 3 0 3",
+          "7 15 7 3 0 3",
+          "7 15 7 3 0 3",
+          "7 15 7 3 0 3"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 5 1 0 0 2",
+          "5 6 2 0 0 2",
+          "8 7 3 0 0 2",
+          "5 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "7 14 7 3 0 2",
+          "5 11 5 2 0 2"
+        ]
+      },
+      "case": "corcol",
+      "our_before": {
+        "domain_meta": [
+          "3 5 1 0 0 2",
+          "5 6 2 0 0 2",
+          "8 7 3 0 0 2",
+          "5 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "7 14 7 3 0 2",
+          "5 11 5 2 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 5 1 0 0 2",
+          "6 6 2 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2",
+          "6 6 2 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2"
+        ],
+        "scattering_meta": [
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2"
+        ]
+      },
+      "case": "corcol3",
+      "our_before": {
+        "domain_meta": [
+          "3 5 1 0 0 2",
+          "6 6 2 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2",
+          "6 6 2 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2"
+        ],
+        "scattering_meta": [
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "6 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "costfunc",
+      "our_before": {
+        "domain_meta": [
+          "6 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "8 7 3 0 0 2",
+          "5 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "7 14 7 3 0 2",
+          "5 11 5 2 0 2"
+        ]
+      },
+      "case": "covcol",
+      "our_before": {
+        "domain_meta": [
+          "8 7 3 0 0 2",
+          "5 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "7 14 7 3 0 2",
+          "5 11 5 2 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "7 6 3 0 0 1",
+          "5 5 2 0 0 1",
+          "7 6 3 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "7 13 7 3 0 1",
+          "5 10 5 2 0 1",
+          "7 13 7 3 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "dct",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "7 6 3 0 0 1",
+          "5 5 2 0 0 1",
+          "7 6 3 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "7 13 7 3 0 1",
+          "5 10 5 2 0 1",
+          "7 13 7 3 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1",
+          "9 7 4 0 0 1",
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "9 16 9 4 0 1",
+          "7 13 7 3 0 1"
+        ]
+      },
+      "case": "doitgen",
+      "our_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1",
+          "9 7 4 0 0 1",
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "9 16 9 4 0 1",
+          "7 13 7 3 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1"
+        ]
+      },
+      "case": "dsyr2k",
+      "our_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1"
+        ]
+      },
+      "case": "dsyrk",
+      "our_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2",
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2",
+          "5 11 5 2 0 2"
+        ]
+      },
+      "case": "fdtd-1d",
+      "our_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2",
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2",
+          "5 11 5 2 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "6 7 2 0 0 3",
+          "9 8 3 0 0 3",
+          "9 8 3 0 0 3",
+          "9 8 3 0 0 3"
+        ],
+        "scattering_meta": [
+          "5 12 5 2 0 3",
+          "7 15 7 3 0 3",
+          "7 15 7 3 0 3",
+          "7 15 7 3 0 3"
+        ]
+      },
+      "case": "fdtd-2d",
+      "our_before": {
+        "domain_meta": [
+          "6 7 2 0 0 3",
+          "9 8 3 0 0 3",
+          "9 8 3 0 0 3",
+          "9 8 3 0 0 3"
+        ],
+        "scattering_meta": [
+          "5 12 5 2 0 3",
+          "7 15 7 3 0 3",
+          "7 15 7 3 0 3",
+          "7 15 7 3 0 3"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1"
+        ]
+      },
+      "case": "floyd",
+      "our_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1",
+          "3 4 1 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1",
+          "3 7 3 1 0 1"
+        ]
+      },
+      "case": "fusion1",
+      "our_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1",
+          "3 4 1 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1",
+          "3 7 3 1 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": false,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "4 4 2 0 0 0",
+          "4 4 2 0 0 0"
+        ],
+        "scattering_meta": [
+          "5 9 5 2 0 0",
+          "5 9 5 2 0 0"
+        ]
+      },
+      "case": "fusion10",
+      "our_before": {
+        "domain_meta": [
+          "5 4 2 0 0 0",
+          "5 4 2 0 0 0"
+        ],
+        "scattering_meta": [
+          "5 9 5 2 0 0",
+          "5 9 5 2 0 0"
+        ]
+      }
+    },
+    {
+      "before_domain_match": false,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "4 4 2 0 0 0",
+          "4 4 2 0 0 0"
+        ],
+        "scattering_meta": [
+          "5 9 5 2 0 0",
+          "5 9 5 2 0 0"
+        ]
+      },
+      "case": "fusion2",
+      "our_before": {
+        "domain_meta": [
+          "5 4 2 0 0 0",
+          "5 4 2 0 0 0"
+        ],
+        "scattering_meta": [
+          "5 9 5 2 0 0",
+          "5 9 5 2 0 0"
+        ]
+      }
+    },
+    {
+      "before_domain_match": false,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "4 4 2 0 0 0",
+          "4 4 2 0 0 0"
+        ],
+        "scattering_meta": [
+          "5 9 5 2 0 0",
+          "5 9 5 2 0 0"
+        ]
+      },
+      "case": "fusion3",
+      "our_before": {
+        "domain_meta": [
+          "5 4 2 0 0 0",
+          "5 4 2 0 0 0"
+        ],
+        "scattering_meta": [
+          "5 9 5 2 0 0",
+          "5 9 5 2 0 0"
+        ]
+      }
+    },
+    {
+      "before_domain_match": false,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "4 4 2 0 0 0",
+          "4 4 2 0 0 0"
+        ],
+        "scattering_meta": [
+          "5 9 5 2 0 0",
+          "5 9 5 2 0 0"
+        ]
+      },
+      "case": "fusion4",
+      "our_before": {
+        "domain_meta": [
+          "5 4 2 0 0 0",
+          "5 4 2 0 0 0"
+        ],
+        "scattering_meta": [
+          "5 9 5 2 0 0",
+          "5 9 5 2 0 0"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "fusion5",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1",
+          "0 3 0 0 0 1",
+          "3 4 1 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1",
+          "1 4 1 0 0 1",
+          "3 7 3 1 0 1"
+        ]
+      },
+      "case": "fusion6",
+      "our_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1",
+          "0 3 0 0 0 1",
+          "3 4 1 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1",
+          "1 4 1 0 0 1",
+          "3 7 3 1 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2"
+        ],
+        "scattering_meta": [
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2"
+        ]
+      },
+      "case": "fusion7",
+      "our_before": {
+        "domain_meta": [
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2"
+        ],
+        "scattering_meta": [
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": false,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "2 3 1 0 0 0",
+          "2 3 1 0 0 0"
+        ],
+        "scattering_meta": [
+          "3 6 3 1 0 0",
+          "3 6 3 1 0 0"
+        ]
+      },
+      "case": "fusion8",
+      "our_before": {
+        "domain_meta": [
+          "3 3 1 0 0 0",
+          "3 3 1 0 0 0"
+        ],
+        "scattering_meta": [
+          "3 6 3 1 0 0",
+          "3 6 3 1 0 0"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "6 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "fusion9",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "6 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1",
+          "3 4 1 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1",
+          "3 7 3 1 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "gemver",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1",
+          "3 4 1 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1",
+          "3 7 3 1 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      },
+      "case": "intratileopt1",
+      "our_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      },
+      "case": "intratileopt2",
+      "our_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      },
+      "case": "intratileopt3",
+      "our_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      },
+      "case": "intratileopt4",
+      "our_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2",
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2",
+          "5 11 5 2 0 2"
+        ]
+      },
+      "case": "jacobi-1d-imper",
+      "our_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2",
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2",
+          "5 11 5 2 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "8 7 3 0 0 2",
+          "8 7 3 0 0 2"
+        ],
+        "scattering_meta": [
+          "7 14 7 3 0 2",
+          "7 14 7 3 0 2"
+        ]
+      },
+      "case": "jacobi-2d-imper",
+      "our_before": {
+        "domain_meta": [
+          "8 7 3 0 0 2",
+          "8 7 3 0 0 2"
+        ],
+        "scattering_meta": [
+          "7 14 7 3 0 2",
+          "7 14 7 3 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": false,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "6 5 2 0 0 1",
+          "8 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "7 13 7 3 0 1"
+        ]
+      },
+      "case": "lu",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "7 13 7 3 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "9 8 3 0 0 3"
+        ],
+        "scattering_meta": [
+          "7 15 7 3 0 3"
+        ]
+      },
+      "case": "matmul",
+      "our_before": {
+        "domain_meta": [
+          "9 8 3 0 0 3"
+        ],
+        "scattering_meta": [
+          "7 15 7 3 0 3"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "7 13 7 3 0 1"
+        ]
+      },
+      "case": "matmul-init",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "7 13 7 3 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1",
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "7 13 7 3 0 1"
+        ]
+      },
+      "case": "matmul-seq",
+      "our_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1",
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "7 13 7 3 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1",
+          "7 6 3 0 0 1",
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "7 13 7 3 0 1",
+          "7 13 7 3 0 1"
+        ]
+      },
+      "case": "matmul-seq3",
+      "our_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1",
+          "7 6 3 0 0 1",
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "7 13 7 3 0 1",
+          "7 13 7 3 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 6 1 0 0 3",
+          "3 6 1 0 0 3",
+          "3 6 1 0 0 3"
+        ],
+        "scattering_meta": [
+          "3 9 3 1 0 3",
+          "3 9 3 1 0 3",
+          "3 9 3 1 0 3"
+        ]
+      },
+      "case": "multi-loop-param",
+      "our_before": {
+        "domain_meta": [
+          "3 6 1 0 0 3",
+          "3 6 1 0 0 3",
+          "3 6 1 0 0 3"
+        ],
+        "scattering_meta": [
+          "3 9 3 1 0 3",
+          "3 9 3 1 0 3",
+          "3 9 3 1 0 3"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1",
+          "3 4 1 0 0 1",
+          "3 4 1 0 0 1",
+          "3 4 1 0 0 1",
+          "3 4 1 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1",
+          "3 7 3 1 0 1",
+          "3 7 3 1 0 1",
+          "3 7 3 1 0 1",
+          "3 7 3 1 0 1"
+        ]
+      },
+      "case": "multi-stmt-stencil-seq",
+      "our_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1",
+          "3 4 1 0 0 1",
+          "3 4 1 0 0 1",
+          "3 4 1 0 0 1",
+          "3 4 1 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1",
+          "3 7 3 1 0 1",
+          "3 7 3 1 0 1",
+          "3 7 3 1 0 1",
+          "3 7 3 1 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "mvt",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "mxv",
+      "our_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "mxv-seq",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "mxv-seq3",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "negparam",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": false,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "4 4 2 0 0 0"
+        ],
+        "scattering_meta": [
+          "5 9 5 2 0 0"
+        ]
+      },
+      "case": "nodep",
+      "our_before": {
+        "domain_meta": [
+          "6 4 2 0 0 0"
+        ],
+        "scattering_meta": [
+          "5 9 5 2 0 0"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "0 2 0 0 0 0"
+        ],
+        "scattering_meta": [
+          "1 3 1 0 0 0"
+        ]
+      },
+      "case": "noloop",
+      "our_before": {
+        "domain_meta": [
+          "0 2 0 0 0 0"
+        ],
+        "scattering_meta": [
+          "1 3 1 0 0 0"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 5 1 0 0 2",
+          "6 6 2 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2",
+          "6 6 2 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2",
+          "6 6 2 0 0 2",
+          "6 6 2 0 0 2",
+          "6 6 2 0 0 2",
+          "6 6 2 0 0 2",
+          "3 5 1 0 0 2",
+          "5 6 2 0 0 2",
+          "8 7 3 0 0 2",
+          "5 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "5 11 5 2 0 2",
+          "5 11 5 2 0 2",
+          "5 11 5 2 0 2",
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "7 14 7 3 0 2",
+          "5 11 5 2 0 2"
+        ]
+      },
+      "case": "pca",
+      "our_before": {
+        "domain_meta": [
+          "3 5 1 0 0 2",
+          "6 6 2 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2",
+          "6 6 2 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2",
+          "6 6 2 0 0 2",
+          "6 6 2 0 0 2",
+          "6 6 2 0 0 2",
+          "6 6 2 0 0 2",
+          "3 5 1 0 0 2",
+          "5 6 2 0 0 2",
+          "8 7 3 0 0 2",
+          "5 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "5 11 5 2 0 2",
+          "5 11 5 2 0 2",
+          "5 11 5 2 0 2",
+          "3 8 3 1 0 2",
+          "5 11 5 2 0 2",
+          "7 14 7 3 0 2",
+          "5 11 5 2 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "polynomial",
+      "our_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "8 7 3 0 0 2"
+        ],
+        "scattering_meta": [
+          "7 14 7 3 0 2"
+        ]
+      },
+      "case": "seidel",
+      "our_before": {
+        "domain_meta": [
+          "8 7 3 0 0 2"
+        ],
+        "scattering_meta": [
+          "7 14 7 3 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      },
+      "case": "seq",
+      "our_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "shift",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      },
+      "case": "spatial",
+      "our_before": {
+        "domain_meta": [
+          "6 6 2 0 0 2"
+        ],
+        "scattering_meta": [
+          "5 11 5 2 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": false,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "8 6 3 0 0 1",
+          "8 6 3 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "7 13 7 3 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "ssymm",
+      "our_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1",
+          "7 6 3 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "7 13 7 3 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "8 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1"
+        ]
+      },
+      "case": "strmm",
+      "our_before": {
+        "domain_meta": [
+          "8 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": false,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "8 6 3 0 0 1",
+          "8 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "7 13 7 3 0 1"
+        ]
+      },
+      "case": "strsm",
+      "our_before": {
+        "domain_meta": [
+          "9 6 3 0 0 1",
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "7 13 7 3 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "11 8 5 0 0 1",
+          "11 8 5 0 0 1",
+          "11 8 5 0 0 1",
+          "11 8 5 0 0 1"
+        ],
+        "scattering_meta": [
+          "11 19 11 5 0 1",
+          "11 19 11 5 0 1",
+          "11 19 11 5 0 1",
+          "11 19 11 5 0 1"
+        ]
+      },
+      "case": "tce",
+      "our_before": {
+        "domain_meta": [
+          "11 8 5 0 0 1",
+          "11 8 5 0 0 1",
+          "11 8 5 0 0 1",
+          "11 8 5 0 0 1"
+        ],
+        "scattering_meta": [
+          "11 19 11 5 0 1",
+          "11 19 11 5 0 1",
+          "11 19 11 5 0 1",
+          "11 19 11 5 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1"
+        ]
+      },
+      "case": "tmm",
+      "our_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "tricky1",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2"
+        ],
+        "scattering_meta": [
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2"
+        ]
+      },
+      "case": "tricky2",
+      "our_before": {
+        "domain_meta": [
+          "3 5 1 0 0 2",
+          "3 5 1 0 0 2"
+        ],
+        "scattering_meta": [
+          "3 8 3 1 0 2",
+          "3 8 3 1 0 2"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 6 1 0 0 3",
+          "6 7 2 0 0 3",
+          "6 7 2 0 0 3",
+          "6 7 2 0 0 3"
+        ],
+        "scattering_meta": [
+          "3 9 3 1 0 3",
+          "5 12 5 2 0 3",
+          "5 12 5 2 0 3",
+          "5 12 5 2 0 3"
+        ]
+      },
+      "case": "tricky3",
+      "our_before": {
+        "domain_meta": [
+          "3 6 1 0 0 3",
+          "6 7 2 0 0 3",
+          "6 7 2 0 0 3",
+          "6 7 2 0 0 3"
+        ],
+        "scattering_meta": [
+          "3 9 3 1 0 3",
+          "5 12 5 2 0 3",
+          "5 12 5 2 0 3",
+          "5 12 5 2 0 3"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1"
+        ]
+      },
+      "case": "tricky4",
+      "our_before": {
+        "domain_meta": [
+          "3 4 1 0 0 1"
+        ],
+        "scattering_meta": [
+          "3 7 3 1 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": false,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "8 6 3 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "trisolv",
+      "our_before": {
+        "domain_meta": [
+          "7 6 3 0 0 1",
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "7 13 7 3 0 1",
+          "5 10 5 2 0 1"
+        ]
+      }
+    },
+    {
+      "before_domain_match": true,
+      "before_scattering_match": true,
+      "c_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1"
+        ]
+      },
+      "case": "wavefront",
+      "our_before": {
+        "domain_meta": [
+          "5 5 2 0 0 1"
+        ],
+        "scattering_meta": [
+          "5 10 5 2 0 1"
+        ]
+      }
+    }
+  ]
+}

@@ -108,6 +108,36 @@ Date: 2026-03-08
   - compare `SCATTERING` family / schedule shape
   - require strict proved-path `polopt` to succeed on our route
 
+## Current raw structural comparison
+- Checked-in report:
+  - `doc/pluto-raw-family-compare.md`
+  - `doc/pluto-raw-family-compare.json`
+- Scope warning:
+  - the current report uses `polopt --extract-only`
+  - it compares pure extractor output, not the strict proved-path source model
+    after `StrengthenDomain`
+- Current summary:
+  - `62 / 62` source `before.scop` `SCATTERING` metadata match the C-path
+  - `62 / 62` raw Pluto `after.scop` `SCATTERING` metadata match the C-path
+  - residual mismatch is concentrated in source `DOMAIN` metadata
+- Sampled row-level `DOMAIN` comparisons (`covcol`, `tricky1`, `mxv`, `matmul`,
+  `advect3d`, `costfunc`) show a stable pattern:
+  - our exporter emits iterator bound rows only
+  - the C-path adds one parameter-only row per iterator, expressing the
+    non-emptiness consequence of the bound interval
+  - examples:
+    - `N-1 >= 0`
+    - `N-2 >= 0`
+    - `M-1 >= 0`
+    - `K-1 >= 0`
+    - `nz+2 >= 0`
+- Current interpretation:
+  - the remaining source-model fidelity gap is statement-domain strengthening
+  - it is no longer a source `SCATTERING` problem
+- `covcol` spot-check with `./polopt --debug-scheduler` confirms that the
+  strict-path strengthened source OpenScop already reaches the C-path `DOMAIN`
+  row counts, so `--extract-only` underreports current fidelity.
+
 ## Current conclusion
 - The generated-suite semantic blockers are closed.
 - The strict proved path is currently:
@@ -117,6 +147,16 @@ Date: 2026-03-08
 - Remaining work, if any, is now about:
   - strengthening the source-model fidelity argument
   - or broadening the benchmark set
+
+## Precise strengthening repair
+- The final strengthening change that survived is not the earlier broad
+  parameter-only guard collection.
+- Current `StrengthenDomain` now derives extra rows only by:
+  - canceling the current innermost iterator between two constraints
+  - keeping the resulting guard only if it depends on outer iterators +
+    parameters
+- This precise strengthening was recompiled, re-extracted, and revalidated
+  through a clean rebuild.
 
 ## Follow-up TODOs
 - Add GitHub CI to the source repo:
@@ -128,3 +168,39 @@ Date: 2026-03-08
   - expr/test simplification
   - guard/seq cleanup
   - singleton-loop elimination via verified substitution
+
+## Strengthened-before / raw-after comparison
+- Full-suite strict-path comparison was run using strengthened source `before.scop` extracted from `polopt --debug-scheduler`, then raw `pluto --readscop`.
+- Results:
+  - strengthened `before.scop` scattering metadata match: `62 / 62`
+  - strengthened `before.scop` domain metadata match: `52 / 62`
+  - raw Pluto `after.scop` scattering metadata match: `62 / 62`
+- Residual domain-only mismatches are limited to:
+  - `fusion10`, `fusion2`, `fusion3`, `fusion4`, `fusion8`, `lu`, `nodep`, `ssymm`, `strsm`, `trisolv`
+- For those `10`, raw Pluto `after.scop` still lands in the same scattering family as the C-path raw `after.scop`.
+- Therefore the current residual source-model fidelity gap is domain-shape only; on the generated suite it is no longer changing the observed optimization family.
+
+## Residual domain mismatch classes
+- Residual `DOMAIN` metadata mismatches now split into:
+  - tautological / clearly redundant extras on our side:
+    - `fusion10`, `fusion2`, `fusion3`, `fusion4`, `fusion8`, `nodep`
+  - still-nontrivial strengthening mismatches:
+    - `lu`, `ssymm`, `strsm`, `trisolv`
+- Even for the second class, the raw Pluto `after.scop` scattering family currently still matches the C-path on the generated suite.
+
+- The residual nontrivial domain mismatches are now better understood:
+  - `lu`, `ssymm`, `trisolv` are mainly inner-range non-emptiness strengthening differences
+  - `strsm` is mainly a guard/singleton normalization difference (`k == i+1` represented as equality in the C-path)
+- This refines the remaining debt: it is a domain-normalization mismatch, not a schedule mismatch.
+
+## Next strengthening direction
+- Current `StrengthenDomain` only emits parameter-only guards.
+- The remaining nontrivial source-domain mismatches suggest the next principled extension:
+  - eliminate the innermost iterator from a lower/upper bound pair
+  - keep guards that depend on outer iterators + parameters
+  - normalize singleton domains / guard equalities as equality rows when appropriate
+- Representative targets:
+  - `lu`: derive `N-k-2 >= 0`
+  - `ssymm`: derive `j-2 >= 0`
+  - `trisolv`: derive `j-1 >= 0`
+  - `strsm`: normalize `k == i+1` as equality

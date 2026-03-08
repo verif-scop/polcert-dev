@@ -5,6 +5,53 @@
 - Active code branch: `extractor`
 - This outer repo stores notes, logs, plans, and reports only
 
+## Raw Pluto Structural Comparison
+- The checked-in raw comparison report is:
+  - `doc/pluto-raw-family-compare.md`
+  - `doc/pluto-raw-family-compare.json`
+- Important scope note:
+  - that report currently uses `polopt --extract-only`
+  - so it compares the pure extractor source model
+  - it does **not** yet compare the strict proved-path source model after `StrengthenDomain`
+  - do not confuse extractor-before with strengthened-before
+- Current report summary over the generated suite:
+  - cases compared: `62`
+  - source `before.scop` `SCATTERING` metadata match: `62 / 62`
+  - raw Pluto `after.scop` `SCATTERING` metadata match: `62 / 62`
+  - remaining raw structural mismatch is concentrated in source `DOMAIN` metadata
+- The current domain mismatch pattern is concrete rather than accidental:
+  - C-path usually adds one parameter-only row per iterator, expressing non-emptiness of that iterator's bound interval
+  - examples:
+    - `0 <= i <= N-1` gives extra row `N-1 >= 0`
+    - `1 <= j <= N-1` gives extra row `N-2 >= 0`
+    - `4 <= k <= nz+6` gives extra row `nz+2 >= 0`
+- Treat these as statement-domain strengthening candidates, not global context assumptions.
+- Sample confirmation:
+  - on `covcol`, `./polopt --debug-scheduler` shows that the strict-path
+    strengthened source OpenScop already has the C-path domain row counts
+    (`8` rows for statement 1, `5` rows for statement 2)
+
+- A full strict-path strengthened-before comparison has now been run:
+  - strengthened `before.scop` vs C-path `before.scop`: `SCATTERING` matches `62 / 62`, `DOMAIN` matches `52 / 62`
+  - raw Pluto `after.scop` from strengthened-before vs C-path raw `after.scop`: `SCATTERING` matches `62 / 62`
+- Residual domain-only mismatches are currently:
+  - `fusion10`, `fusion2`, `fusion3`, `fusion4`, `fusion8`, `lu`, `nodep`, `ssymm`, `strsm`, `trisolv`
+- Important interpretation:
+  - these residual domain mismatches do not currently change the optimization family on the generated suite
+  - they remain a source-model fidelity debt, but not a current suite blocker
+- Residual domain-only mismatches currently split into:
+  - tautological / obviously redundant extras: `fusion10`, `fusion2`, `fusion3`, `fusion4`, `fusion8`, `nodep`
+  - nontrivial domain normalization mismatches: `lu`, `ssymm`, `strsm`, `trisolv`
+- The nontrivial four are now understood as:
+  - `lu`, `ssymm`, `trisolv`: inner-range non-emptiness strengthening differences
+  - `strsm`: guard/singleton equality normalization (`k == i+1`)
+- The current `StrengthenDomain` repair is no longer the old broad parameter-only heuristic.
+  It now works by:
+  - canceling the current innermost iterator between a lower/upper bound pair
+  - keeping only guards that depend on outer iterators + parameters
+  - leaving `depth = 0` statements unchanged
+  This was the change that closed the strict suite back to `62 / 62`.
+
 ## Operating rules
 - Before and after substantial diagnosis work, update `LOG.md` and keep this file current.
 - Use already-approved container commands only:
