@@ -70,31 +70,48 @@ on `covcol`
 
 - Read `doc/polopt-loop-suite-status.md` before continuing Pluto `.loop` suite work.
 - Read `doc/polopt-success-summary.md` before making claims about what strict-path `polopt` is actually optimizing.
-- Read `doc/polopt-failure-analysis.md` before debugging the remaining `17` failing cases.
+- Read `doc/polopt-failure-analysis.md` before debugging the remaining strict-path failures.
+- Read `doc/polopt-remaining-9-cases.md` before touching the remaining scheduler-validation failures.
 - Read `doc/sinstr-semantics.md` before changing `syntax/SInstr.v` again.
+- Read `doc/source-model-fidelity-goal.md` before evaluating `polopt` success claims against Pluto.
 - Current strict suite artifacts live under:
   - `tests/polopt-generated/inputs/*.loop`
   - `tests/polopt-generated/cases/<case>/`
-- 2026-03-07 strict status:
-  - `45 / 62` pass on the default proved path
+- 2026-03-08 current `.loop` suite status:
+  - total Pluto benchmark cases: `62`
+  - semantics-preserving generated `.loop` inputs: `62`
+  - explicitly unsupported inputs: `0`
+  - strict proved-path successes: `59 / 62` (30s per-case timeout rerun)
   - strict failing set:
-    - `adi`
     - `advect3d`
-    - `corcol`
-    - `corcol3`
-    - `covcol`
-    - `dct`
-    - `doitgen`
-    - `fusion1`
-    - `fusion8`
-    - `jacobi-1d-imper`
-    - `jacobi-2d-imper`
-    - `lu`
-    - `multi-stmt-stencil-seq`
-    - `pca`
-    - `ssymm`
-    - `tricky1`
-    - `trisolv`
+    - `mxv`
+    - `mxv-seq3`
+- Runtime success is no longer the main acceptance criterion; source-model fidelity with the C/Clan `before.scop` remains the north star.
+- The current source-model fidelity bug that was identified and fixed:
+  - `src/PolyLang.v: schedule_to_source_like_rows`
+  - old implementation dropped a middle dynamic schedule dimension during source OpenScop export
+  - minimal Coq reproducer showed extractor internal schedules were correct; the loss happened in source OpenScop export
+  - after the fix, representative extracted `before.scop` scattering metadata now matches C-path source scop on `covcol` and `matmul`
+- The current north star is source-model fidelity with the C/Clan `before.scop`, then parity of Pluto's actual optimization behavior.
+- New key diagnosis after adding `StrengthenDomain`:
+  - strengthening is necessary, but it is not the current top blocker
+  - on representative cases such as `covcol`, strengthened `before.scop`
+    plus Pluto raw `after.scop` already satisfy `polcert = EQ`
+  - the remaining failures are now:
+    - `mxv`, `mxv-seq3`
+      - complete/padded validation view accepts the optimized schedule
+      - strengthened raw/source validation view still rejects it with `res=false`
+      - this is now a schedule-representation mismatch, not a simple source exporter bug
+    - `advect3d`
+      - source scattering metadata now matches the C-path extractor
+      - remaining issue is downstream of source export and currently manifests as runtime cost / timeout
+      - temporary extracted-OCaml timing showed:
+        - `strengthen+scheduler+validate`: about `1.6s`
+        - `codegen`: about `38.5s`
+        - parser / elaboration / pretty-print are negligible
+      - so `advect3d` is a `CodeGen.codegen` performance issue, not a validator issue
+- Division is now preserved end-to-end in the syntax frontend.
+- Pure calls, ternaries, and exact float literals are also preserved.
 - The CLI fallback exporter is no longer in the default path.
 - `SPolOpt.opt` now points back to `PreparedOpt.Opt`; any remaining failures are now on the true proved path, not on a wrapper path.
 - `syntax/SLoopPretty.ml` now does display-only cleanup:

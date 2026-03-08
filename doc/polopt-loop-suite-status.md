@@ -1,41 +1,27 @@
 # Polopt Loop Suite Status
 
-Date: 2026-03-07
+Date: 2026-03-08
 
 Current objective:
-- generate `.loop` versions for the Pluto benchmark suite
-- run them through the strict, proved `polopt` pipeline
+- generate `.loop` versions for the Pluto benchmark suite without changing source semantics
+- run the supported subset through the strict, proved `polopt` pipeline
 
 Current generator and artifacts:
-- host generator script: `tests/polopt-generated/tools/generate_pluto_loops.py`
+- generator script: `tests/polopt-generated/tools/generate_pluto_loops.py`
 - generated input loops: `tests/polopt-generated/inputs/*.loop`
 - per-case strict outputs: `tests/polopt-generated/cases/<case>/`
 
-Current suite size:
-- `62` generated `.loop` files
+Current benchmark split:
+- total Pluto benchmark cases seen by the generator: `62`
+- semantics-preserving `.loop` inputs generated: `62`
+- explicitly unsupported and therefore skipped: `0`
 
 Current strict-path pass rate:
-- `45 / 62` pass the default `./polopt file.loop`
-- `17 / 62` fail
-
-Current strict-path failing set:
-- `adi.loop`
-- `advect3d.loop`
-- `corcol.loop`
-- `corcol3.loop`
-- `covcol.loop`
-- `dct.loop`
-- `doitgen.loop`
-- `fusion1.loop`
-- `fusion8.loop`
-- `jacobi-1d-imper.loop`
-- `jacobi-2d-imper.loop`
-- `lu.loop`
-- `multi-stmt-stencil-seq.loop`
-- `pca.loop`
-- `ssymm.loop`
-- `tricky1.loop`
-- `trisolv.loop`
+- current rerun with a 30s per-case timeout gives `59 / 62`
+- current blocker set:
+  - `advect3d` (`timeout`)
+  - `mxv` (`Scheduler validation failed`)
+  - `mxv-seq3` (`Scheduler validation failed`)
 
 Per-case directory layout:
 - `input.loop`: generated source input
@@ -45,95 +31,73 @@ Per-case directory layout:
 - `status.txt`: exit code and result metadata
 - `stderr.txt`: failure diagnostics, when optimization failed
 
-Current comparison result:
-- `43 / 45` successful cases currently have `changed=true`
-- unchanged successful cases:
-  - `nodep`
-  - `noloop`
+Current successful-but-unchanged set:
+- `1dloop-invar`
+- `dsyr2k`
+- `dsyrk`
+- `floyd`
+- `nodep`
+- `noloop`
+- `strmm`
+- `tmm`
+- `tricky4`
+- `wavefront`
 
-What was already fixed:
-- extractor access bug:
-  - extracted `pi_waccess/pi_raccess` must use `normalize_access_list`
-  - not `normalize_access_list_rev`
-- syntax frontend slot order:
-  - `slot_env env = env.params @ env.loops`
-  - `syntax_slot_names names = names`
-- OpenScop zero-parameter printing:
-  - `Some []` now prints the no-parameter form Pluto/OSL accepts
-- scheduler Pluto flags:
-  - restored README flags such as `--nointratileopt` and `--nodiamond-tile`
-- scheduler-side source-aware decode:
-  - syntax path uses `from_openscop_like_source`
-- pretty-printer cleanup:
-  - singleton `range(e, e+1)` loops print as let-like substitutions
-  - expressions and tests are simplified before printing
+What changed in this round:
+- `.loop` generation is no longer allowed to silently change benchmark semantics
+- syntax frontend now supports `/` in instruction RHS expressions
+- syntax frontend now supports:
+  - pure calls
+  - ternary expressions
+  - arbitrary-precision float literals
+- `/=` is lowered as `x = x / y`
+- calls/ternaries/floats are preserved instead of approximated or rejected
+- source-aware OpenScop import now reliably round-trips the current source model:
+- padded scattering detection accepts a nonzero tail constant row
+- importer refills schedules from the source template while preserving structural zero constant slots
+- source scattering export now preserves middle constant schedule rows in the OpenScop shape expected by Pluto/Clan for imperfect nests
+- source scattering export now also preserves leading constant schedule dimensions without inserting a spurious zero row first
+- true proved path now includes `StrengthenDomain`
+- optimized OpenScop import now uses a hybrid strategy:
+  - preserve source-template refill when Pluto's optimized scattering still matches the source-like family
+  - fall back to compact/schedule-only import when refill would distort the optimized scattering
 
-Important current classification:
-
-1. Roundtrip-before already fails
+Newly recovered because `/` is now preserved rather than rewritten to `*`:
 - `adi`
-- `corcol`
-- `corcol3`
-- `dct`
 - `doitgen`
-- `pca`
-
-Interpretation:
-- the source-aware OpenScop export/import path is not idempotent even before Pluto changes the schedule
-- these cases are not yet stable source models for the strict scheduler path
-
-2. Roundtrip-before succeeds, but scheduled result fails
-- `advect3d`
-- `covcol`
-- `fusion1`
-- `fusion8`
-- `jacobi-1d-imper`
-- `jacobi-2d-imper`
 - `lu`
-- `multi-stmt-stencil-seq`
-- `ssymm`
-- `tricky1`
 - `trisolv`
 
-Interpretation:
-- these cases are self-consistent under our own source-aware roundtrip
-- but Pluto’s scheduled result is rejected by validator on the strict proved path
+Newly supported and successful after frontend extension:
+- `fdtd-2d`
+- `floyd`
 
-3. Comparison to original C path
-- for all `17 / 17` failures:
-  - our extracted source scop vs the benchmark’s original `*.beforescheduling.scop`
-  - `polcert` returns `NE`
+Important current interpretation:
 
-Interpretation:
-- even the “roundtrip-before true” cases are only self-consistent with our own source model
-- they are still not the same source model that Clan/Pluto extracts from the original C benchmark
+1. Successful set
+- these are genuine runs of the strict proved path:
+  - `SPolOpt.opt = PreparedOpt.Opt`
+- they are the trustworthy baseline for what the current optimizer actually handles
 
-Important debugging result:
-- for the remaining failures, the root issue was not `eqdom` or `valid_access`
-- the failing component is `res` inside validator
-- this means:
-  - domains, transformations, and access self-checks are accepted
-  - the remaining failure is schedule/dependence validation
+2. Current blocker split
+- the old `8`-case split is stale after the latest source-scattering exporter fix
+- `fusion1` and `multi-stmt-stencil-seq` now recover under the strict path
+- `mxv` and `mxv-seq3` are now the clearest representation-sensitive failures:
+  - complete/padded validation view accepts the optimized schedule
+  - strengthened raw/source validation view still rejects it with `res=false`
+- `advect3d` has moved out of the pure source-fidelity bucket:
+  - source scattering metadata now matches the C-path extractor
+  - remaining trouble is downstream of source export
 
-Important source-model results:
-- `covcol` is representative of the “same schedule skeleton, weaker domain” bucket:
-  - the extracted source scop misses parameter-only guards such as `M - 1 >= 0` and `N - 1 >= 0`
-- `jacobi-1d-imper` and `jacobi-2d-imper` are representative of the “different source schedule skeleton” bucket:
-  - Clan/Pluto extracts a time-expanded affine source schedule
-  - the generated `.loop` model does not reproduce that structure
-- `adi`, `dct`, and `pca` are representative of the “source scop not even stable enough for readscop/roundtrip” bucket
+3. Strengthening is necessary but not sufficient
+- `StrengthenDomain` fixes the missing parameter-only guard issue on the previously failing six cases
+- direct Pluto runs on strengthened source scop show that the raw optimized `after.scop` can already satisfy `polcert = EQ`
+- the remaining failures are therefore downstream of source-domain strengthening, in optimized OpenScop import
 
-Important generator result:
-- the current `.loop` generator is intentionally lossy on several constructs:
-  - division is rewritten as multiplication
-  - `sqrt` is collapsed
-  - ternaries are collapsed
-- this directly affects at least:
-  - `adi`
-  - `corcol3`
-  - `lu`
-  - `pca`
-  - `trisolv`
+Important runtime facts:
+- `polopt` is on the strict proved path only; the CLI fallback exporter is gone
+- `polcert` still uses `from_openscop_complete`
+- `polopt` still uses the source-aware scheduler decode in `syntax/SPolIRs.v`
 
 Reference analysis:
 - [polopt-success-summary.md](./polopt-success-summary.md)
@@ -141,7 +105,6 @@ Reference analysis:
 - [openscop-representation-gap.md](./openscop-representation-gap.md)
 
 High-value next steps:
-1. Improve generator/source-model fidelity for imperfect nests and reductions.
-2. Restore missing parameter-only domain guards in the exported source scop.
-3. Recover the `11` scheduled-only failures by fixing the generic `SPolIRs.scheduler` path rather than reintroducing a CLI-only wrapper.
-4. Re-run the full `62` benchmark suite after each change and keep this file updated.
+1. Keep the proved runtime path strict; do not reintroduce CLI-only fallbacks.
+2. For the importer-only bucket (`corcol3`, `dct`, `gemver`, `mxv`, `pca`), continue refining optimized schedule import without regressing the successful source-like family cases.
+3. For the raw-NE bucket (`advect3d`, `fusion1`, `multi-stmt-stencil-seq`), compare source `before.scop` against the C/Clan path and isolate the remaining source-model mismatch.

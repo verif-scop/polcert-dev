@@ -62,6 +62,6 @@ But it is still semantically meaningful:
 - `opam exec -- make test` passes
 - `check-admitted` still reports `Nothing admitted.`
 - strict `polopt` batch coverage remains:
-  - `45 / 62`
+  - `53 / 62`
 
 So this change improves the quality of the `SPolIRs` instance without changing the currently observed strict proved-path coverage.

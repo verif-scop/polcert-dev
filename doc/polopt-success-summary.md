@@ -6,11 +6,19 @@ Scope:
 - strict runtime path only
 - `polopt` runs the proved path directly
 - suite root: `/polcert/tests/polopt-generated`
-- result: `45 / 62` succeed
+- result: `53 / 62` succeed
 
-Two successful cases are effectively unchanged:
+Ten successful cases are effectively unchanged:
 - `nodep`
 - `noloop`
+- `1dloop-invar`
+- `dsyr2k`
+- `dsyrk`
+- `floyd`
+- `strmm`
+- `tmm`
+- `tricky4`
+- `wavefront`
 
 So the current strict path produces a nontrivial transformed loop on `43 / 62` cases.
 
