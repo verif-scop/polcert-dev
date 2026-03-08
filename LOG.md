@@ -10,7 +10,8 @@ Date: 2026-03-08
 ## Current proved state
 - `src/Extractor.v`: `extractor_correct` is `Qed`
 - `src/PrepareCodegen.v`: `prepare_codegen_semantics_correct` is `Qed`
-- `driver/PolOptPrepared.v`: `Opt_correct` is `Qed`
+- `driver/PolOpt.v`: final `Opt_correct` is `Qed`
+- `driver/PolOptPrepared.v`: now just re-exports `PolOpt`
 - `opam exec -- make -s check-admitted`: `Nothing admitted.`
 
 ## Clean-build fact
@@ -30,6 +31,25 @@ Date: 2026-03-08
 ## Current runtime status
 - `opam exec -- make test`: green
 - strict proved-path `polopt` suite: `62 / 62`
+- `syntax/SPolOpt.v`: `opt = CoreOpt.Opt`, so the CLI now runs the same final `Opt` defined in `driver/PolOpt.v`
+- Clean acceptance rerun completed successfully with:
+  - `make clean`
+  - `opam exec -- make depend`
+  - `opam exec -- make proof`
+  - `opam exec -- make -s check-admitted`
+  - `opam exec -- make extraction`
+  - `opam exec -- make polopt`
+  - `opam exec -- make polcert.ini`
+  - `opam exec -- make polcert`
+  - strict generated-suite rerun: `62 / 62`
+
+## `PolOpt.v` consolidation
+- `driver/PolOpt.v` now contains the final verified optimizer definition.
+- The old raw pipeline was renamed to `Opt_raw`.
+- The final strengthened+prepared optimizer is now:
+  - `Opt_prepared`
+  - `Opt = Opt_prepared`
+- `driver/PolOptPrepared.v` was reduced to a compatibility wrapper that re-exports `PolOpt`.
 
 ## Runtime fixes that survived
 

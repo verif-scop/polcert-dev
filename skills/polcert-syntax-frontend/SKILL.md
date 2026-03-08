@@ -21,7 +21,7 @@ Use this skill when working on the isolated `syntax/` frontend for PolCert.
 
 ## Current status
 - `polopt` now defaults to the strict proved path again:
-  - `syntax/SPolOpt.v: opt = PreparedOpt.Opt`
+  - `syntax/SPolOpt.v: opt = CoreOpt.Opt`
 - The old CLI fallback is gone.
 - The generated `.loop` suite currently passes `45 / 62` on the strict path.
 

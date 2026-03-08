@@ -69,12 +69,19 @@
 ## Current proved state
 - `src/Extractor.v`: `extractor_correct` is `Qed`
 - `src/PrepareCodegen.v`: `prepare_codegen_semantics_correct` is `Qed`
-- `driver/PolOptPrepared.v`: `Opt_correct` is `Qed`
+- `driver/PolOpt.v`: final `Opt_correct` is `Qed`
+- `driver/PolOptPrepared.v`: compatibility wrapper re-exporting `PolOpt`
 - `check-admitted`: `Nothing admitted.`
 
 ## Current runtime state
 - `make test` is green
 - Current proved-path `polopt` strict suite: `62 / 62` succeed
+- `syntax/SPolOpt.v`: `opt = CoreOpt.Opt`
+- `driver/PolOpt.v` now contains the final verified optimizer definition:
+  - `Opt_raw` is the old raw pipeline
+  - `Opt_prepared` is the strengthened+prepared final pipeline
+  - `Opt = Opt_prepared`
+- `driver/PolOptPrepared.v` is now only a compatibility wrapper.
 - `advect3d` is not a semantic blocker; most runtime is still in `CodeGen.codegen`
 - `mxv` / `mxv-seq3` were fixed by repairing compact/pad design at the schedule representation level, not by modifying `Validator` and not by a validation-only branch
 - Current clean acceptance rerun status:
@@ -107,6 +114,10 @@
   - import optimized schedules with `from_openscop_schedule_only`
   - canonicalize schedules with a program-wide row mask, not per-statement local zero-row deletion
 - With that repair in place, both `mxv` and `mxv-seq3` now pass on the proved path, and the full strict suite is `62 / 62`.
+- Do not forget the design lesson:
+  - ideal `pad`/`compact` should be symmetric and semantics-preserving
+  - the broken compact was not global enough to be a true inverse of padding
+  - fixes belong in schedule representation design, not in validator-side special cases
 - Record this explicitly when resuming work:
   - the key design bug was that compaction was local to each instruction schedule
   - zero rows were treated as removable formatting, but in multi-statement programs they carry the shared global schedule skeleton
@@ -121,6 +132,7 @@
 - `StrengthenDomain` is needed, but it is domain-only. Do not reintroduce schedule rewriting there.
 - The earlier top-level VPL symlink workaround was wrong. Do not reintroduce it.
 - The direct cause of the earlier clean-build failure was running `make depend` outside `opam exec`; `coqdep` was simply missing from PATH.
+- `PolOptPrepared.v` is no longer the place to read the final verified optimizer definition; that logic now lives in `driver/PolOpt.v`.
 - C-path Pluto remains the oracle for optimization behavior, but do not use cross-source `polcert(our_before, c_before)` as an equality oracle because OpenScop metadata differs.
 - For whole-suite source/after comparisons:
   - exact row-string equality is too strong because comments, names, and IDs differ

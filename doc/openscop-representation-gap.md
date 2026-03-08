@@ -7,7 +7,10 @@ Date: 2026-03-06
 This note records the runtime issue that showed up after the proof work was closed:
 
 - `polcert` must validate Pluto `before/after` scop pairs
-- `polopt` must run the proved `PolOptPrepared` pipeline
+- `polopt` must run the final proved pipeline exposed by `driver/PolOpt.v`
+- Current code state:
+  - `driver/PolOpt.v` is the canonical place to read the verified optimizer
+  - `driver/PolOptPrepared.v` is only a compatibility wrapper
 - `covcol` is the concrete regression-driving example
 
 The proof layer was not the blocker. The problem lived in the extracted runtime representation.
@@ -91,7 +94,7 @@ The remaining `OpenScop` parser/exporter work in `src/PolyLang.v` is still relev
 
 - is back on the single-object path
 - `syntax/SPolOpt.v` now uses:
-  - `opt = PreparedOpt.Opt`
+  - `opt = CoreOpt.Opt`
   - `opt_poly = CoreOpt.scheduler' ; Prepare.prepared_codegen`
 
 So the temporary split workaround:
