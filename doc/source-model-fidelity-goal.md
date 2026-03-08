@@ -219,6 +219,66 @@ On `covcol`, the following experiment isolates the real remaining bug:
 2. run Pluto directly on that file,
 3. compare Pluto's raw `after.scop` with the `scheduled` poly re-exported by the strict `polopt` path.
 
+## Why validator is sensitive to schedule shape
+
+The relevant point is not that validator compares "metadata formats". It uses
+the schedule rows directly to encode happens-before relations.
+
+For a schedule
+
+- `[f1; f2; f3]`
+
+the timestamp of a point `p` is the vector:
+
+- `[f1(p); f2(p); f3(p)]`
+
+and order is lexicographic on that vector.
+
+`Validator.validate_two_instrs` builds:
+
+- `old_sched_lt_polys := make_poly_lt old_sched1 old_sched2 ...`
+- `new_sched_ge_polys := make_poly_ge new_sched1 new_sched2 ...`
+
+Then `validate_lt_ge_pair` checks whether there exists a *single pair of
+points* that simultaneously satisfies:
+
+- same-location / in-domain constraints,
+- old-before (`old_sched_lt`),
+- new-not-before (`new_sched_ge`).
+
+So old/new are linked through the same witness pair of points, not by comparing
+two booleans after the fact.
+
+For `mxv`, the important observation is that the "zero rows" are not always
+redundant. Example:
+
+- source-like old statement order: `[0; i; 1; j; 0]`
+- compact form used internally: `[i; 1; j]`
+- optimized schedule may look like: `[1; i; j]`
+
+Dropping the leading zero does not preserve the earliest lexicographic
+difference against another statement whose first component is the constant `1`.
+In other words, compacting rows changes the actual order relation used by
+validation.
+
+This corrects an earlier misconception. The right long-term fix is not to add a
+special validation-only pass for `mxv`. The real issue is that the current
+compact schedule representation is not semantics-preserving in this class of
+multi-statement programs. The design target is therefore:
+
+- repair compact / canonical schedule handling itself,
+- keep the strict runtime path equal to the proved path,
+- avoid mxv-specific logic,
+- and recover the same optimization behaviour as the C-path Pluto flow on all
+  benchmark cases.
+
+The current working hypothesis is:
+
+- source-like padded schedules are the safe canonical representation,
+- compacting schedule rows must be a global, program-wide transformation that
+  preserves lexicographic order across statements,
+- and the current per-statement local zero-row removal is too weak for that.
+
 Observed result:
 
 - `polcert(strengthened_before_raw_scop, pluto_raw_after_scop) = EQ`

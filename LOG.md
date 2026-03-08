@@ -219,6 +219,23 @@ Date: 2026-03-06
   - `corcol`, `costfunc`, `covcol`, `intratileopt3`, `shift`, `tricky1`
   but regressed `22` previously successful cases.
 
+## 2026-03-08 compact schedule design correction
+
+- The main remaining semantic issue is no longer described as "need a
+  validation-only normalization pass".
+- That would hide the actual design bug.
+- The corrected diagnosis is:
+  - current compact schedule handling is not semantics-preserving for some
+    multi-statement programs, especially `mxv` / `mxv-seq3`
+  - zero rows in source-like schedules are not merely formatting; they carry
+    global timestamp alignment information across statements
+  - per-statement local zero-row removal is therefore too weak
+- The design target is now:
+  - repair compact / canonical schedule handling itself
+  - keep the strict runtime path equal to the proved path
+  - avoid mxv-specific logic
+  - recover C-path Pluto-equivalent optimisation behaviour on the full suite
+
 ## 2026-03-08 source-scattering exporter and remaining strict blockers
 
 - Fixed another source OpenScop exporter bug in `src/PolyLang.v`:

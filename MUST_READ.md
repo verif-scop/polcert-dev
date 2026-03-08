@@ -93,6 +93,16 @@ on `covcol`
   - minimal Coq reproducer showed extractor internal schedules were correct; the loss happened in source OpenScop export
   - after the fix, representative extracted `before.scop` scattering metadata now matches C-path source scop on `covcol` and `matmul`
 - The current north star is source-model fidelity with the C/Clan `before.scop`, then parity of Pluto's actual optimization behavior.
+- Important correction:
+  - the remaining `mxv` / `mxv-seq3` issue should not be treated as a reason to
+    insert an ad hoc validation-only normalization pass
+  - the design bug is in compact schedule handling itself
+  - source-like zero rows are semantically relevant for cross-statement global
+    timestamp alignment
+  - current local zero-row removal is not trustworthy as a semantics-preserving
+    compact representation
+  - the repair target is a correct global compact/canonical schedule design,
+    while keeping strict runtime path = proved path
 - New key diagnosis after adding `StrengthenDomain`:
   - strengthening is necessary, but it is not the current top blocker
   - on representative cases such as `covcol`, strengthened `before.scop`
