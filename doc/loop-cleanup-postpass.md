@@ -9,14 +9,17 @@ Date: 2026-03-06
 
 ## Current status
 - As of 2026-03-08, the strict proved-path `polopt` suite is back to `62 / 62`.
-- Therefore this cleanup pass is no longer part of the semantic blocker set.
-- It is now purely about:
-  - improving the readability / normal form of generated `Loop` code
-  - keeping the cleanup inside the proved pipeline later, instead of leaving it
-    as an OCaml-only pretty-print effect
-- This strengthens the engineering recommendation:
-  - do not change `CodeGen` first
-  - add a separate verified `Loop -> Loop` cleanup pass after codegen
+- The cleanup pass is no longer only a design note:
+  - `polygen/LoopCleanup.v` now exists
+  - it is integrated into `src/PrepareCodegen.v`
+  - it runs after `CodeGen.codegen` inside the proved path
+- What is implemented and verified today:
+  - expression/test simplification
+  - structural cleanup for `Seq` / trivial `Guard`
+- What is still deferred:
+  - singleton-loop elimination by substitution
+- Therefore the remaining gap is no longer “whether to move cleanup into Coq”,
+  but “how far to push the verified cleanup beyond the first two layers”.
 
 ## Current Position
 - The experimental path
@@ -202,16 +205,19 @@ This is better than immediately reworking PolyGen internals, because it:
 - avoids destabilizing the existing verified codegen story,
 - and directly targets the observed artifacts.
 
-## Proposed Minimal Deliverable
+## Delivered So Far
 
-If implemented later, the minimal verified cleanup pass should do:
+The currently delivered verified cleanup pass already does:
 
 1. expression simplification
 2. test simplification
 3. `Seq`/`Guard` cleanup
+
+The missing part is still:
+
 4. singleton loop elimination by substitution
 
-That is enough to materially improve the current generated shape.
+That remaining fourth step is now the natural next extension.
 
 ## Recommended proof decomposition
 
@@ -257,7 +263,7 @@ three separately testable and separately provable layers.
 
 ## Practical recommendation
 
-If this is taken on later, the order should be:
+The order remains:
 
 1. implement Layer 1 in Coq and prove it
 2. implement Layer 2 in Coq and prove it

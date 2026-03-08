@@ -169,6 +169,21 @@ Date: 2026-03-08
   - guard/seq cleanup
   - singleton-loop elimination via verified substitution
 
+## Cleanup pass integration
+- `polygen/LoopCleanup.v` is now implemented and compiled.
+- `src/PrepareCodegen.v` now wraps codegen with:
+  - `Cleanup.cleanup`
+- Current clean build + strict rerun confirms the cleanup pass is in the proved
+  path:
+  - `Nothing admitted`
+  - README clean build succeeds
+  - strict suite remains `62 / 62`
+- Implemented cleanup layers:
+  - expression/test simplification
+  - structural cleanup for `Seq` / trivial `Guard`
+- Deferred layer:
+  - singleton-loop elimination by substitution
+
 ## Strengthened-before / raw-after comparison
 - Full-suite strict-path comparison was run using strengthened source `before.scop` extracted from `polopt --debug-scheduler`, then raw `pluto --readscop`.
 - Results:

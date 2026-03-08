@@ -118,6 +118,7 @@
 - `src/PrepareCodegen.v`: `prepare_codegen_semantics_correct` is `Qed`
 - `driver/PolOpt.v`: final `Opt_correct` is `Qed`
 - `driver/PolOptPrepared.v`: compatibility wrapper re-exporting `PolOpt`
+- `polygen/LoopCleanup.v`: cleanup pass after codegen is implemented
 - `check-admitted`: `Nothing admitted.`
 
 ## Current runtime state
@@ -131,6 +132,7 @@
 - `driver/PolOptPrepared.v` is now only a compatibility wrapper.
 - `advect3d` is not a semantic blocker; most runtime is still in `CodeGen.codegen`
 - `mxv` / `mxv-seq3` were fixed by repairing compact/pad design at the schedule representation level, not by modifying `Validator` and not by a validation-only branch
+- `prepared_codegen` now applies a verified cleanup pass after codegen.
 - Current clean acceptance rerun status:
   - `opam exec -- make depend`
   - `opam exec -- make proof`
@@ -141,17 +143,28 @@
   - `opam exec -- make polcert`
   - strict suite rerun: `62 / 62`
 
+## Cleanup pass status
+- `polygen/LoopCleanup.v` is now part of the proved pipeline.
+- `src/PrepareCodegen.v` now does:
+  - `prepare_codegen`
+  - `CodeGen.codegen`
+  - `Cleanup.cleanup`
+- The currently verified cleanup layers are:
+  - expression/test simplification
+  - structural cleanup for `Seq` / trivial `Guard`
+- The deferred part is still:
+  - singleton-loop elimination by substitution
+- The OCaml pretty-printer still does display-only simplification, but these first two cleanup layers are no longer OCaml-only.
+
 ## Pending engineering follow-ups
 - Add GitHub CI to the source repo:
   - run the README build flow under `opam exec`
   - run `check-admitted`
   - run `make test`
   - run the strict `polopt` generated-suite regression
-- Move the current OCaml-only loop simplification/pretty normalization toward a verified Coq cleanup pass after codegen:
-  - expression/test simplification
-  - guard/seq cleanup
+- Continue the verified cleanup pass after codegen:
   - singleton-loop elimination via verified substitution
-  - keep the pretty-printer thin once the Coq pass exists
+  - then keep shrinking the OCaml pretty-printer toward display-only logic
 
 ## Current `mxv` / `mxv-seq3` diagnosis
 - The earlier diagnosis was correct in substance: the bug was in compact/pad design, not in `Validator`.
