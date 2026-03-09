@@ -318,3 +318,6 @@ Theorem cleanup_correct_iff :
 - Yes: the current ugly shape is largely explained by equalities such as `i2 = i0`.
 - Yes: a verified post-pass is the right place to clean it.
 - No: this should not be implemented yet before the current pipeline state is documented and stabilized.
+
+## Affine Normalization Status
+The first cleanup layer now includes Coq-verified affine normalization for additive expressions and simple affine `LE` tests. This subsumes the old OCaml-side pretty simplification for cases such as `1 + (M + -1) -> M` and `(-1 * N) <= -1 -> 1 <= N`. Remaining OCaml pretty-printing should be treated as display-only.

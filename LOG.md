@@ -186,6 +186,11 @@ Date: 2026-03-08
   - `polygen/LoopSingletonCleanup.v`
 - `src/PrepareCodegen.v` now instantiates cleanup from `LoopSingletonCleanup`
   rather than the earlier two-layer module.
+- `syntax/SLoopPretty.ml` has now been reduced to display-layer duties:
+  - formatting / indentation
+  - fresh loop-variable naming
+  - raw loop / instr / test rendering
+  - no OCaml-side semantic cleanup remains
 
 ## Strengthened-before / raw-after comparison
 - Full-suite strict-path comparison was run using strengthened source `before.scop` extracted from `polopt --debug-scheduler`, then raw `pluto --readscop`.
@@ -222,3 +227,5 @@ Date: 2026-03-08
   - `ssymm`: derive `j-2 >= 0`
   - `trisolv`: derive `j-1 >= 0`
   - `strsm`: normalize `k == i+1` as equality
+
+- 2026-03-08: Ported affine simplification from `SLoopPretty.ml` into Coq `LoopCleanup` and rebuilt `polopt`. The proved cleanup now normalizes additive affine forms and simple affine guards; representative output (`intratileopt1`) again prints `if (1 <= N)` and `range(0, M)` from the Coq pass, not from OCaml pretty simplification. Strict suite rerun remains `62/62`, `changed=52`, `unchanged=10`.

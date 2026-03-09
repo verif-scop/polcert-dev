@@ -157,6 +157,11 @@
   - `polygen/LoopSingletonCleanup.v`
 - `src/PrepareCodegen.v` now routes cleanup through that module.
 - The OCaml pretty-printer remains display-only; the semantic cleanup is now in Coq.
+- `syntax/SLoopPretty.ml` should not reintroduce cleanup logic:
+  - no expression/test simplification
+  - no guard simplification
+  - no singleton-loop let-like rewriting
+  - keep it to formatting, naming, and raw rendering only
 
 ## Pending engineering follow-ups
 - Add GitHub CI to the source repo:
