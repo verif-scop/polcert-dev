@@ -229,3 +229,5 @@ Date: 2026-03-08
   - `strsm`: normalize `k == i+1` as equality
 
 - 2026-03-08: Ported affine simplification from `SLoopPretty.ml` into Coq `LoopCleanup` and rebuilt `polopt`. The proved cleanup now normalizes additive affine forms and simple affine guards; representative output (`intratileopt1`) again prints `if (1 <= N)` and `range(0, M)` from the Coq pass, not from OCaml pretty simplification. Strict suite rerun remains `62/62`, `changed=52`, `unchanged=10`.
+
+- 2026-03-08: refreshed /polcert README, syntax README, and polopt suite README to describe the consolidated verified PolOpt pipeline, proof boundary, and current 62/62 strict-suite status.
