@@ -149,12 +149,14 @@
   - `prepare_codegen`
   - `CodeGen.codegen`
   - `Cleanup.cleanup`
-- The currently verified cleanup layers are:
+- The cleanup stack now has three verified layers:
   - expression/test simplification
   - structural cleanup for `Seq` / trivial `Guard`
-- The deferred part is still:
   - singleton-loop elimination by substitution
-- The OCaml pretty-printer still does display-only simplification, but these first two cleanup layers are no longer OCaml-only.
+- The singleton pass lives in:
+  - `polygen/LoopSingletonCleanup.v`
+- `src/PrepareCodegen.v` now routes cleanup through that module.
+- The OCaml pretty-printer remains display-only; the semantic cleanup is now in Coq.
 
 ## Pending engineering follow-ups
 - Add GitHub CI to the source repo:

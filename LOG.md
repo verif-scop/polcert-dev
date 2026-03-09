@@ -181,8 +181,11 @@ Date: 2026-03-08
 - Implemented cleanup layers:
   - expression/test simplification
   - structural cleanup for `Seq` / trivial `Guard`
-- Deferred layer:
   - singleton-loop elimination by substitution
+- The singleton layer was added in:
+  - `polygen/LoopSingletonCleanup.v`
+- `src/PrepareCodegen.v` now instantiates cleanup from `LoopSingletonCleanup`
+  rather than the earlier two-layer module.
 
 ## Strengthened-before / raw-after comparison
 - Full-suite strict-path comparison was run using strengthened source `before.scop` extracted from `polopt --debug-scheduler`, then raw `pluto --readscop`.
