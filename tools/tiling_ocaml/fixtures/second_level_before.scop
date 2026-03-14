@@ -1,0 +1,30 @@
+<openscop>
+<strings>
+</strings>
+
+# =============================================== Statement 1
+DOMAIN
+2 3 1 0 0 0
+# | k | |
+1 1 0
+1 -1 63
+
+SCATTERING
+2 5 2 1 0 0
+# | s0 s1 | k | |
+0 1 0 0 0
+0 0 1 -1 0
+
+WRITE
+1 4 1 1 0 0
+# | A0 | k | |
+0 1 -1 0
+
+<body>
+# List of original iterators
+k
+# Statement body expression
+A[k] = 0;
+</body>
+</openscop>
+

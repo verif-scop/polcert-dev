@@ -1,0 +1,5 @@
+(executable
+ (name pluto_tiling_ocaml)
+ (modules tiling_core pluto_tiling_ocaml)
+ (libraries yojson))
+

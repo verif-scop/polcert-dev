@@ -1,0 +1,34 @@
+{
+  "before": "fixtures/second_level_before.scop",
+  "after": "fixtures/second_level_after.scop",
+  "params": [],
+  "statements": [
+    {
+      "statement": 1,
+      "original_iterators": ["k"],
+      "tiled_iterators": ["f1", "f0", "k"],
+      "added_iterators": ["f1", "f0"],
+      "links": [
+        {
+          "parent": "f1",
+          "tile_size": 32,
+          "expr": {
+            "var_coeffs": [["k", 1]],
+            "param_coeffs": [],
+            "const": 0
+          }
+        },
+        {
+          "parent": "f0",
+          "tile_size": 8,
+          "expr": {
+            "var_coeffs": [["ghost", 1]],
+            "param_coeffs": [],
+            "const": 0
+          }
+        }
+      ]
+    }
+  ]
+}
+

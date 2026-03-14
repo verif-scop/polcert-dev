@@ -100,3 +100,38 @@ Date: 2026-03-05
   - algebraic simplification of `expr` / `test`
   - `Seq` / trivial `Guard` cleanup
   - singleton-loop elimination (`for x in [e, e+1)`) via verified substitution
+
+## Progress Update (2026-03-09, tiling)
+- Built an experimental OCaml tiling validator into container `polopt`:
+  - `./polopt --extract-tiling-witness-openscop before.scop after.scop`
+  - `./polopt --validate-tiling-openscop before.scop after.scop`
+- Current OCaml structure is now explicit:
+  - extract witness
+  - check witness
+  - validate = extract + check
+- Current validated Pluto tiling families:
+  - basic tiling
+  - second-level tiling
+  - skewed tiling
+  - diamond tiling
+- Supporting parser work was also necessary:
+  - `OpenScopParser.mly` now skips Pluto `<loop>` extensions instead of failing to parse them
+- First Coq tiling formalization entry is now concrete, not just a note:
+  - `src/TilingWitness.v`
+  - currently formalizes:
+    - affine expression evaluation
+    - `tile_parent = floor(phi / T)`
+    - interval soundness for one link
+    - lifted-point length/suffix properties
+
+## Near-Term Next
+1. Replace the temporary padded-transformation `Admitted` theorems in `src/TilingRelation.v`.
+2. Keep the current runtime split explicit:
+  - validator-side padded transformation
+  - syntax/codegen-side source-argument lifted transformation
+3. Investigate and, if practical, eliminate the residual runtime warning:
+  - `isl_map.c:12117: number of columns too small`
+4. Preserve the current phase-aligned consumption structure:
+  - `polcert`: 2-input auto, 3-input phase-aligned
+  - `polopt`: affine-only Pluto, then tile-only Pluto, then two validation gates
+5. After the padded-transformation proof debt is closed, re-check whether any of the now-debug-only syntax hooks can be simplified or removed.
