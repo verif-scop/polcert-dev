@@ -61,8 +61,8 @@ let affine_relation before_path after_path =
   let scop2 = read_scop_or_fail after_path in
   let pol1 = import_complete_or_fail before_path scop1 in
   let pol2 = import_complete_or_fail after_path scop2 in
-  let (res1, ok1) = TVal.validate pol1 pol2 in
-  let (res2, ok2) = TVal.validate pol2 pol1 in
+  let (res1, ok1) = validate pol1 pol2 in
+  let (res2, ok2) = validate pol2 pol1 in
   (ok1, res1, ok2, res2)
 
 let affine_forward before_path after_path =
@@ -70,7 +70,7 @@ let affine_forward before_path after_path =
   let scop2 = read_scop_or_fail after_path in
   let pol1 = import_complete_or_fail before_path scop1 in
   let pol2 = import_complete_or_fail after_path scop2 in
-  let (res, ok) = TVal.validate pol1 pol2 in
+  let (res, ok) = validate pol1 pol2 in
   (ok, res)
 
 let coeff_of_assoc assoc name =
@@ -202,101 +202,6 @@ let canonicalize_tiled_after before_pol after_path after_scop ws =
            "cannot import %s as a schedule over the canonical tiled skeleton: %s"
            after_path
            (string_of_coq_err msg))
-
-let split_at_int n xs =
-  let rec go i left = function
-    | [] -> (List.rev left, [])
-    | rest when i <= 0 -> (List.rev left, rest)
-    | x :: tl -> go (i - 1) (x :: left) tl
-  in
-  go n [] xs
-
-let insert_zero_coeffs_after_env env_size added_dim (coeffs, c) =
-  let env_coeffs, rest = split_at_int env_size coeffs in
-  (env_coeffs @ List.init added_dim (fun _ -> Camlcoq.Z.zero) @ rest, c)
-
-let identity_affine_row total_cols pos =
-  ( List.init total_cols (fun i ->
-        if i = pos then Camlcoq.Z.one else Camlcoq.Z.zero),
-    Camlcoq.Z.zero )
-
-let pad_transformation_after_env env_size added_dim tf =
-  let tf_lifted = List.map (insert_zero_coeffs_after_env env_size added_dim) tf in
-  let env_rows, point_rows = split_at_int env_size tf_lifted in
-  let total_cols =
-    match tf_lifted with
-    | (coeffs, _) :: _ -> List.length coeffs
-    | [] -> env_size + added_dim
-  in
-  let added_rows =
-    List.init added_dim (fun i -> identity_affine_row total_cols (env_size + i))
-  in
-  env_rows @ added_rows @ point_rows
-
-let print_tiling_validate_components label pp1 pp2 =
-  let ((pil1, varctxt1), _) = pp1 in
-  let ((pil2, _), _) = pp2 in
-  let env_dim = nat_of_int (List.length varctxt1) in
-  let (wf1_res, wf1_ok) = TilingVal.check_wf_polyprog pp1 in
-  let (wf2_res, wf2_ok) = TilingVal.check_wf_polyprog pp2 in
-  let (eqdom_res, eqdom_ok) = TilingVal.coq_EqDom pp1 pp2 in
-  let pil_ext = Tiling.PL.compose_pinstrs_ext pil1 pil2 in
-  let access_ok = TilingVal.check_valid_access pil_ext in
-  let (sched_res, sched_alarm_ok) =
-    TilingVal.validate_instr_list (List.rev pil_ext) env_dim
-  in
-  Printf.eprintf
-    "[tiling-debug] %s wf1=%b(ok=%b) wf2=%b(ok=%b) eqdom=%b(ok=%b) access=%b sched=%b(ok=%b)\n"
-    label wf1_res wf1_ok wf2_res wf2_ok eqdom_res eqdom_ok access_ok sched_res
-    sched_alarm_ok
-
-let check_pinstr_tiling_padded_tf before_pi after_pi before_ctxt w =
-  let env_size = List.length before_ctxt in
-  let cw = Tiling.compiled_pinstr_tiling_witness w in
-  TilingCheck.check_statement_tiling_witnessb
-    (nat_of_int env_size)
-    w
-  &&
-  PeanoNat.Nat.eqb w.stw_point_dim (Tiling.PL.pi_depth before_pi)
-  &&
-  TPolIRs.TPolIRs.Instr.eqb
-    (Tiling.PL.pi_instr after_pi)
-    (Tiling.PL.pi_instr before_pi)
-  &&
-  Camlcoq.Nat.to_int (Tiling.PL.pi_depth after_pi)
-  =
-  (Camlcoq.Nat.to_int (Tiling.PL.pi_depth before_pi)
-   + List.length w.stw_links)
-  &&
-  Tiling.PL.pi_transformation after_pi
-  =
-  pad_transformation_after_env
-    env_size
-    (List.length w.stw_links)
-    (Tiling.PL.pi_transformation before_pi)
-  &&
-  Tiling.PL.pi_poly after_pi
-  =
-  (Tiling.ptw_link_domain cw)
-  @
-  (Tiling.lifted_base_domain_after_env
-     (nat_of_int env_size)
-     cw
-     (Tiling.PL.pi_poly before_pi))
-  &&
-  Tiling.PL.pi_waccess after_pi
-  =
-  Tiling.lifted_accesses_after_env
-    (nat_of_int env_size)
-    cw
-    (Tiling.PL.pi_waccess before_pi)
-  &&
-  Tiling.PL.pi_raccess after_pi
-  =
-  Tiling.lifted_accesses_after_env
-    (nat_of_int env_size)
-    cw
-    (Tiling.PL.pi_raccess before_pi)
 
 let run_tiling_pair before_path after_path =
   let before_scop = read_scop_or_fail before_path in

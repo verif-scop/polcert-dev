@@ -14,7 +14,7 @@ Require Import TilingRelation.
 Require Import TilingBoolChecker.
 Require Import TilingWitness.
 Require Import PointWitness.
-Require Import Validator.
+Require Import AffineValidator.
 Require Import PrepareCodegen.
 Require Import PolIRs.
 Require Import OpenScop.
@@ -44,8 +44,10 @@ Module TilingPolIRs <: POLIRS with Module Instr := Instr.
     Err EmptyString.
 End TilingPolIRs.
 
-Module TilingVal := Validator TilingPolIRs.
-Module TPrepare := PrepareCodegen TilingPolIRs.
+Module GeneralValidator := AffineValidator TilingPolIRs.
+Module TilingVal := GeneralValidator.
+Module CurrentViewPrepare := PrepareCodegen TilingPolIRs.
+Module TPrepare := CurrentViewPrepare.
 
 Definition outer_to_tiling_pinstr
     (pi : PolIRs.PolyLang.PolyInstr) : Tiling.PL.PolyInstr :=
@@ -66,6 +68,10 @@ Definition outer_to_tiling_pprog
     (pp : PolIRs.PolyLang.t) : Tiling.PL.t :=
   let '(pis, varctxt, vars) := pp in
   (List.map outer_to_tiling_pinstr pis, varctxt, vars).
+
+(** Explicit name for the representation change from a generic PolyLang program
+    to the internal tiling-model program used by the checked tiling validator. *)
+Definition to_tiling_pprog := outer_to_tiling_pprog.
 
 Definition outer_to_tiling_ip
     (ip : PolIRs.PolyLang.InstrPoint) : Tiling.PL.InstrPoint :=
@@ -116,6 +122,8 @@ Definition tiling_to_outer_pprog
     (pp : Tiling.PL.t) : PolIRs.PolyLang.t :=
   let '(pis, varctxt, vars) := pp in
   (List.map tiling_to_outer_pinstr pis, varctxt, vars).
+
+Definition from_tiling_pprog := tiling_to_outer_pprog.
 
 Lemma outer_to_tiling_wf_pinstr_affine :
   forall varctxt vars pi,
@@ -896,6 +904,11 @@ Definition import_canonical_tiled_after_outer
   | Err msg => Err msg
   end.
 
+(** Public outer-PolyLang import API: build the canonical tiled skeleton from
+    the input program and witness, then import the final Pluto after.scop
+    schedule over that skeleton. *)
+Definition import_canonical_tiled_after_poly := import_canonical_tiled_after_outer.
+
 Lemma tiling_validate_correct :
   forall before_pis after_pis ws varctxt vars st1 st2,
     List.length before_pis = List.length after_pis ->
@@ -920,7 +933,7 @@ Lemma tiling_validate_correct :
       (fun before_pi w => stw_point_dim w = Tiling.PL.pi_depth before_pi)
       before_pis ws ->
     mayReturn
-      (TilingVal.validate_tiling
+      (GeneralValidator.validate_general
          (Tiling.retiled_old_pinstrs
             (List.length varctxt) before_pis after_pis ws,
           varctxt, vars)
@@ -937,7 +950,7 @@ Proof.
          Hlen_after Hlen_ws Htiling Hbefore_ids Hwf_ws Hsizes_ws Hdepths.
   intros Hval Hsem_after.
   pose proof
-    (TilingVal.validate_tiling_correct
+    (GeneralValidator.validate_tiling_correct
        (Tiling.retiled_old_pinstrs
           (List.length varctxt) before_pis after_pis ws,
         varctxt, vars)
@@ -964,7 +977,7 @@ Lemma tiling_checked_validate_correct :
     mayReturn
       (let '(before_pis, varctxt, vars) := before in
        let '(after_pis, _, _) := after in
-       TilingVal.validate_tiling
+       GeneralValidator.validate_general
          (Tiling.retiled_old_pinstrs
             (List.length varctxt) before_pis after_pis ws,
           varctxt, vars)
@@ -1019,7 +1032,7 @@ Definition checked_tiling_validate
   if TilingCheck.check_pprog_tiling_sourceb before after ws then
     let '(before_pis, varctxt, vars) := before in
     let '(after_pis, _, _) := after in
-    TilingVal.validate_tiling
+    GeneralValidator.validate_general
       (Tiling.retiled_old_pinstrs
          (List.length varctxt) before_pis after_pis ws,
        varctxt, vars)
@@ -1033,6 +1046,9 @@ Definition checked_tiling_validate_outer
     (outer_to_tiling_pprog before)
     (outer_to_tiling_pprog after)
     ws.
+
+(** Public checked tiling validator on the generic outer PolyLang type. *)
+Definition checked_tiling_validate_poly := checked_tiling_validate_outer.
 
 Lemma checked_tiling_validate_correct :
   forall before after ws st1 st2,
@@ -1076,6 +1092,17 @@ Proof.
   - exact Heq.
 Qed.
 
+Lemma checked_tiling_validate_poly_correct :
+  forall before after ws st1 st2,
+    mayReturn (checked_tiling_validate_poly before after ws) true ->
+    PolIRs.PolyLang.instance_list_semantics after st1 st2 ->
+    exists st2',
+      PolIRs.PolyLang.instance_list_semantics before st1 st2' /\
+      State.eq st2 st2'.
+Proof.
+  exact checked_tiling_validate_outer_correct.
+Qed.
+
 Lemma checked_tiling_validate_implies_wf_after :
   forall before after ws,
     mayReturn (checked_tiling_validate before after ws) true ->
@@ -1091,7 +1118,7 @@ Proof.
   destruct before as ((before_pis, varctxt), vars).
   destruct after as ((after_pis, after_ctxt), after_vars).
   simpl in *.
-  unfold TilingVal.validate_tiling in Hcheck.
+  unfold GeneralValidator.validate_general, TilingVal.validate_tiling in Hcheck.
   bind_imp_destruct Hcheck wf1 Hwf1.
   bind_imp_destruct Hcheck wf2 Hwf2.
   bind_imp_destruct Hcheck eqdom Heqdom.
@@ -1125,6 +1152,14 @@ Proof.
     as Hwf_outer.
   rewrite tiling_to_outer_pprog_outer_to_tiling in Hwf_outer.
   exact Hwf_outer.
+Qed.
+
+Lemma checked_tiling_validate_poly_implies_wf_after :
+  forall before after ws,
+    mayReturn (checked_tiling_validate_poly before after ws) true ->
+    PolIRs.PolyLang.wf_pprog_general after.
+Proof.
+  exact checked_tiling_validate_outer_implies_wf_after.
 Qed.
 
 Definition checked_tiling_prepared_codegen

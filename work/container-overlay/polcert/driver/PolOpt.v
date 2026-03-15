@@ -26,7 +26,6 @@ Require Import PrepareCodegen.
 Require Import StrengthenDomain.
 Require Import TilingRelation.
 Require Import TilingBoolChecker.
-Require Import TilingValidator.
 Require Import TilingWitness.
 Require Import PointWitness.
 Require Import OpenScop.
@@ -92,9 +91,15 @@ Module PolOpt (PolIRs: POLIRS).
 (* Module Loop := PolIRs.Loop.
 Module Pol := PolIRs.PolyLang. *)
 
-(* Parameter scheduler: (Pol.t -> result Pol.t). *)
+(* Public naming layer: the historical names are kept as compatibility
+   aliases, but the optimizer code below uses the clearer names. *)
+Definition affine_scheduler := PolIRs.affine_scheduler.
 Definition scheduler := PolIRs.scheduler.
+Definition export_for_pluto_phase_pipeline :=
+  PolIRs.export_for_pluto_phase_pipeline.
 Definition to_phase_openscop := PolIRs.to_phase_openscop.
+Definition run_pluto_phase_pipeline :=
+  PolIRs.run_pluto_phase_pipeline.
 Definition phase_scop_scheduler := PolIRs.phase_scop_scheduler.
 Definition infer_tiling_witness_scops := PolIRs.infer_tiling_witness_scops.
 Module Instr := PolIRs.Instr.
@@ -109,14 +114,7 @@ Module CodeGen := CodeGen PolIRs.
 Module PrepareCore := PrepareCodegen PolIRs.
 Module Strengthen := StrengthenDomain PolIRs.
 Module ValidatorCore := Validator PolIRs.
-Module Validator := ValidatorCore.
 Module Prepare := PrepareCore.
-Module CheckedTiling := TilingValidator PolIRs.
-Module TilingCheck := CheckedTiling.TilingCheck.
-Module Tiling := CheckedTiling.Tiling.
-Module TilingPolIRs := CheckedTiling.TilingPolIRs.
-Module TilingVal := CheckedTiling.TilingVal.
-Module TPrepare := CheckedTiling.TPrepare.
 (* Definition codegen (pol: Pol.t): result Loop.t := 
    Okk Loop.dummy. *)
 
@@ -125,8 +123,8 @@ Module TPrepare := CheckedTiling.TPrepare.
   
   (* . * FIXME *)
   
-Definition scheduler' (pol: PolIRs.PolyLang.t): imp PolIRs.PolyLang.t := 
-   match scheduler pol with 
+Definition checked_affine_schedule (pol: PolIRs.PolyLang.t): imp PolIRs.PolyLang.t := 
+   match affine_scheduler pol with 
    | Okk pol' => 
       BIND res <- (ValidatorCore.validate pol pol') -;
       if res then pure (pol') 
@@ -134,22 +132,26 @@ Definition scheduler' (pol: PolIRs.PolyLang.t): imp PolIRs.PolyLang.t :=
    | Err msg => res_to_alarm pol (Err msg)
    end.
 
-Definition affine_opt_prepared_from_poly (pol: PolyLang.t): imp LoopIR.t :=
-  BIND pol' <- scheduler' pol -;
+Definition scheduler' := checked_affine_schedule.
+
+Definition affine_only_opt_prepared_from_poly (pol: PolyLang.t): imp LoopIR.t :=
+  BIND pol' <- checked_affine_schedule pol -;
   PrepareCore.prepared_codegen pol'.
 
-Definition try_tiling_prepared_from_phase
+Definition affine_opt_prepared_from_poly := affine_only_opt_prepared_from_poly.
+
+Definition try_verified_tiling_after_phase_mid
     (pol_mid: PolyLang.t)
     (mid_scop after_scop: OpenScop): imp LoopIR.t :=
   match infer_tiling_witness_scops mid_scop after_scop with
   | Err _ =>
       PrepareCore.prepared_codegen pol_mid
   | Okk ws =>
-      match CheckedTiling.import_canonical_tiled_after_outer pol_mid after_scop ws with
+      match ValidatorCore.import_canonical_tiled_after_poly pol_mid after_scop ws with
       | Err _ =>
           PrepareCore.prepared_codegen pol_mid
       | Okk pol_after =>
-          BIND ok <- CheckedTiling.checked_tiling_validate_outer pol_mid pol_after ws -;
+          BIND ok <- ValidatorCore.checked_tiling_validate_poly pol_mid pol_after ws -;
           if ok then
             PrepareCore.prepared_codegen (PolyLang.current_view_pprog pol_after)
           else
@@ -157,46 +159,52 @@ Definition try_tiling_prepared_from_phase
       end
   end.
 
+Definition try_tiling_prepared_from_phase := try_verified_tiling_after_phase_mid.
+
 Definition has_nonscalar_stmt (pol: PolyLang.t) : bool :=
   let '((pis, _), _) := pol in
   existsb (fun pi => negb (Nat.eqb pi.(PolyLang.pi_depth) O)) pis.
 
-Definition phase_opt_prepared_from_poly (pol: PolyLang.t): imp LoopIR.t :=
+Definition phase_pipeline_opt_prepared_from_poly (pol: PolyLang.t): imp LoopIR.t :=
   if has_nonscalar_stmt pol then
-    match to_phase_openscop pol with
+    match export_for_pluto_phase_pipeline pol with
     | None =>
-        affine_opt_prepared_from_poly pol
+        affine_only_opt_prepared_from_poly pol
     | Some before_scop =>
-        match phase_scop_scheduler before_scop with
+        match run_pluto_phase_pipeline before_scop with
         | Err _ =>
-            affine_opt_prepared_from_poly pol
+            affine_only_opt_prepared_from_poly pol
         | Okk (mid_scop, after_scop) =>
             match PolyLang.from_openscop_like_source pol mid_scop with
             | Err _ =>
-                affine_opt_prepared_from_poly pol
+                affine_only_opt_prepared_from_poly pol
             | Okk pol_mid =>
                 BIND affine_ok <- ValidatorCore.validate pol pol_mid -;
                 if affine_ok then
-                  try_tiling_prepared_from_phase pol_mid mid_scop after_scop
+                  try_verified_tiling_after_phase_mid pol_mid mid_scop after_scop
                 else
-                  affine_opt_prepared_from_poly pol
+                  affine_only_opt_prepared_from_poly pol
             end
         end
     end
   else
     PrepareCore.prepared_codegen pol.
 
-Definition phase_opt_prepared (loop: LoopIR.t): imp LoopIR.t :=
+Definition phase_opt_prepared_from_poly := phase_pipeline_opt_prepared_from_poly.
+
+Definition phase_pipeline_opt_prepared (loop: LoopIR.t): imp LoopIR.t :=
   BIND pol0 <- res_to_alarm PolyLang.dummy (Extractor.extractor loop) -;
   let pol := Strengthen.strengthen_pprog pol0 in
-  phase_opt_prepared_from_poly pol.
+  phase_pipeline_opt_prepared_from_poly pol.
+
+Definition phase_opt_prepared := phase_pipeline_opt_prepared.
 
 
 Definition Opt_raw (loop: PolIRs.Loop.t): imp PolIRs.Loop.t := 
    pure loop
    @@@[PolIRs.PolyLang.dummy] time "PolOpt.Extractor" Extractor.extractor
    (* @@ print (print_CPol) *)
-   @@@ time "PolOpt.Scheduler" scheduler'
+   @@@ time "PolOpt.Scheduler" checked_affine_schedule
    (* @@ print (print_CPol) *)
    (* @@@[cloop_ty_dummy] time "PolOpt.Codegen" CodeGen.codegen *)
    @@@ time "PolOpt.Codegen" CodeGen.codegen.
@@ -334,7 +342,18 @@ Proof.
   eapply State.eq_trans; eauto.
 Qed.
 
-Definition checked_tiling_validate := CheckedTiling.checked_tiling_validate_outer.
+Definition checked_tiling_validate := ValidatorCore.checked_tiling_validate_poly.
+Definition to_tiling_pprog := ValidatorCore.to_tiling_pprog.
+Definition outer_to_tiling_pprog := ValidatorCore.outer_to_tiling_pprog.
+Definition check_pprog_tiling_sourceb :=
+  ValidatorCore.check_pprog_tiling_sourceb.
+Definition check_wf_polyprog := ValidatorCore.check_wf_polyprog.
+Definition check_wf_polyprog_general := ValidatorCore.check_wf_polyprog_general.
+Definition EqDom := ValidatorCore.EqDom.
+Definition check_valid_access := ValidatorCore.check_valid_access.
+Definition validate_instr_list := ValidatorCore.validate_instr_list.
+Definition validate := ValidatorCore.validate.
+Definition validate_general := ValidatorCore.validate_general.
 
 Lemma checked_tiling_validate_correct :
   forall before after ws st1 st2,
@@ -344,7 +363,7 @@ Lemma checked_tiling_validate_correct :
       PolyLang.instance_list_semantics before st1 st2' /\
       State.eq st2 st2'.
 Proof.
-  exact CheckedTiling.checked_tiling_validate_outer_correct.
+  exact ValidatorCore.checked_tiling_validate_poly_correct.
 Qed.
 
 Lemma checked_tiling_current_view_prepared_codegen_correct :
@@ -403,12 +422,12 @@ Proof.
   unfold try_tiling_prepared_from_phase in Hopt.
   destruct (infer_tiling_witness_scops mid_scop after_scop) as [ws|msg] eqn:Hws.
   - destruct
-      (CheckedTiling.import_canonical_tiled_after_outer pol_mid after_scop ws)
+      (ValidatorCore.import_canonical_tiled_after_poly pol_mid after_scop ws)
       as [pol_after|msg_after] eqn:Hafter.
     + bind_imp_destruct Hopt ok Hcheck.
       destruct ok.
       * pose proof
-          (CheckedTiling.checked_tiling_validate_outer_implies_wf_after
+          (ValidatorCore.checked_tiling_validate_poly_implies_wf_after
              pol_mid pol_after ws Hcheck)
           as Hwf_after.
         eapply checked_tiling_current_view_prepared_codegen_correct; eauto.
@@ -440,8 +459,8 @@ Proof.
   intros pol st st' Hwf loop' Hopt Hloop.
   unfold phase_opt_prepared_from_poly in Hopt.
   destruct (has_nonscalar_stmt pol) eqn:Hnonscalar.
-  - destruct (to_phase_openscop pol) as [before_scop|] eqn:Hbefore.
-    + destruct (phase_scop_scheduler before_scop) as [[mid_scop after_scop]|msg] eqn:Hphase.
+  - destruct (export_for_pluto_phase_pipeline pol) as [before_scop|] eqn:Hbefore.
+    + destruct (run_pluto_phase_pipeline before_scop) as [[mid_scop after_scop]|msg] eqn:Hphase.
       * destruct (PolyLang.from_openscop_like_source pol mid_scop) as [pol_mid|msg_mid] eqn:Hmid.
         -- bind_imp_destruct Hopt affine_ok Haff.
            destruct affine_ok.

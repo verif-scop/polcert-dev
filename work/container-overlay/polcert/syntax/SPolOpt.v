@@ -11,7 +11,6 @@ Require Import Vpl.Impure.
 Local Open Scope string_scope.
 
 Module CoreOpt := PolOpt SPolIRs.
-Module SVal := CoreOpt.Validator.
 Module Extractor := CoreOpt.Extractor.
 
 Definition add_var_nodup (vars : list (AST.ident * SPolIRs.Ty.t))

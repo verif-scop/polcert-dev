@@ -64,7 +64,7 @@ let affine_only_scop_scheduler inscop =
 let tile_only_scop_scheduler inscop =
   run_pluto_scop tile_only_flags inscop
 
-let phase_scop_scheduler inscop =
+let run_pluto_phase_pipeline inscop =
   match affine_only_scop_scheduler inscop with
   | Err msg -> Err msg
   | Okk midscop ->
@@ -73,6 +73,8 @@ let phase_scop_scheduler inscop =
         | Err msg -> Err msg
         | Okk outscop -> Okk (midscop, outscop)
       end
+
+let phase_scop_scheduler = run_pluto_phase_pipeline
 
 let coeff_of_assoc assoc name =
   match List.assoc_opt name assoc with

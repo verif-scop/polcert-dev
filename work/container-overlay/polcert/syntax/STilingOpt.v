@@ -1,22 +1,14 @@
 Require Import SPolIRs.
 Require Import SPolOpt.
-Require Import OpenScop.
-Require Import Result.
-Require Import TilingWitness.
 Require Import ImpureAlarmConfig.
+Require Import TilingWitness.
 Require Import Vpl.Impure.
 
-Module CoreOpt := SPolOpt.CoreOpt.
-Module TilingCheck := CoreOpt.TilingCheck.
-Module Tiling := CoreOpt.CheckedTiling.Tiling.
-Module TilingPolIRs := CoreOpt.CheckedTiling.TilingPolIRs.
+Definition outer_to_tiling_pprog :=
+  SPolOpt.CoreOpt.outer_to_tiling_pprog.
 
-Definition checked_tiling_validate
-    (before after: Tiling.PL.t)
-    (ws: list statement_tiling_witness) : imp bool :=
-  CoreOpt.CheckedTiling.checked_tiling_validate before after ws.
+Definition check_pprog_tiling_sourceb :=
+  SPolOpt.CoreOpt.check_pprog_tiling_sourceb.
 
-Definition checked_tiling_prepared_codegen
-    (before after: Tiling.PL.t)
-    (ws: list statement_tiling_witness) : imp TilingPolIRs.Loop.t :=
-  CoreOpt.CheckedTiling.checked_tiling_prepared_codegen before after ws.
+Definition checked_tiling_validate :=
+  SPolOpt.CoreOpt.checked_tiling_validate.

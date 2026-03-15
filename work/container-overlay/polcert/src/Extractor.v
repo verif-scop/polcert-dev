@@ -18,7 +18,7 @@ Require Import Lia.
 Require Import LibTactics.
 Require Import sflib.
 Require Import Misc.
-Require Import Validator.
+Require Import AffineValidator.
 Require Import Permutation.
 Require Import Sorting.Sorted.
 Require Import PointWitness.
@@ -30,7 +30,7 @@ Module State := PolIRs.State.
 Module Ty := PolIRs.Ty.
 Module PolyLang := PolIRs.PolyLang.
 Module Loop := PolIRs.Loop.
-Module Val := Validator PolIRs.
+Module Val := AffineValidator PolIRs.
 Definition ident := Instr.ident.
 
 (* Note: empty domain contains exactly one instance: [] (empty list) *)

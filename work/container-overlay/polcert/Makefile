@@ -155,9 +155,9 @@ endif
 POLCERT_SRC = Base.v Convert.v \
   Extractor.v PrepareCodegen.v StrengthenDomain.v \
   OpenScop.v OpenScopAST.v PolyBase.v PolyLang.v \
-  SelectionSort.v StablePermut.v CState.v Validator.v \
+  SelectionSort.v StablePermut.v CState.v AffineValidator.v \
   PointWitness.v TilingWitness.v TilingList.v TilingRelation.v \
-  TilingBoolChecker.v TilingValidator.v \
+  TilingBoolChecker.v TilingValidator.v Validator.v \
   CInstr.v TInstr.v TyTy.v CTy.v
 
 # Putting everything together (in driver/)
@@ -231,10 +231,21 @@ polopt: .depend.extr driver/Version.ml FORCE
 
 FORCE:
 
-.PHONY: proof extraction FORCE test
+.PHONY: proof extraction FORCE test test-polopt-generated
 
 test: .depend.extr polcert.ini driver/Version.ml FORCE
 	$(MAKE) -f Makefile.test test --no-print-directory
+
+test-polopt-generated: polopt
+	rm -rf tests/polopt-generated/cases
+	python3 tests/polopt-generated/tools/materialize_polopt_cases.py \
+		--polopt ./polopt \
+		--timeout-seconds 600
+	python3 tests/polopt-generated/tools/check_polopt_cases.py \
+		--cases-dir tests/polopt-generated/cases \
+		--expect-total 62 \
+		--min-changed 50 \
+		--require-tiled matmul matmul-init wavefront
 
 test-clean: 
 	$(MAKE) -f Makefile.test clean
