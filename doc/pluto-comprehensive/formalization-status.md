@@ -260,6 +260,23 @@ The current verified mainline still does not cover:
 ISS is not just a schedule reordering. It changes statement/domain structure and
 requires one-to-many statement reasoning rather than a one-to-one validator.
 
+That is no longer completely out of scope in the codebase:
+
+- there is now a dedicated ISS validator line in `polcert`
+- the extracted runtime checker validates Pluto-style
+  `complete-cut-shape` witnesses
+- proof-only modules establish the backward semantic correctness theorem for
+  that checker
+- Pluto can emit a native ISS bridge consumed by
+  `./polopt --validate-iss-bridge`
+
+What remains out of the default verified mainline is narrower:
+
+- ISS is still not enabled in the default `PolOpt` phase pipeline
+- the ISS suites are still manual rather than part of default CI
+- the Docker-pinned Pluto image still needs to move from `latest` to the
+  versioned ISS bridge image
+
 ### 9.2 Parallel semantics and parallel codegen
 
 What remains missing here is both:

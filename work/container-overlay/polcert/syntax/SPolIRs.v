@@ -6,6 +6,7 @@ Require Import Loop.
 Require Import Result.
 Require Import OpenScop.
 Require Import String.
+Require Import ISSWitness.
 Require Import TilingWitness.
 
 Local Open Scope string_scope.
@@ -19,6 +20,10 @@ Module SPolIRs <: POLIRS with Module Instr := SInstr.
   Module Loop := Loop SInstr.
   Parameter scop_scheduler : OpenScop -> result OpenScop.
   Parameter phase_scop_scheduler : OpenScop -> result (OpenScop * OpenScop).
+  Parameter phase_scop_scheduler_with_iss :
+    OpenScop -> result (OpenScop * OpenScop).
+  Parameter infer_iss_from_source_scop :
+    PolyLang.t -> OpenScop -> result (option (PolyLang.t * iss_witness)).
   Parameter infer_tiling_witness_scops :
     OpenScop -> OpenScop -> result (list statement_tiling_witness).
 
@@ -78,7 +83,13 @@ Module SPolIRs <: POLIRS with Module Instr := SInstr.
         end
     | None => Err "Transform pol to openscop failed"
     end.
+  Definition affine_scheduler := scheduler.
 
-  Definition to_phase_openscop (cpol: PolyLang.t) : option OpenScop :=
+  Definition export_for_phase_scheduler (cpol: PolyLang.t) : option OpenScop :=
     to_openscop_source cpol.
+  Definition export_for_pluto_phase_pipeline := export_for_phase_scheduler.
+  Definition to_phase_openscop := export_for_phase_scheduler.
+  Definition run_pluto_phase_pipeline := phase_scop_scheduler.
+  Definition run_pluto_phase_pipeline_with_iss :=
+    phase_scop_scheduler_with_iss.
 End SPolIRs.

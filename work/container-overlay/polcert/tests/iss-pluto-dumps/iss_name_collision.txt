@@ -1,0 +1,61 @@
+[pluto] compute_deps (isl)
+nvar = 1, npar = 2
+Parameters: alphaaa alphaab 
+S1 "A[longiter] = A[longiter] + 1;"
+ndims: 1; orig_depth: 1
+Index set
+Set #1
+[3 dims; 5 constraints]
+longi >= 0
+-longi+alpha-1 >= 0
+-longi+alpha-1 >= 0
+alpha-1 >= 0
+alpha-1 >= 0
+
+T(S1): (0, longiter, 0)
+loop types (loop, loop, loop)
+
+Read accesses
+A[longiter]
+Write accesses
+A[longiter]
+Original loop: 0 -> yes
+
+** No dependences **
+
+T(S1): (0, longiter, 0)
+loop types (loop, loop, loop)
+
+[pluto] Number of statements: 1
+[pluto] Total number of loops: 1
+[pluto] Number of deps: 0
+[pluto] Maximum domain dimensionality: 1
+[pluto] Number of parameters: 2
+[pluto] pluto_compute_dep_satisfaction
+[pluto] pluto_dep_satisfaction_reset
+[pluto] dep_satisfaction_update (level 0)
+	 0 dep(s) satisfied
+[pluto] dep_satisfaction_update (level 1)
+	 0 dep(s) satisfied
+[pluto] dep_satisfaction_update (level 2)
+	 0 dep(s) satisfied
+[pluto] Affine transformations [<iter coeff's> <param> <const>]
+
+T(S1): (0, longiter, 0)
+loop types (loop, loop, loop)
+
+[pluto] generating Cloog file...
+[pluto] using Cloog -f/-l options: 1 3
+[pluto] cloog_input_read
+[pluto] cloog_clast_create
+[Pluto] Output written to iss_name_collision.pluto.c
+
+[pluto] Timing statistics
+[pluto] SCoP extraction + dependence analysis time: 0.000378s
+[pluto] Auto-transformation time: 0.000000s
+[pluto] Tile size selection time: 0.000000s
+[pluto] 		Total constraint solving time (LP/MIP/ILP) time: 0.000000s
+[pluto] Code generation time: 0.001126s
+[pluto] Other/Misc time: 0.008544s
+[pluto] Total time: 0.010048s
+[pluto] All times: 0.000378 0.000000 0.001126 0.008544

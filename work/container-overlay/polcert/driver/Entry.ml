@@ -14,11 +14,13 @@ type validation_kind =
 type file_mode =
   | Pair_mode of string * string
   | Phase_mode of string * string * string
+  | Iss_bridge_mode of string
+  | Iss_dump_mode of string * string
 
 let usage prog =
   Printf.sprintf
-    "Usage:\n  %s [--kind auto|affine|tiling] <before.scop> <after.scop>\n  %s [--kind auto|affine|tiling] <before.scop> <mid.scop> <after.scop>\n\nTwo-input mode:\n  auto   : try affine validation first, then tiling validation\n  affine : run affine validation on before/after\n  tiling : run tiling validation on before/after\n\nThree-input mode:\n  auto   : run affine(before, mid), then tiling(mid, after)\n  affine : run affine(before, mid) only\n  tiling : run tiling(mid, after) only\n"
-    prog prog
+    "Usage:\n  %s [--kind auto|affine|tiling] <before.scop> <after.scop>\n  %s [--kind auto|affine|tiling] <before.scop> <mid.scop> <after.scop>\n  %s --iss-bridge <bridge.txt>\n  %s --iss-debug-dumps <before.txt> <after.txt>\n\nAliases:\n  --auto      : same as --kind auto\n  --affine    : same as --kind affine\n  --tiling    : same as --kind tiling\n\nTwo-input mode:\n  auto   : try affine validation first, then tiling validation\n  affine : run affine validation on before/after\n  tiling : run tiling validation on before/after\n\nThree-input mode:\n  auto   : run affine(before, mid), then tiling(mid, after)\n  affine : run affine(before, mid) only\n  tiling : run tiling(mid, after) only\n\nISS modes:\n  --iss-bridge      : delegate to polopt --validate-iss-bridge\n  --iss-debug-dumps : delegate to polopt --validate-iss-debug-dumps\n"
+    prog prog prog prog
 
 let string_of_coq_err msg = Camlcoq.camlstring_of_coqstring msg
 
@@ -30,6 +32,28 @@ let kind_of_string = function
   | "affine" -> Kind_affine
   | "tiling" -> Kind_tiling
   | s -> invalid_arg ("unknown validation kind: " ^ s)
+
+let resolve_tool_or_fail name =
+  let exe_dir =
+    try Filename.dirname (Unix.readlink (Printf.sprintf "/proc/%d/exe" (Unix.getpid ())))
+    with _ -> Filename.dirname Sys.argv.(0)
+  in
+  let candidates =
+    [ Filename.concat exe_dir name;
+      Filename.concat (Sys.getcwd ()) name;
+      Filename.concat "/polcert" name ]
+  in
+  match List.find_opt Sys.file_exists candidates with
+  | Some path -> path
+  | None -> failwith ("cannot locate helper executable " ^ name)
+
+let run_polopt_passthrough args =
+  let polopt = resolve_tool_or_fail "polopt" in
+  let cmd =
+    String.concat " "
+      (Filename.quote polopt :: List.map Filename.quote args)
+  in
+  Sys.command cmd
 
 let read_scop_or_fail path =
   match OpenScopReader.read path with
@@ -73,11 +97,6 @@ let affine_forward before_path after_path =
   let (res, ok) = validate pol1 pol2 in
   (ok, res)
 
-let coeff_of_assoc assoc name =
-  match List.assoc_opt name assoc with
-  | Some coeff -> coeff
-  | None -> Camlcoq.Z.zero
-
 let max_int a b = if a >= b then a else b
 
 let required_vars_for_pinstr env_size pi =
@@ -118,42 +137,6 @@ let normalize_tiling_validator_inputs before_pol after_pol =
       (required_vars_for_pprog after_pol)
   in
   (pad_vars_to required before_pol, pad_vars_to required after_pol)
-
-let convert_affine_expr
-    names
-    params
-    (expr : PlutoTilingValidator.affine_expr) =
-  {
-    ae_var_coeffs = List.map (coeff_of_assoc expr.PlutoTilingValidator.var_coeffs) names;
-    ae_param_coeffs =
-      List.map (coeff_of_assoc expr.PlutoTilingValidator.param_coeffs) params;
-    ae_const = expr.PlutoTilingValidator.const;
-  }
-
-let convert_statement_witness
-    params
-    (stmt : PlutoTilingValidator.statement_witness) =
-  let rec convert_links prefix = function
-    | [] -> []
-    | link :: tl ->
-        let names = prefix @ stmt.PlutoTilingValidator.original_iterators in
-        let expr = convert_affine_expr names params link.PlutoTilingValidator.expr in
-        let link' =
-          {
-            tl_expr = expr;
-            tl_tile_size = link.PlutoTilingValidator.tile_size;
-          }
-        in
-        link' :: convert_links (prefix @ [link.PlutoTilingValidator.parent]) tl
-  in
-  {
-    stw_point_dim = Camlcoq.Nat.of_int (List.length stmt.PlutoTilingValidator.original_iterators);
-    stw_links = convert_links [] stmt.PlutoTilingValidator.links;
-  }
-
-let convert_witness (witness : PlutoTilingValidator.witness) =
-  List.map (convert_statement_witness witness.PlutoTilingValidator.params)
-    witness.PlutoTilingValidator.statements
 
 let build_canonical_tiled_after before_pol ws =
   let ((before_pis, before_ctxt), before_vars) = before_pol in
@@ -210,7 +193,7 @@ let run_tiling_pair before_path after_path =
   let witness : PlutoTilingValidator.witness =
     PlutoTilingValidator.extract_witness_from_files before_path after_path
   in
-  let ws = convert_witness witness in
+  let ws = PhaseTiling.convert_witness witness in
   let after_pol = canonicalize_tiled_after before_pol after_path after_scop ws in
   let (before_pol, after_pol) =
     normalize_tiling_validator_inputs before_pol after_pol
@@ -241,9 +224,18 @@ let print_tiling_result before_path after_path =
     Printf.printf "[TILING-FAIL] %s does not validate %s as a tiling-derived refinement.\n"
       after_path before_path
 
+let run_iss_bridge bridge =
+  run_polopt_passthrough ["--validate-iss-bridge"; bridge]
+
+let run_iss_dumps before_file after_file =
+  run_polopt_passthrough
+    ["--validate-iss-debug-dumps"; before_file; after_file]
+
 let parse_args () =
   let kind = ref Kind_auto in
   let files = ref [] in
+  let iss_bridge = ref None in
+  let iss_dumps = ref None in
   let rec go i =
     if i >= Array.length Sys.argv then ()
     else
@@ -256,6 +248,31 @@ let parse_args () =
           end;
           kind := kind_of_string Sys.argv.(i + 1);
           go (i + 2)
+      | "--auto" ->
+          kind := Kind_auto;
+          go (i + 1)
+      | "--affine" ->
+          kind := Kind_affine;
+          go (i + 1)
+      | "--tiling" ->
+          kind := Kind_tiling;
+          go (i + 1)
+      | "--iss-bridge" ->
+          if i + 1 >= Array.length Sys.argv then begin
+            prerr_endline "option --iss-bridge expects one file path";
+            prerr_endline (usage Sys.argv.(0));
+            exit 2
+          end;
+          iss_bridge := Some Sys.argv.(i + 1);
+          go (i + 2)
+      | "--iss-debug-dumps" ->
+          if i + 2 >= Array.length Sys.argv then begin
+            prerr_endline "option --iss-debug-dumps expects two file paths";
+            prerr_endline (usage Sys.argv.(0));
+            exit 2
+          end;
+          iss_dumps := Some (Sys.argv.(i + 1), Sys.argv.(i + 2));
+          go (i + 3)
       | "--help" | "-h" ->
           print_string (usage Sys.argv.(0));
           exit 0
@@ -269,9 +286,13 @@ let parse_args () =
   in
   go 1;
   let mode =
-    match !files with
-    | [before_path; after_path] -> Pair_mode (before_path, after_path)
-    | [before_path; mid_path; after_path] ->
+    match !iss_bridge, !iss_dumps, !files with
+    | Some bridge, None, [] -> Iss_bridge_mode bridge
+    | None, Some (before_file, after_file), [] ->
+        Iss_dump_mode (before_file, after_file)
+    | None, None, [before_path; after_path] ->
+        Pair_mode (before_path, after_path)
+    | None, None, [before_path; mid_path; after_path] ->
         Phase_mode (before_path, mid_path, after_path)
     | _ ->
         prerr_endline (usage Sys.argv.(0));
@@ -331,6 +352,10 @@ let _ =
     let (kind, mode) = parse_args () in
     begin
       match mode with
+      | Iss_bridge_mode bridge ->
+          exit (run_iss_bridge bridge)
+      | Iss_dump_mode (before_file, after_file) ->
+          exit (run_iss_dumps before_file after_file)
       | Pair_mode (before_path, after_path) ->
           run_pair kind before_path after_path
       | Phase_mode (before_path, mid_path, after_path) ->

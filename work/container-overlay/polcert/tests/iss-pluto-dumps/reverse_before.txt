@@ -1,0 +1,79 @@
+[pluto] compute_deps (isl)
+nvar = 1, npar = 1
+Parameters: N 
+S1 "a[i] = 2 * a[N - 1 - i];"
+ndims: 1; orig_depth: 1
+Index set
+Set #1
+[2 dims; 3 constraints]
+i >= 0
+-i+N-1 >= 0
+N-1 >= 0
+
+T(S1): (0, i, 0)
+loop types (loop, loop, loop)
+
+Read accesses
+a[-i+N-1]
+Write accesses
+a[i]
+Original loop: 0 -> yes
+
+--- Dep 1 from S1 to S1; satisfied: 0, sat level: -1; Type: RAW
+on variable: a
+Dependence polyhedron
+Set #1
+[3 dims; 3 constraints]
+i+i'-N+1 = 0
+i >= 0
+-2i+N-2 >= 0
+
+
+--- Dep 2 from S1 to S1; satisfied: 0, sat level: -1; Type: WAR
+on variable: a
+Dependence polyhedron
+Set #1
+[3 dims; 3 constraints]
+i+i'-N+1 = 0
+i >= 0
+-2i+N-2 >= 0
+
+
+T(S1): (0, i, 0)
+loop types (loop, loop, loop)
+
+[pluto] Number of statements: 1
+[pluto] Total number of loops: 1
+[pluto] Number of deps: 2
+[pluto] Maximum domain dimensionality: 1
+[pluto] Number of parameters: 1
+[pluto] pluto_compute_dep_satisfaction
+[pluto] pluto_dep_satisfaction_reset
+[pluto] dep_satisfaction_update (level 0)
+	 0 dep(s) satisfied
+[pluto] dep_satisfaction_update (level 1)
+[pluto] dep_satisfaction_update: dep 1 satisfied
+[pluto] dep_satisfaction_update: dep 2 satisfied
+	 2 dep(s) satisfied
+[pluto] dep_satisfaction_update (level 2)
+	 0 dep(s) satisfied
+[pluto] Affine transformations [<iter coeff's> <param> <const>]
+
+T(S1): (0, i, 0)
+loop types (loop, loop, loop)
+
+[pluto] generating Cloog file...
+[pluto] using Cloog -f/-l options: 1 3
+[pluto] cloog_input_read
+[pluto] cloog_clast_create
+[Pluto] Output written to reverse-iss.pluto.c
+
+[pluto] Timing statistics
+[pluto] SCoP extraction + dependence analysis time: 0.003902s
+[pluto] Auto-transformation time: 0.000000s
+[pluto] Tile size selection time: 0.000000s
+[pluto] 		Total constraint solving time (LP/MIP/ILP) time: 0.000000s
+[pluto] Code generation time: 0.000643s
+[pluto] Other/Misc time: 0.011419s
+[pluto] Total time: 0.015964s
+[pluto] All times: 0.003902 0.000000 0.000643 0.011419

@@ -1,10 +1,12 @@
 Require Import AffineValidator.
+Require Import ISSValidator.
 Require Import TilingValidator.
 Require Import PolIRs.
 
 Module Validator (PolIRs: POLIRS).
 
 Module AffineCore := AffineValidator PolIRs.
+Module ISSCore := ISSValidator PolIRs.
 Module TilingCore := TilingValidator PolIRs.
 
 Module TilingCheck := TilingCore.TilingCheck.
@@ -35,6 +37,34 @@ Definition validate_correct := AffineCore.validate_correct.
 Definition validate_general_correct := AffineCore.validate_tiling_correct.
 Definition validate_tiling_correct := AffineCore.validate_tiling_correct.
 Definition validate_preserve_wf_pprog := AffineCore.validate_preserve_wf_pprog.
+
+(** ISS structure validator API. *)
+Definition check_domain_partition_shapeb :=
+  ISSCore.check_domain_partition_shapeb.
+Definition checked_iss_shape_validate :=
+  ISSCore.checked_iss_shape_validate.
+Definition check_domain_partition_cut_shapeb :=
+  ISSCore.check_domain_partition_cut_shapeb.
+Definition checked_iss_cut_shape_validate :=
+  ISSCore.checked_iss_cut_shape_validate.
+Definition check_domain_partition_complete_cut_shapeb :=
+  ISSCore.check_domain_partition_complete_cut_shapeb.
+Definition checked_iss_complete_cut_shape_validate :=
+  ISSCore.checked_iss_complete_cut_shape_validate.
+Definition domain_partition_shape :=
+  ISSCore.domain_partition_shape.
+Definition domain_partition_shape_with_witness :=
+  ISSCore.domain_partition_shape_with_witness.
+Definition domain_partition_cut_shape :=
+  ISSCore.domain_partition_cut_shape.
+Definition domain_partition_complete_cut_shape :=
+  ISSCore.domain_partition_complete_cut_shape.
+Definition checked_iss_shape_validate_correct :=
+  ISSCore.checked_iss_shape_validate_correct.
+Definition checked_iss_cut_shape_validate_correct :=
+  ISSCore.checked_iss_cut_shape_validate_correct.
+Definition checked_iss_complete_cut_shape_validate_correct :=
+  ISSCore.checked_iss_complete_cut_shape_validate_correct.
 
 (** Checked tiling validator API on the generic outer PolyLang type. *)
 Definition to_tiling_pprog := TilingCore.to_tiling_pprog.

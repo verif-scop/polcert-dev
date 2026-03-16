@@ -249,3 +249,98 @@ a[i] = 2 * a[N - 1 - i];
 - ISS validation 不应该把输入只看成两份 program
 - 更合理的接口是 `before + after + explicit split witness`
 - 它的核心证明对象不是 schedule，而是 statement/domain splitting equivalence
+
+## 10. `PolyLang` 语义层其实已经够用
+
+进一步看 `polcert` 当前形式化后，我认为：
+
+- ISS 不需要先扩展 `PolyLang` 的执行语义
+- `PolyLang` 现有的 `list PolyInstr` + flatten/sort/execute 语义已经能表达
+  split 前后的程序
+
+原因是 ISS 后程序本质上只是：
+
+- statement 数量变多
+- payload 基本保持不变
+- 每个新 statement 只是在 `pi_poly` 上换成一个 source-domain piece
+
+这正适合在 `PolyLang` 里表示成多个 `PolyInstr`。
+
+真正的缺口不在语义层，而在 validator 接口层：
+
+- 现有 `EqDom` / `validate_general` 只接受一一对应的 statement family
+- ISS 需要的是 one-to-many 的 program-level relation
+
+## 11. 最好的抽象对象：`domain_partition_refinement`
+
+我现在更明确地建议，把 ISS 的主定理建立在一个 universal relation 上：
+
+```text
+domain_partition_refinement P0 Piss
+```
+
+它只表达：
+
+- `P0` 和 `Piss` 的 `varctxt / vars` 相同
+- `Piss` 的每个 statement 都有一个 parent，指向 `P0` 中的某个 statement
+- 对应 parent，除 domain 外 payload 保持不变
+- 每个 source statement 的所有 pieces：
+  - 都包含于 source domain
+  - 并集等于 source domain
+  - 两两不交
+
+这一定义不提 Pluto midpoint cut，也不提具体 heuristic。它只提 ISS
+真正的语义本质：domain partition refinement。
+
+## 12. Pluto-specific checker 应该怎样实例化它
+
+抽象定理和 Pluto checker 最好分层：
+
+1. 抽象层：
+   - `domain_partition_refinement`
+   - `domain_partition_refinement_correct`
+2. Pluto-specific 层：
+   - `parent_stmt`
+   - `cuts`
+   - `piece_signs`
+   - 用这些信息证明它满足抽象 refinement 条件
+
+这样 Pluto 只负责：
+
+- 生成一个 untrusted witness
+- checker 验证这个 witness 是否确实构成 refinement
+
+而不需要去证明 Pluto `iss.c` 里的 cut 搜索算法本身。
+
+## 13. 证明策略应该怎么写进论文
+
+我认为论文里最清楚的主线是：
+
+1. 先定义一个通用的 `domain_partition_refinement`
+2. 证明它蕴含 `PolyLang` 语义等价
+3. 再说明 Pluto 的 ISS witness 是这个通用定理的一个可执行实例
+
+证明思路可以非常直接：
+
+- `PolyLang` 的语义核心对象是 flattened instruction points
+- 对每个 source point，由于 pieces 构成不交覆盖，它在 `Piss` 中恰好落到一个 piece
+- payload / schedule 不变，所以对应的 instruction point 行为不变
+- 差别只剩 statement-family bookkeeping
+
+因此，ISS 的主定理应当是一个 point-list equivalence / reindexing theorem，
+而不是一个 schedule theorem。
+
+## 14. 这对工程接口的直接含义
+
+从 Pluto 实现出发，我现在的工程判断是：
+
+- 正式接口不应依赖 `pluto_prog_print` 这种 pretty print
+- 也不应强依赖 OpenScop 作为统一出口
+- 更合适的是 Pluto 自己导出：
+  - before/after 的无损 `PlutoProg` 级矩阵
+  - parent map
+  - cut hyperplanes
+  - piece sign choices
+
+因为 ISS 真正工作的对象本来就是 `PlutoProg / Stmt / Dep`，不是 OpenScop，也
+不是 isl schedule tree。

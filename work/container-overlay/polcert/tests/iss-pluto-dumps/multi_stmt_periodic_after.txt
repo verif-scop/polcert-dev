@@ -1,0 +1,926 @@
+[pluto] Pet SCoP context
+Set #1
+[2 dims; 4 constraints]
+-c_i+1 >= 0
+c_i+2147483647 >= 0
+-c_j+2147483647 >= 0
+c_j+2147483648 >= 0
+
+Set #2
+[2 dims; 4 constraints]
+c_i-2 >= 0
+-c_i+2147483647 >= 0
+c_j+2147483647 >= 0
+-c_j+2147483647 >= 0
+
+[pluto] Pet to Pluto stmts
+[pluto] Pet SCoP context
+[pluto] compute_deps (isl)
+[pluto] Number of statements: 2
+[pluto] Total number of loops: 4
+[pluto] Number of deps: 22
+[pluto] Maximum domain dimensionality: 2
+[pluto] Number of parameters: 2
+[iss] Dimension 0 has 14 long deps
+[iss] Dimension 1 has 4 long deps
+[iss] Dimension 0
+[pluto] pluto_constraints_lexmin_isl (7 variables, 163 constraints)
+[iss] No solution to close to mid-point cut)
+[iss] Dimension 1
+[pluto] pluto_constraints_lexmin_isl (7 variables, 43 constraints)
+[iss] m = 2
+[iss] h (cut) is Set #1
+[4 dims; 1 constraints]
+2i-N = 0
+
+[iss] Splitting S1 into 2 statements
+[iss] Splitting S2 into 2 statements
+After ISS
+nvar = 2, npar = 2
+Parameters: T N 
+S1 "u[t % 2][i] = ((v[(t - 1) % 2][i == 0 ? N - 1 : i - 1] + u[(t - 1) % 2][i]) + u[(t - 1) % 2][i + 1 == N ? 0 : i + 1]);"
+ndims: 2; orig_depth: 2
+Index set
+Set #1
+[4 dims; 5 constraints]
+t-1 >= 0
+-t+T-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-2i+N-1 >= 0
+
+T(S1): (1, t, 1, i, 0)
+loop types (loop, loop, loop, loop, loop)
+
+Read accesses
+v[0][i-1]
+v[0][N-1]
+u[0][i]
+u[0][i+1]
+u[0][0]
+Write accesses
+u[0][i]
+Original loop: 0 -> yes
+Original loop: 1 -> yes
+
+S2 "u[t % 2][i] = ((v[(t - 1) % 2][i == 0 ? N - 1 : i - 1] + u[(t - 1) % 2][i]) + u[(t - 1) % 2][i + 1 == N ? 0 : i + 1]);"
+ndims: 2; orig_depth: 2
+Index set
+Set #1
+[4 dims; 5 constraints]
+t-1 >= 0
+-t+T-1 >= 0
+i >= 0
+-i+N-1 >= 0
+2i-N >= 0
+
+T(S2): (1, t, 1, i, 0)
+loop types (loop, loop, loop, loop, loop)
+
+Read accesses
+v[0][i-1]
+v[0][N-1]
+u[0][i]
+u[0][i+1]
+u[0][0]
+Write accesses
+u[0][i]
+Original loop: 0 -> yes
+Original loop: 1 -> yes
+
+S3 "v[t % 2][i] = ((v[(t - 1) % 2][i == 0 ? N - 1 : i - 1] + v[(t - 1) % 2][i]) + u[(t - 1) % 2][i + 1 == N ? 0 : i + 1]);"
+ndims: 2; orig_depth: 2
+Index set
+Set #1
+[4 dims; 5 constraints]
+t-1 >= 0
+-t+T-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-2i+N-1 >= 0
+
+T(S3): (1, t, 1, i, 1)
+loop types (loop, loop, loop, loop, loop)
+
+Read accesses
+v[0][i-1]
+v[0][N-1]
+v[0][i]
+u[0][i+1]
+u[0][0]
+Write accesses
+v[0][i]
+Original loop: 0 -> yes
+Original loop: 1 -> yes
+
+S4 "v[t % 2][i] = ((v[(t - 1) % 2][i == 0 ? N - 1 : i - 1] + v[(t - 1) % 2][i]) + u[(t - 1) % 2][i + 1 == N ? 0 : i + 1]);"
+ndims: 2; orig_depth: 2
+Index set
+Set #1
+[4 dims; 5 constraints]
+t-1 >= 0
+-t+T-1 >= 0
+i >= 0
+-i+N-1 >= 0
+2i-N >= 0
+
+T(S4): (1, t, 1, i, 1)
+loop types (loop, loop, loop, loop, loop)
+
+Read accesses
+v[0][i-1]
+v[0][N-1]
+v[0][i]
+u[0][i+1]
+u[0][0]
+Write accesses
+v[0][i]
+Original loop: 0 -> yes
+Original loop: 1 -> yes
+
+--- Dep 1 from S1 to S1; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 1 from S2 to S2; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+--- Dep 2 from S1 to S1; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 2 from S2 to S1; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 2 from S2 to S2; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+--- Dep 3 from S1 to S1; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i'-N+1 = 0
+i = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 3 from S1 to S2; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i'-N+1 = 0
+i = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+2i'-N >= 0
+
+
+--- Dep 4 from S3 to S1; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i'+N-1 >= 0
+-2i+N-1 >= 0
+
+
+--- Dep 4 from S3 to S2; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i'-N >= 0
+-2i+N-1 >= 0
+
+
+--- Dep 4 from S4 to S2; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i'-N >= 0
+2i-N >= 0
+
+
+--- Dep 5 from S3 to S1; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i' = 0
+i-N+1 = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i'+N-1 >= 0
+-2i+N-1 >= 0
+
+
+--- Dep 5 from S4 to S1; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i' = 0
+i-N+1 = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i'+N-1 >= 0
+2i-N >= 0
+
+
+--- Dep 6 from S1 to S3; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 6 from S2 to S3; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 6 from S2 to S4; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+--- Dep 7 from S1 to S3; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i'-N+1 = 0
+i = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 7 from S1 to S4; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i'-N+1 = 0
+i = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+2i'-N >= 0
+
+
+--- Dep 8 from S3 to S3; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 8 from S3 to S4; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+2i'-N >= 0
+
+
+--- Dep 8 from S4 to S4; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+--- Dep 9 from S3 to S3; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 9 from S4 to S4; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+--- Dep 10 from S3 to S3; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i' = 0
+i-N+1 = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 10 from S4 to S3; satisfied: 0, sat level: -1; Type: RAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i' = 0
+i-N+1 = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 11 from S3 to S3; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 11 from S4 to S4; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+--- Dep 12 from S3 to S3; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 12 from S4 to S3; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 12 from S4 to S4; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+--- Dep 13 from S3 to S3; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i'-N+1 = 0
+i = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 13 from S3 to S4; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i'-N+1 = 0
+i = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+2i'-N >= 0
+
+
+--- Dep 14 from S3 to S1; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i'+N-1 >= 0
+-2i+N-1 >= 0
+
+
+--- Dep 14 from S3 to S2; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i'-N >= 0
+-2i+N-1 >= 0
+
+
+--- Dep 14 from S4 to S2; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i'-N >= 0
+2i-N >= 0
+
+
+--- Dep 15 from S3 to S1; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i' = 0
+i-N+1 = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i'+N-1 >= 0
+-2i+N-1 >= 0
+
+
+--- Dep 15 from S4 to S1; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i' = 0
+i-N+1 = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i'+N-1 >= 0
+2i-N >= 0
+
+
+--- Dep 16 from S1 to S3; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 16 from S2 to S3; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 16 from S2 to S4; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'+1 = 0
+t-1 >= 0
+i-1 >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+--- Dep 17 from S1 to S3; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i'-N+1 = 0
+i = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 17 from S1 to S4; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i'-N+1 = 0
+i = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+2i'-N >= 0
+
+
+--- Dep 18 from S1 to S1; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 18 from S1 to S2; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+2i'-N >= 0
+
+
+--- Dep 18 from S2 to S2; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i'-1 = 0
+t-1 >= 0
+i >= 0
+-i+N-2 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+--- Dep 19 from S1 to S1; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 19 from S2 to S2; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+--- Dep 20 from S1 to S1; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i' = 0
+i-N+1 = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 20 from S2 to S1; satisfied: 0, sat level: -1; Type: WAR
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+i' = 0
+i-N+1 = 0
+N-1 >= 0
+t-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 21 from S3 to S3; satisfied: 0, sat level: -1; Type: WAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 21 from S4 to S4; satisfied: 0, sat level: -1; Type: WAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+--- Dep 22 from S1 to S1; satisfied: 0, sat level: -1; Type: WAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+-2i+N-1 >= 0
+-2i'+N-1 >= 0
+
+
+--- Dep 22 from S2 to S2; satisfied: 0, sat level: -1; Type: WAW
+Dependence polyhedron
+Set #1
+[6 dims; 8 constraints]
+-i+i' = 0
+t-1 >= 0
+i >= 0
+-i+N-1 >= 0
+-t+t'-1 >= 0
+-t'+T-1 >= 0
+2i-N >= 0
+2i'-N >= 0
+
+
+T(S1): (1, t, 1, i, 0)
+loop types (loop, loop, loop, loop, loop)
+
+T(S2): (1, t, 1, i, 0)
+loop types (loop, loop, loop, loop, loop)
+
+T(S3): (1, t, 1, i, 1)
+loop types (loop, loop, loop, loop, loop)
+
+T(S4): (1, t, 1, i, 1)
+loop types (loop, loop, loop, loop, loop)
+
+[pluto] pluto_compute_dep_satisfaction
+[pluto] pluto_dep_satisfaction_reset
+[pluto] dep_satisfaction_update (level 0)
+	 0 dep(s) satisfied
+[pluto] dep_satisfaction_update (level 1)
+	 52 dep(s) satisfied
+[pluto] dep_satisfaction_update (level 2)
+	 0 dep(s) satisfied
+[pluto] dep_satisfaction_update (level 3)
+	 0 dep(s) satisfied
+[pluto] dep_satisfaction_update (level 4)
+	 0 dep(s) satisfied
+[pluto] Affine transformations [<iter coeff's> <param> <const>]
+
+T(S1): (1, t, 1, i, 0)
+loop types (loop, loop, loop, loop, loop)
+
+T(S2): (1, t, 1, i, 0)
+loop types (loop, loop, loop, loop, loop)
+
+T(S3): (1, t, 1, i, 1)
+loop types (loop, loop, loop, loop, loop)
+
+T(S4): (1, t, 1, i, 1)
+loop types (loop, loop, loop, loop, loop)
+
+[pluto] generating Cloog file...
+[pluto] using Cloog -f/-l options: 1 5
+[pluto] cloog_input_read
+[pluto] cloog_clast_create
+[pluto_mark_vector] parallel loops
+t4 {loop with stmts: S1, S2, S3, S4, }
+[pluto_mark_vector] marking loop vectorizable
+t4 {loop with stmts: S1, S2, S3, S4, }
+[pluto-unroll-jam] No unroll jam loop candidates found
+[Pluto] Output written to multi-stmt-periodic.pluto.c
+
+[pluto] Timing statistics
+[pluto] SCoP extraction + dependence analysis time: 0.038589s
+[pluto] Auto-transformation time: 0.000000s
+[pluto] Tile size selection time: 0.000000s
+[pluto] 		Total constraint solving time (LP/MIP/ILP) time: 0.000000s
+[pluto] Code generation time: 0.006386s
+[pluto] Other/Misc time: 0.027833s
+[pluto] Total time: 0.072808s
+[pluto] All times: 0.038589 0.000000 0.006386 0.027833

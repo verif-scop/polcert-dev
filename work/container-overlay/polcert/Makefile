@@ -118,7 +118,7 @@ CFRONTEND=Ctypes.v Cop.v Csyntax.v Csem.v Ctyping.v Cstrategy.v Initializers.v I
 BACKEND=
 # Machregs.v Conventions1.v Locations.v Op.v
 
-POLYGEN=ASTGen.v Canonizer.v CodeGen.v StateTy.v InstrTy.v Loop.v LoopGen.v \
+POLYGEN=ASTGen.v Canonizer.v CodeGen.v TyTy.v StateTy.v InstrTy.v Loop.v LoopGen.v \
   PolyLang.v PolyLoop.v PolyLoopSimpl.v PolyOperations.v PolyTest.v \
   Projection.v Result.v IterSemantics.v PolIRs.v CPolIRs.v TPolIRs.v InstanceListSema.v \
   LoopCleanup.v LoopSingletonCleanup.v
@@ -156,13 +156,16 @@ POLCERT_SRC = Base.v Convert.v \
   Extractor.v PrepareCodegen.v StrengthenDomain.v \
   OpenScop.v OpenScopAST.v PolyBase.v PolyLang.v \
   SelectionSort.v StablePermut.v CState.v AffineValidator.v \
-  PointWitness.v TilingWitness.v TilingList.v TilingRelation.v \
+  PointWitness.v ISSWitness.v ISSRefinement.v \
+  ISSBoolChecker.v ISSValidator.v ISSSemantics.v \
+  ISSCutSemantics.v ISSValidatorCorrect.v \
+  TilingWitness.v TilingList.v TilingRelation.v \
   TilingBoolChecker.v TilingValidator.v Validator.v \
-  CInstr.v TInstr.v TyTy.v CTy.v
+  CInstr.v TInstr.v CTy.v
 
 # Putting everything together (in driver/)
 
-DRIVER=PolOpt.v PolOptPrepared.v CPolOpt.v TPolOpt.v TPolValidator.v
+DRIVER=PolOpt.v PolOptCorrect.v PolOptPrepared.v CPolOpt.v TPolOpt.v TPolValidator.v
 
 SAMPLES=CSample1.v CSample2.v CSample3.v ExtractorSmoke.v
 
@@ -231,21 +234,30 @@ polopt: .depend.extr driver/Version.ml FORCE
 
 FORCE:
 
-.PHONY: proof extraction FORCE test test-polopt-generated
+.PHONY: proof extraction FORCE test test-polopt-loop-suite test-polopt-generated test-iss-pluto-suite
 
 test: .depend.extr polcert.ini driver/Version.ml FORCE
 	$(MAKE) -f Makefile.test test --no-print-directory
 
-test-polopt-generated: polopt
+test-polopt-loop-suite: polopt
 	rm -rf tests/polopt-generated/cases
 	python3 tests/polopt-generated/tools/materialize_polopt_cases.py \
 		--polopt ./polopt \
-		--timeout-seconds 600
+		--timeout-seconds 300
+
+test-polopt-generated: test-polopt-loop-suite
 	python3 tests/polopt-generated/tools/check_polopt_cases.py \
 		--cases-dir tests/polopt-generated/cases \
 		--expect-total 62 \
 		--min-changed 50 \
+		--min-nontrivial-changed 50 \
 		--require-tiled matmul matmul-init wavefront
+
+test-iss-pluto-suite: polopt
+	./polopt --validate-iss-pluto-suite
+
+test-iss-pluto-live-suite: polopt
+	./polopt --validate-iss-pluto-live-suite
 
 test-clean: 
 	$(MAKE) -f Makefile.test clean

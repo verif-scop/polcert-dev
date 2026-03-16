@@ -7,7 +7,6 @@ open Driveraux
 open Camlcoq
 open Filename
 open Str  (* Required for regular expressions *)
-open TilingWitness
 
 (** scop to scop *)
 
@@ -23,7 +22,13 @@ let run_pluto_scop flags inscop =
   (* print_string ((String.concat " " cmd) ^ "\n"); *)
   let stdout =  (tmp_file (".stdout")) in
   let exc = command ?stdout:(Some stdout) cmd in
-  match OpenScopReader.read outscop_file with
+  let read_outscop () =
+    if Sys.file_exists outscop_file then
+      OpenScopReader.read outscop_file
+    else
+      None
+  in
+  match read_outscop () with
   | Some outscop -> Okk outscop
   | None ->
       if exc <> 0 then (
@@ -33,6 +38,37 @@ let run_pluto_scop flags inscop =
              (Printf.sprintf "scheduler failed with exit code %d" exc))
       ) else
         Err (coqstring_of_camlstring ("scheduler failed"))
+
+let read_file path =
+  let ic = open_in path in
+  let buf = Buffer.create 4096 in
+  Fun.protect
+    ~finally:(fun () -> close_in ic)
+    (fun () ->
+      (try
+         while true do
+           Buffer.add_string buf (input_line ic);
+           Buffer.add_char buf '\n'
+         done
+       with End_of_file -> ());
+      Buffer.contents buf)
+
+let run_pluto_bridge flags inscop =
+  let inscop_file = tmp_file ".scop" in
+  let stdout_file = tmp_file ".stdout" in
+  OpenScopPrinter.openscop_printer inscop_file inscop;
+  let cmd =
+    List.concat
+      [["pluto"; "--readscop"]; flags; [inscop_file]]
+  in
+  let exc = command ?stdout:(Some stdout_file) cmd in
+  let output = read_file stdout_file in
+  if exc = 0 then
+    Okk output
+  else
+    Err
+      (coqstring_of_camlstring
+         (Printf.sprintf "ISS bridge export failed with exit code %d" exc))
 
 let affine_only_flags =
   [
@@ -58,11 +94,28 @@ let tile_only_flags =
     "--rar";
   ]
 
+let affine_with_iss_flags =
+  ["--iss"] @ affine_only_flags
+
+let iss_identity_bridge_flags =
+  [
+    "--iss";
+    "--identity";
+    "--dump-iss-bridge";
+    "--silent";
+  ]
+
 let affine_only_scop_scheduler inscop =
   run_pluto_scop affine_only_flags inscop
 
 let tile_only_scop_scheduler inscop =
   run_pluto_scop tile_only_flags inscop
+
+let affine_only_scop_scheduler_with_iss inscop =
+  run_pluto_scop affine_with_iss_flags inscop
+
+let iss_identity_bridge_from_scop inscop =
+  run_pluto_bridge iss_identity_bridge_flags inscop
 
 let run_pluto_phase_pipeline inscop =
   match affine_only_scop_scheduler inscop with
@@ -74,48 +127,17 @@ let run_pluto_phase_pipeline inscop =
         | Okk outscop -> Okk (midscop, outscop)
       end
 
+let run_pluto_phase_pipeline_with_iss inscop =
+  match affine_only_scop_scheduler_with_iss inscop with
+  | Err msg -> Err msg
+  | Okk midscop ->
+      begin
+        match tile_only_scop_scheduler midscop with
+        | Err msg -> Err msg
+        | Okk outscop -> Okk (midscop, outscop)
+      end
+
 let phase_scop_scheduler = run_pluto_phase_pipeline
-
-let coeff_of_assoc assoc name =
-  match List.assoc_opt name assoc with
-  | Some coeff -> coeff
-  | None -> Z.zero
-
-let convert_affine_expr names params
-    (expr : PlutoTilingValidator.affine_expr) =
-  {
-    ae_var_coeffs =
-      List.map (coeff_of_assoc expr.PlutoTilingValidator.var_coeffs) names;
-    ae_param_coeffs =
-      List.map (coeff_of_assoc expr.PlutoTilingValidator.param_coeffs) params;
-    ae_const = expr.PlutoTilingValidator.const;
-  }
-
-let convert_statement_witness params
-    (stmt : PlutoTilingValidator.statement_witness) =
-  let rec convert_links prefix = function
-    | [] -> []
-    | link :: tl ->
-        let names = prefix @ stmt.PlutoTilingValidator.original_iterators in
-        let expr = convert_affine_expr names params link.PlutoTilingValidator.expr in
-        let link' =
-          {
-            tl_expr = expr;
-            tl_tile_size = link.PlutoTilingValidator.tile_size;
-          }
-        in
-        link' :: convert_links (prefix @ [link.PlutoTilingValidator.parent]) tl
-  in
-  {
-    stw_point_dim =
-      Camlcoq.Nat.of_int
-        (List.length stmt.PlutoTilingValidator.original_iterators);
-    stw_links = convert_links [] stmt.PlutoTilingValidator.links;
-  }
-
-let convert_witness (witness : PlutoTilingValidator.witness) =
-  List.map (convert_statement_witness witness.PlutoTilingValidator.params)
-    witness.PlutoTilingValidator.statements
 
 let infer_tiling_witness_scops before_scop after_scop =
   try
@@ -126,7 +148,7 @@ let infer_tiling_witness_scops before_scop after_scop =
         before_scop
         after_scop
     in
-    Okk (convert_witness witness)
+    Okk (PhaseTiling.convert_witness witness)
   with
   | PlutoTilingValidator.ValidationError msg ->
       Err (coqstring_of_camlstring msg)

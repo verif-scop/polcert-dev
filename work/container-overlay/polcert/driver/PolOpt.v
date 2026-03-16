@@ -95,11 +95,14 @@ Module Pol := PolIRs.PolyLang. *)
    aliases, but the optimizer code below uses the clearer names. *)
 Definition affine_scheduler := PolIRs.affine_scheduler.
 Definition scheduler := PolIRs.scheduler.
-Definition export_for_pluto_phase_pipeline :=
-  PolIRs.export_for_pluto_phase_pipeline.
-Definition to_phase_openscop := PolIRs.to_phase_openscop.
+Definition export_for_phase_scheduler :=
+  PolIRs.export_for_phase_scheduler.
 Definition run_pluto_phase_pipeline :=
   PolIRs.run_pluto_phase_pipeline.
+Definition run_pluto_phase_pipeline_with_iss :=
+  PolIRs.run_pluto_phase_pipeline_with_iss.
+Definition infer_iss_from_source_scop :=
+  PolIRs.infer_iss_from_source_scop.
 Definition phase_scop_scheduler := PolIRs.phase_scop_scheduler.
 Definition infer_tiling_witness_scops := PolIRs.infer_tiling_witness_scops.
 Module Instr := PolIRs.Instr.
@@ -161,56 +164,105 @@ Definition try_verified_tiling_after_phase_mid
 
 Definition try_tiling_prepared_from_phase := try_verified_tiling_after_phase_mid.
 
+Definition try_phase_pipeline_from_source_pol
+    (pol_source: PolyLang.t)
+    (phase_runner: OpenScop -> result (OpenScop * OpenScop))
+    (before_scop: OpenScop): imp LoopIR.t :=
+  match phase_runner before_scop with
+  | Err _ =>
+      affine_only_opt_prepared_from_poly pol_source
+  | Okk (mid_scop, after_scop) =>
+      match PolyLang.from_openscop_like_source pol_source mid_scop with
+      | Err _ =>
+          affine_only_opt_prepared_from_poly pol_source
+      | Okk pol_mid =>
+          BIND affine_ok <- ValidatorCore.validate pol_source pol_mid -;
+          if affine_ok then
+            try_verified_tiling_after_phase_mid pol_mid mid_scop after_scop
+          else
+            affine_only_opt_prepared_from_poly pol_source
+      end
+  end.
+
 Definition has_nonscalar_stmt (pol: PolyLang.t) : bool :=
   let '((pis, _), _) := pol in
   existsb (fun pi => negb (Nat.eqb pi.(PolyLang.pi_depth) O)) pis.
 
-Definition phase_pipeline_opt_prepared_from_poly (pol: PolyLang.t): imp LoopIR.t :=
+Definition try_checked_iss_phase_pipeline_from_poly
+    (pol: PolyLang.t)
+    (before_scop: OpenScop): imp LoopIR.t :=
+  match infer_iss_from_source_scop pol before_scop with
+  | Okk (Some (pol_iss, w)) =>
+      if ValidatorCore.checked_iss_complete_cut_shape_validate pol pol_iss w then
+        BIND iss_wf <- ValidatorCore.check_wf_polyprog pol_iss -;
+        if iss_wf then
+          try_phase_pipeline_from_source_pol
+            pol_iss
+            run_pluto_phase_pipeline_with_iss
+            before_scop
+        else
+          try_phase_pipeline_from_source_pol
+            pol
+            run_pluto_phase_pipeline
+            before_scop
+      else
+        try_phase_pipeline_from_source_pol
+          pol
+          run_pluto_phase_pipeline
+          before_scop
+  | _ =>
+      try_phase_pipeline_from_source_pol
+        pol
+        run_pluto_phase_pipeline
+        before_scop
+  end.
+
+Definition phase_pipeline_opt_prepared_from_poly_no_iss
+    (pol: PolyLang.t): imp LoopIR.t :=
   if has_nonscalar_stmt pol then
-    match export_for_pluto_phase_pipeline pol with
+    match export_for_phase_scheduler pol with
     | None =>
         affine_only_opt_prepared_from_poly pol
     | Some before_scop =>
-        match run_pluto_phase_pipeline before_scop with
-        | Err _ =>
-            affine_only_opt_prepared_from_poly pol
-        | Okk (mid_scop, after_scop) =>
-            match PolyLang.from_openscop_like_source pol mid_scop with
-            | Err _ =>
-                affine_only_opt_prepared_from_poly pol
-            | Okk pol_mid =>
-                BIND affine_ok <- ValidatorCore.validate pol pol_mid -;
-                if affine_ok then
-                  try_verified_tiling_after_phase_mid pol_mid mid_scop after_scop
-                else
-                  affine_only_opt_prepared_from_poly pol
-            end
-        end
+        try_phase_pipeline_from_source_pol
+          pol
+          run_pluto_phase_pipeline
+          before_scop
     end
   else
     PrepareCore.prepared_codegen pol.
 
+Definition phase_pipeline_opt_prepared_from_poly_with_iss
+    (pol: PolyLang.t): imp LoopIR.t :=
+  if has_nonscalar_stmt pol then
+    match export_for_phase_scheduler pol with
+    | None =>
+        affine_only_opt_prepared_from_poly pol
+    | Some before_scop =>
+        try_checked_iss_phase_pipeline_from_poly pol before_scop
+    end
+  else
+    PrepareCore.prepared_codegen pol.
+
+Definition phase_pipeline_opt_prepared_from_poly :=
+  phase_pipeline_opt_prepared_from_poly_no_iss.
+
 Definition phase_opt_prepared_from_poly := phase_pipeline_opt_prepared_from_poly.
+Definition phase_opt_prepared_from_poly_with_iss :=
+  phase_pipeline_opt_prepared_from_poly_with_iss.
 
 Definition phase_pipeline_opt_prepared (loop: LoopIR.t): imp LoopIR.t :=
   BIND pol0 <- res_to_alarm PolyLang.dummy (Extractor.extractor loop) -;
   let pol := Strengthen.strengthen_pprog pol0 in
   phase_pipeline_opt_prepared_from_poly pol.
 
+Definition phase_pipeline_opt_prepared_with_iss (loop: LoopIR.t): imp LoopIR.t :=
+  BIND pol0 <- res_to_alarm PolyLang.dummy (Extractor.extractor loop) -;
+  let pol := Strengthen.strengthen_pprog pol0 in
+  phase_opt_prepared_from_poly_with_iss pol.
+
 Definition phase_opt_prepared := phase_pipeline_opt_prepared.
-
-
-Definition Opt_raw (loop: PolIRs.Loop.t): imp PolIRs.Loop.t := 
-   pure loop
-   @@@[PolIRs.PolyLang.dummy] time "PolOpt.Extractor" Extractor.extractor
-   (* @@ print (print_CPol) *)
-   @@@ time "PolOpt.Scheduler" checked_affine_schedule
-   (* @@ print (print_CPol) *)
-   (* @@@[cloop_ty_dummy] time "PolOpt.Codegen" CodeGen.codegen *)
-   @@@ time "PolOpt.Codegen" CodeGen.codegen.
-   (* @@ print (print_CLoop). *)
-
-
+Definition phase_opt_prepared_with_iss := phase_pipeline_opt_prepared_with_iss.
 
 
 Lemma scheduler'_correct:
@@ -221,9 +273,9 @@ Lemma scheduler'_correct:
       PolyLang.instance_list_semantics pol st1 st2' /\ State.eq st2 st2'.
 Proof.
    intros. intros pol' SCHE SEM'.
-   unfold scheduler' in SCHE.
+   unfold scheduler', checked_affine_schedule in SCHE.
 
-   destruct scheduler eqn:SCHE'.
+   destruct (affine_scheduler pol) eqn:SCHE'.
    2: {
       simpls.
       eapply mayReturn_alarm in SCHE; easy.
@@ -263,7 +315,11 @@ Qed.
 Definition Opt_prepared (loop: LoopIR.t): imp LoopIR.t :=
   phase_opt_prepared loop.
 
+Definition Opt_prepared_with_iss (loop: LoopIR.t): imp LoopIR.t :=
+  phase_opt_prepared_with_iss loop.
+
 Definition Opt : LoopIR.t -> imp LoopIR.t := Opt_prepared.
+Definition Opt_with_iss : LoopIR.t -> imp LoopIR.t := Opt_prepared_with_iss.
 
 Lemma extractor_success_wf_pprog_affine:
   forall loop pol,
@@ -302,8 +358,8 @@ Lemma scheduler'_preserve_wf:
 Proof.
   intros pol pol' Hwf pol'' Hsched Heq.
   subst pol''.
-  unfold scheduler' in Hsched.
-  destruct scheduler eqn:Hschedsrc.
+  unfold scheduler', checked_affine_schedule in Hsched.
+  destruct (affine_scheduler pol) eqn:Hschedsrc.
   2: {
     exfalso.
     eapply mayReturn_alarm in Hsched.
@@ -348,6 +404,9 @@ Definition outer_to_tiling_pprog := ValidatorCore.outer_to_tiling_pprog.
 Definition check_pprog_tiling_sourceb :=
   ValidatorCore.check_pprog_tiling_sourceb.
 Definition check_wf_polyprog := ValidatorCore.check_wf_polyprog.
+Definition check_wf_polyprog_affine_correct :=
+  ValidatorCore.AffineCore.check_wf_polyprog_affine_correct.
+Definition check_wf_polyprog_correct := ValidatorCore.check_wf_polyprog_correct.
 Definition check_wf_polyprog_general := ValidatorCore.check_wf_polyprog_general.
 Definition EqDom := ValidatorCore.EqDom.
 Definition check_valid_access := ValidatorCore.check_valid_access.
@@ -419,7 +478,8 @@ Lemma try_tiling_prepared_from_phase_correct:
       PolyLang.instance_list_semantics pol_mid st st'' /\ State.eq st' st''.
 Proof.
   intros pol_mid mid_scop after_scop st st' Hwf_mid loop' Hopt Hloop.
-  unfold try_tiling_prepared_from_phase in Hopt.
+  unfold try_tiling_prepared_from_phase,
+    try_verified_tiling_after_phase_mid in Hopt.
   destruct (infer_tiling_witness_scops mid_scop after_scop) as [ws|msg] eqn:Hws.
   - destruct
       (ValidatorCore.import_canonical_tiled_after_poly pol_mid after_scop ws)
@@ -448,87 +508,43 @@ Proof.
     exists st'. split; auto. eapply State.eq_refl.
 Qed.
 
-Lemma phase_opt_prepared_from_poly_correct:
-  forall pol st st',
-    PolyLang.wf_pprog_affine pol ->
-    WHEN loop' <- phase_opt_prepared_from_poly pol THEN
+Lemma try_phase_pipeline_from_source_pol_correct:
+  forall pol_source phase_runner before_scop st st',
+    PolyLang.wf_pprog_affine pol_source ->
+    WHEN loop' <-
+      try_phase_pipeline_from_source_pol pol_source phase_runner before_scop THEN
     LoopIR.semantics loop' st st' ->
     exists st'',
-      PolyLang.instance_list_semantics pol st st'' /\ State.eq st' st''.
+      PolyLang.instance_list_semantics pol_source st st'' /\
+      State.eq st' st''.
 Proof.
-  intros pol st st' Hwf loop' Hopt Hloop.
-  unfold phase_opt_prepared_from_poly in Hopt.
-  destruct (has_nonscalar_stmt pol) eqn:Hnonscalar.
-  - destruct (export_for_pluto_phase_pipeline pol) as [before_scop|] eqn:Hbefore.
-    + destruct (run_pluto_phase_pipeline before_scop) as [[mid_scop after_scop]|msg] eqn:Hphase.
-      * destruct (PolyLang.from_openscop_like_source pol mid_scop) as [pol_mid|msg_mid] eqn:Hmid.
-        -- bind_imp_destruct Hopt affine_ok Haff.
-           destruct affine_ok.
-           ++ pose proof
-                (ValidatorCore.validate_preserve_wf_pprog pol pol_mid _ Haff eq_refl)
-                as [_ Hwf_mid].
-              pose proof
-                (try_tiling_prepared_from_phase_correct
-                   pol_mid mid_scop after_scop st st' Hwf_mid loop' Hopt Hloop)
-                as Hmid_corr.
-              destruct Hmid_corr as [st_mid [Hmid_sem Heq_mid]].
-              pose proof
-                (ValidatorCore.validate_correct
-                   pol pol_mid st st_mid true Haff eq_refl Hmid_sem)
-                as Haff_corr.
-              destruct Haff_corr as [st_src [Hsrc_sem Heq_src]].
-              exists st_src.
-              split; auto.
-              eapply State.eq_trans; eauto.
-           ++ eapply affine_opt_prepared_from_poly_correct; eauto.
-        -- eapply affine_opt_prepared_from_poly_correct; eauto.
+  intros pol_source phase_runner before_scop st st' Hwf_source loop' Hopt Hloop.
+  unfold try_phase_pipeline_from_source_pol in Hopt.
+  destruct (phase_runner before_scop) as [[mid_scop after_scop]|msg] eqn:Hphase.
+  - destruct (PolyLang.from_openscop_like_source pol_source mid_scop)
+      as [pol_mid|msg_mid] eqn:Hmid.
+    + bind_imp_destruct Hopt affine_ok Haff.
+      destruct affine_ok.
+      * pose proof
+          (ValidatorCore.validate_preserve_wf_pprog
+             pol_source pol_mid _ Haff eq_refl)
+          as [_ Hwf_mid].
+        pose proof
+          (try_tiling_prepared_from_phase_correct
+             pol_mid mid_scop after_scop st st' Hwf_mid loop' Hopt Hloop)
+          as Hmid_corr.
+        destruct Hmid_corr as [st_mid [Hmid_sem Heq_mid]].
+        pose proof
+          (ValidatorCore.validate_correct
+             pol_source pol_mid st st_mid true Haff eq_refl Hmid_sem)
+          as Haff_corr.
+        destruct Haff_corr as [st_src [Hsrc_sem Heq_src]].
+        exists st_src.
+        split; auto.
+        eapply State.eq_trans; eauto.
       * eapply affine_opt_prepared_from_poly_correct; eauto.
     + eapply affine_opt_prepared_from_poly_correct; eauto.
-  - eapply PrepareCore.prepared_codegen_correct in Hopt; eauto.
-    exists st'. split; auto. eapply State.eq_refl.
-Qed.
-
-Theorem Opt_prepared_correct:
-  forall loop st st',
-    WHEN loop' <- Opt_prepared loop THEN
-    LoopIR.semantics loop' st st' ->
-    exists st'',
-      LoopIR.semantics loop st st'' /\ State.eq st' st''.
-Proof.
-  intros loop st st' loop' Hopt Hloop.
-  unfold Opt_prepared, phase_opt_prepared in Hopt.
-  bind_imp_destruct Hopt pol0 Hextimp.
-  set (pol := Strengthen.strengthen_pprog pol0) in *.
-  pose proof Hextimp as Hextok.
-  apply res_to_alarm_correct in Hextok.
-  pose proof
-    (Strengthen.strengthen_pprog_wf_affine pol0
-       (extractor_success_wf_pprog_affine loop pol0
-          Hextok))
-    as Hwf_pol.
-  pose proof
-    (phase_opt_prepared_from_poly_correct pol st st' Hwf_pol loop' Hopt Hloop)
-    as Hphase_corr.
-  destruct Hphase_corr as [st_str [Hstr_sem Heq_str]].
-  eapply Strengthen.instance_list_semantics_unstrengthen in Hstr_sem.
-  pose proof (Extractor.extractor_correct loop pol0 st st_str Hextok Hstr_sem)
-    as Hext_corr.
-  destruct Hext_corr as [st_src [Hloop_src Heq_src]].
-  exists st_src.
-  split; auto.
-  eapply State.eq_trans.
-  - exact Heq_str.
-  - exact Heq_src.
-Qed.
-
-Theorem Opt_correct:
-  forall loop st st',
-    WHEN loop' <- Opt loop THEN
-    LoopIR.semantics loop' st st' ->
-    exists st'',
-      LoopIR.semantics loop st st'' /\ State.eq st' st''.
-Proof.
-  exact Opt_prepared_correct.
+  - eapply affine_opt_prepared_from_poly_correct; eauto.
 Qed.
 
 Close Scope impure_scope.
