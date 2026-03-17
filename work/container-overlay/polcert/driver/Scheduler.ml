@@ -274,6 +274,9 @@ let tile_only_parallel_flags =
     "--rar";
   ]
 
+let affine_with_iss_parallel_flags =
+  ["--iss"] @ affine_only_parallel_flags
+
 let iss_identity_bridge_flags =
   [
     "--iss";
@@ -296,6 +299,9 @@ let tile_only_scop_scheduler_with_parallel_hint inscop =
 
 let affine_only_scop_scheduler_with_iss inscop =
   run_pluto_scop affine_with_iss_flags inscop
+
+let affine_only_scop_scheduler_with_iss_with_parallel_hint inscop =
+  run_pluto_scop_with_parallel_hint affine_with_iss_parallel_flags inscop
 
 let iss_identity_bridge_from_scop inscop =
   run_pluto_bridge iss_identity_bridge_flags inscop
@@ -328,6 +334,16 @@ let run_pluto_phase_pipeline_with_iss inscop =
         match tile_only_scop_scheduler midscop with
         | Err msg -> Err msg
         | Okk outscop -> Okk (midscop, outscop)
+      end
+
+let run_pluto_phase_pipeline_with_iss_with_parallel_hint inscop =
+  match affine_only_scop_scheduler_with_iss inscop with
+  | Err msg -> Err msg
+  | Okk midscop ->
+      begin
+        match tile_only_scop_scheduler_with_parallel_hint midscop with
+        | Err msg -> Err msg
+        | Okk (outscop, hint) -> Okk (midscop, outscop, hint)
       end
 
 let phase_scop_scheduler = run_pluto_phase_pipeline
