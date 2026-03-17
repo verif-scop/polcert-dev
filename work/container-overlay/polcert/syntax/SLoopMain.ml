@@ -15,7 +15,9 @@ let frontend_failf fmt = Printf.ksprintf (fun s -> raise (FrontendFailure s)) fm
 
 let usage prog =
   Printf.sprintf
-    "Usage: %s [--dump-input] [--dump-extracted-openscop] [--dump-scheduled-openscop] [--debug-scheduler] [--extract-only] [--identity] [--notile] [--iss] [--parallel] [--parallel-strict] [--parallel-current <dim>] <file.loop>\n       %s --extract-tiling-witness-openscop <before.scop> <after.scop>\n       %s --validate-tiling-openscop <before.scop> <after.scop>\n       %s --validate-iss-debug-dumps <before.txt> <after.txt>\n       %s --validate-iss-bridge <bridge.txt>\n       %s --validate-iss-pluto-suite\n       %s --validate-iss-pluto-live-suite\n\nDefault optimization path:\n  extracted theorem-aligned affine+tiling pipeline (`SPolOpt.opt`)\n\nExplicit phase controls:\n  --identity        : no Pluto phase, just checked extraction/strengthen/codegen\n  --notile          : stop after affine scheduling validation\n  --iss             : switch to the extracted theorem-aligned ISS+affine+tiling pipeline\n                       (`SPolOpt.opt_with_iss`); with `--identity`, run the ISS-only checked split path\n  --parallel        : experimental verified `parallel for` route driven by Pluto `--parallel`\n                       loop hints; supported on both the default and `--iss` pipelines,\n                       with or without `--notile`\n  --parallel-strict : with `--parallel`, require the certified parallel loop to be the\n                       Pluto-hinted dimension; otherwise keep the sequential optimized loop\n  --parallel-current d : manual verified `parallel for` on current dimension d;\n                         currently supported with `--identity` or `--notile`,\n                         including their `--iss` variants\n\nExamples:\n  %s file.loop                        # default theorem-aligned affine+tiling path\n  %s --parallel file.loop             # Pluto-hinted verified parallel path\n  %s --parallel --parallel-strict file.loop\n  %s --notile file.loop               # affine-only checked path\n  %s --notile --parallel file.loop    # affine-only Pluto-hinted verified parallel path\n  %s --identity file.loop             # identity/no-schedule path\n  %s --identity --parallel-current 0 file.loop\n  %s --notile --parallel-current 0 file.loop\n  %s --iss --notile --parallel file.loop  # ISS + affine verified parallel path\n  %s --iss --notile --parallel-current 0 file.loop\n  %s --iss --identity file.loop       # ISS-only checked split path\n"
+    "Usage: %s [--dump-input] [--dump-extracted-openscop] [--dump-scheduled-openscop] [--debug-scheduler] [--extract-only] [--identity] [--notile] [--iss] [--parallel] [--parallel-strict] [--parallel-current <dim>] <file.loop>\n       %s --extract-tiling-witness-openscop <before.scop> <after.scop>\n       %s --validate-tiling-openscop <before.scop> <after.scop>\n       %s --validate-iss-debug-dumps <before.txt> <after.txt>\n       %s --validate-iss-bridge <bridge.txt>\n       %s --validate-iss-pluto-suite\n       %s --validate-iss-pluto-live-suite\n\nDefault optimization path:\n  extracted theorem-aligned affine+tiling pipeline (`SPolOpt.opt`)\n\nExplicit phase controls:\n  --identity        : no Pluto phase, just checked extraction/strengthen/codegen\n  --notile          : stop after affine scheduling validation\n  --iss             : switch to the extracted theorem-aligned ISS+affine+tiling pipeline\n                       (`SPolOpt.opt_with_iss`); with `--identity`, run the ISS-only checked split path\n  --parallel        : experimental verified `parallel for` route driven by Pluto `--parallel`\n                       loop hints; supported on both the default and `--iss` pipelines,\n                       with or without `--notile`\n  --parallel-strict : with `--parallel`, require the certified parallel loop to be the\n                       Pluto-hinted dimension; otherwise keep the sequential optimized loop\n  --parallel-current d : manual verified `parallel for` on current dimension d;\n                         supported on identity, affine-only, and full tiled paths,\n                         including their `--iss` variants\n\nExamples:\n  %s file.loop                        # default theorem-aligned affine+tiling path\n  %s --parallel file.loop             # Pluto-hinted verified parallel path\n  %s --parallel --parallel-strict file.loop\n  %s --notile file.loop               # affine-only checked path\n  %s --notile --parallel file.loop    # affine-only Pluto-hinted verified parallel path\n  %s --identity file.loop             # identity/no-schedule path\n  %s --identity --parallel-current 0 file.loop\n  %s --notile --parallel-current 0 file.loop\n  %s --parallel-current 0 file.loop   # full tiled manual verified parallel path\n  %s --iss --notile --parallel file.loop  # ISS + affine verified parallel path\n  %s --iss --notile --parallel-current 0 file.loop\n  %s --iss --parallel-current 0 file.loop\n  %s --iss --identity file.loop       # ISS-only checked split path\n"
+    prog
+    prog
     prog
     prog
     prog
@@ -1594,6 +1596,104 @@ let optimize_parallel_iss_affine_only loop dim =
           "iss-affine-parallel: affine validation failed before manual parallel codegen";
       checked_parallel_current_codegen_or_fail "iss-affine-parallel" pol_mid dim
 
+let optimize_parallel_phase_aligned loop dim =
+  let pol = extract_strengthened_poly loop in
+  let (before_scop, mid_scop, after_scop) = pluto_phase_scops loop in
+  let (affine_res, affine_ok) =
+    affine_forward_scops "before" "mid_affine" before_scop mid_scop
+  in
+  if not (affine_ok && affine_res) then
+    frontend_failf
+      "phase-parallel: affine validation failed before manual parallel codegen";
+  let (tiling_res, tiling_ok) =
+    tiling_forward_scops
+      ~before_label:"mid_affine"
+      ~after_label:"after_tiled"
+      mid_scop
+      after_scop
+  in
+  if not (tiling_ok && tiling_res) then
+    frontend_failf
+      "phase-parallel: tiling validation failed before manual parallel codegen";
+  let pol_mid = import_schedule_only_spol_or_fail "mid_affine" pol mid_scop in
+  let witness : PlutoTilingValidator.witness =
+    PlutoTilingValidator.extract_witness_from_scops
+      ~before_path:"mid_affine"
+      ~after_path:"after_tiled"
+      mid_scop
+      after_scop
+  in
+  let ws = PhaseTiling.convert_witness witness in
+  let canonical_after = build_canonical_tiled_after_spol pol_mid ws in
+  let pol_after_sched =
+    import_schedule_only_spol_or_fail "after_tiled" canonical_after after_scop
+  in
+  let (pol_mid_val, pol_after_val) =
+    normalize_stiling_validator_inputs pol_mid pol_after_sched
+  in
+  let pol_after = normalize_spol_codegen_input pol_after_val in
+  let (res, ok) =
+    SPolOpt.CoreOpt.checked_tiling_validate pol_mid_val pol_after_val ws
+  in
+  if not (ok && res) then
+    frontend_failf
+      "phase-parallel: checked tiling validation failed before manual parallel codegen";
+  checked_parallel_current_codegen_or_fail "phase-parallel" pol_after dim
+
+let optimize_parallel_iss_phase_aligned loop dim =
+  match pluto_phase_scops_with_iss loop with
+  | None ->
+      frontend_failf "iss-phase-parallel: phase-aligned ISS Pluto pipeline failed"
+  | Some (pol, before_scop, mid_scop, after_scop) ->
+      let pol_iss =
+        match iss_bridge_from_scop_opt before_scop with
+        | None -> pol
+        | Some bridge ->
+            apply_iss_bridge_to_spol_or_fail "iss-phase-parallel" pol bridge
+      in
+      let (affine_res, affine_ok) =
+        affine_forward_scops "before" "mid_affine_iss" before_scop mid_scop
+      in
+      if not (affine_ok && affine_res) then
+        frontend_failf
+          "iss-phase-parallel: affine validation failed before manual parallel codegen";
+      let (tiling_res, tiling_ok) =
+        tiling_forward_scops
+          ~before_label:"mid_affine_iss"
+          ~after_label:"after_tiled"
+          mid_scop
+          after_scop
+      in
+      if not (tiling_ok && tiling_res) then
+        frontend_failf
+          "iss-phase-parallel: tiling validation failed before manual parallel codegen";
+      let pol_mid =
+        import_like_source_spol_or_fail "mid_affine_iss" pol_iss mid_scop
+      in
+      let witness : PlutoTilingValidator.witness =
+        PlutoTilingValidator.extract_witness_from_scops
+          ~before_path:"mid_affine_iss"
+          ~after_path:"after_tiled"
+          mid_scop
+          after_scop
+      in
+      let ws = PhaseTiling.convert_witness witness in
+      let canonical_after = build_canonical_tiled_after_spol pol_mid ws in
+      let pol_after_sched =
+        import_schedule_only_spol_or_fail "after_tiled" canonical_after after_scop
+      in
+      let (pol_mid_val, pol_after_val) =
+        normalize_stiling_validator_inputs pol_mid pol_after_sched
+      in
+      let pol_after = normalize_spol_codegen_input pol_after_val in
+      let (res, ok) =
+        SPolOpt.CoreOpt.checked_tiling_validate pol_mid_val pol_after_val ws
+      in
+      if not (ok && res) then
+        frontend_failf
+          "iss-phase-parallel: checked tiling validation failed before manual parallel codegen";
+      checked_parallel_current_codegen_or_fail "iss-phase-parallel" pol_after dim
+
 let optimize_affine_only_with_pluto_parallel_hint cfg loop =
   let pol = extract_strengthened_poly loop in
   let before_scop = poly_to_openscop pol in
@@ -1978,12 +2078,6 @@ let () =
         prerr_endline (usage Sys.argv.(0));
         exit 2
     end;
-    if Option.is_some cfg.parallel_current_dim
-       && not (cfg.force_identity || cfg.force_notile) then begin
-        prerr_endline "--parallel-current currently requires either --identity or --notile";
-        prerr_endline (usage Sys.argv.(0));
-        exit 2
-    end;
     match cfg.extract_tiling_witness_openscop, cfg.validate_tiling_openscop,
           cfg.validate_iss_debug_dumps, cfg.validate_iss_bridge,
           cfg.validate_iss_pluto_suite, cfg.validate_iss_pluto_live_suite with
@@ -2028,12 +2122,16 @@ let () =
               if cfg.force_iss then
                 if cfg.force_identity then
                   optimize_parallel_iss_identity_only loop dim
-                else
+                else if cfg.force_notile then
                   optimize_parallel_iss_affine_only loop dim
+                else
+                  optimize_parallel_iss_phase_aligned loop dim
               else if cfg.force_identity then
                 optimize_parallel_identity_only loop dim
-              else
+              else if cfg.force_notile then
                 optimize_parallel_affine_only loop dim
+              else
+                optimize_parallel_phase_aligned loop dim
             in
             print_section "Optimized Loop" (string_of_parallel_loop optimized)
         | None ->
