@@ -39,11 +39,13 @@
 %type <OpenScop.coq_ArrayAccess> array_access
 %type < Camlcoq.P.t * char list> array_pair
 %type <OpenScop.coq_ArrayStmt> array_stmt
-%type <OpenScopAST.coq_GlbExtLoc> arrays_extension comment_extension coord_extension scatnames_extension loop_extension global_extension
+%type <OpenScopAST.coq_GlbExtLoc> arrays_extension comment_extension coord_extension scatnames_extension
+%type <unit> loop_extension
+%type <OpenScopAST.coq_GlbExtLoc option> global_extension
 %type <OpenScop.coq_Atom> atom
 %type <Camlcoq.Z.t> int
 %type <char list> float
-%type <OpenScopAST.coq_GlbExtLoc list> global_extensions list(global_extension)
+%type <OpenScopAST.coq_GlbExtLoc list> global_extensions
 %type <OpenScopAST.coq_ContextLoc> context
 %type <char list list> ctxt_param
 %type <Camlcoq.Z.t list> int_list
@@ -277,14 +279,14 @@ statement_body_extension:
 }
 ;;
 
-global_extensions: ge=list(global_extension) {ge};;
+global_extensions: ge=list(global_extension) { List.filter_map (fun x -> x) ge };;
 
 global_extension: 
-| se=scatnames_extension; linebreaks  {se}
-| ae=arrays_extension; linebreaks  {ae}
-| ce=coord_extension; linebreaks  {ce}
-| ce=comment_extension ; linebreaks {ce}
-| le=loop_extension; linebreaks {le}
+| se=scatnames_extension; linebreaks  {Some se}
+| ae=arrays_extension; linebreaks  {Some ae}
+| ce=coord_extension; linebreaks  {Some ce}
+| ce=comment_extension ; linebreaks {Some ce}
+| le=loop_extension; linebreaks { let _ = le in None }
 ;;
 
 scatnames_extension: loc=SCATNAMES; linebreaks; sl=list(IDENT); linebreaks; SCATNAMESEND
@@ -338,7 +340,7 @@ loop_extension:
 {
     let _ = nb in
     let _ = entries in
-    (OpenScop.CommentExt (coqstring_of_camlstring "__ignored_loop_extension__"), loc)
+    ()
 };;
 
 loop_entries:

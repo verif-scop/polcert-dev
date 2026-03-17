@@ -119,6 +119,7 @@ BACKEND=
 # Machregs.v Conventions1.v Locations.v Op.v
 
 POLYGEN=ASTGen.v Canonizer.v CodeGen.v TyTy.v StateTy.v InstrTy.v Loop.v LoopGen.v \
+  ParallelLoop.v \
   PolyLang.v PolyLoop.v PolyLoopSimpl.v PolyOperations.v PolyTest.v \
   Projection.v Result.v IterSemantics.v PolIRs.v CPolIRs.v TPolIRs.v InstanceListSema.v \
   LoopCleanup.v LoopSingletonCleanup.v
@@ -156,6 +157,7 @@ POLCERT_SRC = Base.v Convert.v \
   Extractor.v PrepareCodegen.v StrengthenDomain.v \
   OpenScop.v OpenScopAST.v PolyBase.v PolyLang.v \
   SelectionSort.v StablePermut.v CState.v AffineValidator.v \
+  ParallelValidator.v ParallelCodegen.v \
   PointWitness.v ISSWitness.v ISSRefinement.v \
   ISSBoolChecker.v ISSValidator.v ISSSemantics.v \
   ISSCutSemantics.v ISSValidatorCorrect.v \
@@ -165,7 +167,7 @@ POLCERT_SRC = Base.v Convert.v \
 
 # Putting everything together (in driver/)
 
-DRIVER=PolOpt.v PolOptCorrect.v PolOptPrepared.v CPolOpt.v TPolOpt.v TPolValidator.v
+DRIVER=PolOpt.v ParallelPolOpt.v PolOptCorrect.v PolOptPrepared.v CPolOpt.v TPolOpt.v TPolValidator.v
 
 SAMPLES=CSample1.v CSample2.v CSample3.v ExtractorSmoke.v
 

@@ -21,6 +21,8 @@ Require Import Memdata.
 (* Require Import Machregs. *)
 
 Require Import PolOpt.
+Require Import ParallelLoop.
+Require Import ParallelCodegen.
 
 Require Import CSample1.
 Require Import CSample2.
@@ -211,4 +213,4 @@ Require Import TPolValidator.
 Set Warnings "-extraction-ambiguous-name". (* This warning does not matter *)
 Set Warnings "-extraction-opaque-accessed". (* To be fixed in VPL *)
 
-Separate Extraction Archi Result AST Csyntax BinNums BinPos BinNat Floats Coq.ZArith.BinInt.Z ZArith_dec Ring_polynom_AddOnQ CstrLCF ProgVar LinTerm sample_scop OpenScop OpenScopAST PolyLang CPolIRs CSample1.sample_cpol CSample2.sample_cpol CSample3.sample_cpol Integers Memdata Ctypes Ctyping Initializers Debugging Qcanon NumC CoqAddOn CPolOpt TPolIRs TPolOpt SPolIRs SPolOpt STilingOpt TPolValidator.
+Separate Extraction Archi Result AST Csyntax BinNums BinPos BinNat Floats Coq.ZArith.BinInt.Z ZArith_dec Ring_polynom_AddOnQ CstrLCF ProgVar LinTerm sample_scop OpenScop OpenScopAST PolyLang CPolIRs CSample1.sample_cpol CSample2.sample_cpol CSample3.sample_cpol Integers Memdata Ctypes Ctyping Initializers Debugging Qcanon NumC CoqAddOn ParallelLoop ParallelCodegen CPolOpt TPolIRs TPolOpt SPolIRs SPolOpt STilingOpt TPolValidator.

@@ -8,6 +8,25 @@ open Camlcoq
 open Filename
 open Str  (* Required for regular expressions *)
 
+type pluto_parallel_hint = {
+  hint_iterator : string;
+  hint_current_dim : int;
+}
+
+let read_file path =
+  let ic = open_in path in
+  let buf = Buffer.create 4096 in
+  Fun.protect
+    ~finally:(fun () -> close_in ic)
+    (fun () ->
+      (try
+         while true do
+           Buffer.add_string buf (input_line ic);
+           Buffer.add_char buf '\n'
+         done
+       with End_of_file -> ());
+      Buffer.contents buf)
+
 (** scop to scop *)
 
 (** TODO: specify dump scop file name in pluto*)
@@ -23,7 +42,7 @@ let run_pluto_scop flags inscop =
   let stdout =  (tmp_file (".stdout")) in
   let exc = command ?stdout:(Some stdout) cmd in
   let read_outscop () =
-    if Sys.file_exists outscop_file then
+      if Sys.file_exists outscop_file then
       OpenScopReader.read outscop_file
     else
       None
@@ -39,19 +58,153 @@ let run_pluto_scop flags inscop =
       ) else
         Err (coqstring_of_camlstring ("scheduler failed"))
 
-let read_file path =
-  let ic = open_in path in
-  let buf = Buffer.create 4096 in
-  Fun.protect
-    ~finally:(fun () -> close_in ic)
-    (fun () ->
-      (try
-         while true do
-           Buffer.add_string buf (input_line ic);
-           Buffer.add_char buf '\n'
-         done
-       with End_of_file -> ());
-      Buffer.contents buf)
+let trim_nonempty_lines lines =
+  List.filter_map
+    (fun line ->
+      let line = String.trim line in
+      if line = "" then None else Some line)
+    lines
+
+let payload_lines_between_tags begin_tag end_tag text =
+  let rec seek = function
+    | [] -> []
+    | line :: rest ->
+        if String.trim line = begin_tag then
+          collect [] rest
+        else
+          seek rest
+  and collect acc = function
+    | [] -> List.rev acc
+    | line :: rest ->
+        if String.trim line = end_tag then
+          List.rev acc
+        else
+          collect (line :: acc) rest
+  in
+  seek (String.split_on_char '\n' text)
+
+let noncomment_payload_lines lines =
+  trim_nonempty_lines lines
+  |> List.filter (fun line -> line.[0] <> '#')
+
+let split_ws s =
+  List.filter (fun tok -> tok <> "")
+    (Str.split (Str.regexp "[ \t\r]+") s)
+
+let concat_map f xs =
+  List.concat (List.map f xs)
+
+let take n xs =
+  let rec go k acc ys =
+    if k <= 0 then List.rev acc
+    else match ys with
+      | [] -> List.rev acc
+      | y :: ys' -> go (k - 1) (y :: acc) ys'
+  in
+  go n [] xs
+
+let drop n xs =
+  let rec go k ys =
+    if k <= 0 then ys
+    else match ys with
+      | [] -> []
+      | _ :: ys' -> go (k - 1) ys'
+  in
+  go n xs
+
+let extract_parallel_hint_from_outscop outscop_file =
+  try
+    let text = read_file outscop_file in
+    let scatnames =
+      payload_lines_between_tags "<scatnames>" "</scatnames>" text
+      |> noncomment_payload_lines
+      |> concat_map split_ws
+    in
+    let loop_payload =
+      payload_lines_between_tags "<loop>" "</loop>" text
+      |> noncomment_payload_lines
+    in
+    let parse_loop_entries payload =
+      match payload with
+      | [] -> []
+      | loop_count_s :: rest ->
+          let loop_count = int_of_string loop_count_s in
+          let rec parse count acc lines =
+            if count <= 0 then List.rev acc
+            else
+              match lines with
+              | iterator :: stmt_nb_s :: tail ->
+                  let stmt_nb = int_of_string stmt_nb_s in
+                  let stmt_ids = take stmt_nb tail in
+                  if List.length stmt_ids <> stmt_nb then
+                    raise (Failure "loop stmt id count mismatch");
+                  begin
+                    match drop stmt_nb tail with
+                    | _private_vars :: directive_s :: rest' ->
+                        let directive = int_of_string directive_s in
+                        parse (count - 1) ((iterator, directive) :: acc) rest'
+                    | _ ->
+                        raise (Failure "truncated loop extension")
+                  end
+              | _ ->
+                  raise (Failure "truncated loop extension")
+          in
+          parse loop_count [] rest
+    in
+    let loop_entries = parse_loop_entries loop_payload in
+    let parallel_iterator =
+      List.find_map
+        (fun (iterator, directive) ->
+          if directive = 1 then Some iterator else None)
+        loop_entries
+    in
+    match parallel_iterator with
+    | None -> None
+    | Some iterator ->
+        begin match List.find_opt (fun name -> String.equal name iterator) scatnames with
+        | None -> None
+        | Some _ ->
+            let rec find_index i = function
+              | [] -> None
+              | name :: rest ->
+                  if String.equal name iterator then Some i
+                  else find_index (i + 1) rest
+            in
+            Option.map
+              (fun dim -> { hint_iterator = iterator; hint_current_dim = dim })
+              (find_index 0 scatnames)
+        end
+  with
+  | Sys_error _
+  | Failure _ -> None
+
+let run_pluto_scop_with_parallel_hint flags inscop =
+  let inscop_file = tmp_file ".scop" in
+  let outscop_file = inscop_file ^ ".afterscheduling.scop" in
+  OpenScopPrinter.openscop_printer inscop_file inscop;
+  let cmd =
+    List.concat
+      [["pluto"; "--dumpscop"; "--readscop"]; flags; [inscop_file]]
+  in
+  let stdout =  (tmp_file (".stdout")) in
+  let exc = command ?stdout:(Some stdout) cmd in
+  let read_outscop () =
+    if Sys.file_exists outscop_file then
+      OpenScopReader.read outscop_file
+    else
+      None
+  in
+  let hint = extract_parallel_hint_from_outscop outscop_file in
+  match read_outscop () with
+  | Some outscop -> Okk (outscop, hint)
+  | None ->
+      if exc <> 0 then (
+        safe_remove outscop_file;
+        Err
+          (coqstring_of_camlstring
+             (Printf.sprintf "scheduler failed with exit code %d" exc))
+      ) else
+        Err (coqstring_of_camlstring ("scheduler failed"))
 
 let run_pluto_bridge flags inscop =
   let inscop_file = tmp_file ".scop" in
@@ -97,6 +250,30 @@ let tile_only_flags =
 let affine_with_iss_flags =
   ["--iss"] @ affine_only_flags
 
+let affine_only_parallel_flags =
+  [
+    "--nointratileopt";
+    "--nodiamond-tile";
+    "--noprevector";
+    "--smartfuse";
+    "--nounrolljam";
+    "--parallel";
+    "--notile";
+    "--rar";
+  ]
+
+let tile_only_parallel_flags =
+  [
+    "--identity";
+    "--tile";
+    "--nointratileopt";
+    "--nodiamond-tile";
+    "--noprevector";
+    "--nounrolljam";
+    "--parallel";
+    "--rar";
+  ]
+
 let iss_identity_bridge_flags =
   [
     "--iss";
@@ -110,6 +287,12 @@ let affine_only_scop_scheduler inscop =
 
 let tile_only_scop_scheduler inscop =
   run_pluto_scop tile_only_flags inscop
+
+let affine_only_scop_scheduler_with_parallel_hint inscop =
+  run_pluto_scop_with_parallel_hint affine_only_parallel_flags inscop
+
+let tile_only_scop_scheduler_with_parallel_hint inscop =
+  run_pluto_scop_with_parallel_hint tile_only_parallel_flags inscop
 
 let affine_only_scop_scheduler_with_iss inscop =
   run_pluto_scop affine_with_iss_flags inscop
@@ -125,6 +308,16 @@ let run_pluto_phase_pipeline inscop =
         match tile_only_scop_scheduler midscop with
         | Err msg -> Err msg
         | Okk outscop -> Okk (midscop, outscop)
+      end
+
+let run_pluto_phase_pipeline_with_parallel_hint inscop =
+  match affine_only_scop_scheduler inscop with
+  | Err msg -> Err msg
+  | Okk midscop ->
+      begin
+        match tile_only_scop_scheduler_with_parallel_hint midscop with
+        | Err msg -> Err msg
+        | Okk (outscop, hint) -> Okk (midscop, outscop, hint)
       end
 
 let run_pluto_phase_pipeline_with_iss inscop =

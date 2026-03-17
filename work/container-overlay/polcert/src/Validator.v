@@ -1,5 +1,6 @@
 Require Import AffineValidator.
 Require Import ISSValidator.
+Require Import ParallelValidator.
 Require Import TilingValidator.
 Require Import PolIRs.
 
@@ -7,6 +8,7 @@ Module Validator (PolIRs: POLIRS).
 
 Module AffineCore := AffineValidator PolIRs.
 Module ISSCore := ISSValidator PolIRs.
+Module ParallelCore := ParallelValidator PolIRs.
 Module TilingCore := TilingValidator PolIRs.
 
 Module TilingCheck := TilingCore.TilingCheck.
@@ -65,6 +67,27 @@ Definition checked_iss_cut_shape_validate_correct :=
   ISSCore.checked_iss_cut_shape_validate_correct.
 Definition checked_iss_complete_cut_shape_validate_correct :=
   ISSCore.checked_iss_complete_cut_shape_validate_correct.
+
+(** Parallel certification API. *)
+Definition parallel_plan := ParallelCore.parallel_plan.
+Definition parallel_cert := ParallelCore.parallel_cert.
+Definition current_coords_of := ParallelCore.current_coords_of.
+Definition same_env_of := ParallelCore.same_env_of.
+Definition same_prefix_before := ParallelCore.same_prefix_before.
+Definition different_dim_at := ParallelCore.different_dim_at.
+Definition same_parallel_slice := ParallelCore.same_parallel_slice.
+Definition parallel_safe_dim := ParallelCore.parallel_safe_dim.
+Definition parallel_cert_sound := ParallelCore.parallel_cert_sound.
+Definition check_pprog_parallel_currentb :=
+  ParallelCore.check_pprog_parallel_currentb.
+Definition checked_parallelize_current :=
+  ParallelCore.checked_parallelize_current.
+Definition check_pprog_parallel_currentb_sound :=
+  ParallelCore.check_pprog_parallel_currentb_sound.
+Definition checked_parallelize_current_sound :=
+  ParallelCore.checked_parallelize_current_sound.
+Definition checked_parallelize_current_implies_dim_in_range :=
+  ParallelCore.checked_parallelize_current_implies_dim_in_range.
 
 (** Checked tiling validator API on the generic outer PolyLang type. *)
 Definition to_tiling_pprog := TilingCore.to_tiling_pprog.
