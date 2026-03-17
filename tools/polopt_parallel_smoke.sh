@@ -39,6 +39,12 @@ require_contains "$iss_nodep" "parallel for i0 in range(0, 4)"
 iss_affine_nodep="$(run_polopt "--iss --notile --parallel tests/polopt-generated/inputs/nodep.loop")"
 require_contains "$iss_affine_nodep" "parallel for i0 in range(0, 100)"
 
+iss_identity_manual_nodep="$(run_polopt "--iss --identity --parallel-current 0 tests/polopt-generated/inputs/nodep.loop")"
+require_contains "$iss_identity_manual_nodep" "parallel for i0 in range(0, 100)"
+
+iss_affine_manual_nodep="$(run_polopt "--iss --notile --parallel-current 0 tests/polopt-generated/inputs/nodep.loop")"
+require_contains "$iss_affine_manual_nodep" "parallel for i0 in range(0, 100)"
+
 strict_matmul="$(run_polopt "--parallel --parallel-strict tests/polopt-generated/inputs/matmul.loop" 2>&1)"
 require_contains "$strict_matmul" "[alarm] optimization triggered a checked fallback or warning"
 require_not_contains "$strict_matmul" "parallel for"
