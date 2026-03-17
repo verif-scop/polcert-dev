@@ -7,6 +7,18 @@
 
 本文不主张“一次性证明完整 Pluto”。目标是给出一条可以逐步落地、并且不会破坏现有 affine + tiling verified 主线的 parallel 扩展路线。
 
+补充说明：本文最早写于 parallel 仍处于设计和证明收束阶段。当前代码状态已经比本文开头的语气更进一步。到目前为止，仓库里已经有：
+
+- verified single-dim `parallel for`
+- Pluto-hinted automatic route：`--parallel`
+- strict hinted route：`--parallel --parallel-strict`
+- manual route：`--parallel-current d`
+- default 与 `--iss` 两条 frontend 路线
+- identity / affine-only / full tiled 三类 codegen 路线
+
+因此阅读本文时，应把其中“未来建议”与“当前已实现事实”区分开看；当前事实以
+`parallel-rfc.md` 和 `formalization-status.md` 为准。
+
 如果只想看当前已经冻结下来的第一版决策，请优先看：
 
 - `parallel-rfc.md`

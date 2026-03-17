@@ -1,6 +1,18 @@
 # Parallel Implementation Staging
 
-本文不再讨论“parallel 为什么值得做”，而是把未来真正实现时的落地顺序压成一个执行清单。
+本文不再讨论“parallel 为什么值得做”，而是把第一版实现的落地顺序压成一个执行清单。
+
+现在它已经部分转成历史记录：
+
+- Stage 1 到 Stage 5 的 single-dim first version 已经基本落地
+- `--parallel`、`--parallel-strict`、`--parallel-current d` 已经接进前端
+- default 与 `--iss` 两条路线都已支持 parallel
+
+因此本文现在更适合作为：
+
+- 为什么实现顺序当初这样安排
+- 哪些阶段已经完成
+- 哪些事情仍然只算后续扩展
 
 它回答四个具体问题：
 
@@ -14,10 +26,22 @@
 第一版建议只承诺下面这个目标：
 
 - 单一 current dimension 的 `par for`
-- 只在 `iss -> affine -> tiling` 主线的 tiling 之后尝试
+- checked cert 落在 `current_view_pprog` 上
 - Pluto 只作为 transform/search 引擎
 - PolCert 自己 checked 地 cert `parallel_safe_dim`
 - 最终 `par for` 的抽象并行语义本身被证明 refine 到顺序语义
+
+当前实现已经把这个目标扩成了三个 concrete frontend 入口：
+
+- automatic hinted route：`--parallel`
+- strict hinted route：`--parallel --parallel-strict`
+- manual route：`--parallel-current d`
+
+并且三者都已覆盖：
+
+- default route
+- `--iss` route
+- identity / affine-only / tiled path
 
 第一版明确不做：
 
@@ -41,6 +65,10 @@
 - 第一版使用单层 single-dim cert 这一点已经固定
 
 这一阶段不碰任何 Coq/OCaml 主文件。
+
+状态：
+
+- 已完成
 
 ### Stage 1：新增独立 Coq 模块骨架
 
@@ -71,6 +99,10 @@
 - 与另一个 ISS session 基本零冲突
 - 可以先把 theorem dependency 和模块接口定住
 
+状态：
+
+- 已完成
+
 ### Stage 2：闭合 semantics 与 validator proof
 
 仍然尽量不碰主 driver。
@@ -97,6 +129,10 @@
 
 但此时还不要求主 pipeline 真正调用它。
 
+状态：
+
+- 已完成
+
 ### Stage 3：最小 API 接口接入
 
 当 Stage 2 已稳定后，再碰公共 re-export 层。
@@ -119,6 +155,10 @@
 原因是：
 
 - 一旦开始动这些文件，就进入真实产品路径，和其他 session 冲突概率显著上升
+
+状态：
+
+- 已完成
 
 ### Stage 4：Pluto/PolOpt plumbing
 
@@ -152,6 +192,18 @@ after
 - certification failure 必须安全回退到顺序 codegen
 - Pluto hint 不可信时也必须安全回退
 
+当前实现已落地：
+
+- `--parallel`
+- `--parallel-strict`
+- `--parallel-current d`
+- default route
+- `--iss` route
+
+状态：
+
+- 已完成
+
 ### Stage 5：parallel codegen 与 printer 落地
 
 这是最终把 proved parallel object 输出成程序语法的阶段。
@@ -171,6 +223,12 @@ after
 
 - 不推荐一上来重写整个现有 `PrepareCodegen` / `CodeGen`
 - 更推荐把新的 parallel codegen 做成桥接层，先与旧顺序 codegen 建立 `erase` 等价关系
+
+状态：
+
+- 已完成到第一版目标
+- 当前输出对象仍然是 PolCert 的 loop-level `parallel for`
+- 不包含 OpenMP/C runtime semantics
 
 ## 3. 文件冲突热区
 
@@ -285,6 +343,8 @@ parallel 这条线必须设计成“即使部分失败，也不破坏现有 veri
 
 ## 7. 对当前并行协作的具体建议
 
+这一节现在主要是历史记录。
+
 在另一个 session 正在做 ISS pass proof 的情况下，最安全的分工是：
 
 - 当前 parallel 这条线优先只动文档和新模块
@@ -300,7 +360,16 @@ parallel 这条线必须设计成“即使部分失败，也不破坏现有 veri
 - 一旦要改高冲突文件，先做范围极小的接口变更
 - 看到非自己引入的脏改动时立即停下重新比对
 
-## 8. 最后的收束
+## 8. 当前剩余扩展
+
+第一版已经完成后，剩下更适合放到后续扩展的只有：
+
+- reduction-aware parallel
+- nested / multipar
+- 更系统的 regression/CI 覆盖
+- 若将来需要，再讨论更具体的 backend runtime 语义
+
+## 9. 最后的收束
 
 parallel 的第一版实现，不应被理解成“给现有 codegen 加个 pragma”。  
 它更像是在现有 verified affine+tiling 主线之后，再叠加一条新的 verified layer：

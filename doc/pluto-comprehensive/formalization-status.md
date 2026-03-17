@@ -31,9 +31,18 @@ The resulting verified optimizer therefore supports:
 - verified codegen after successful checked tiling
 - verified fallback to the affine-only route when the tiling route does not
   complete successfully
+- verified single-dimension `parallel for` generation after checked
+  certification on `current_view_pprog`
+- Pluto-hinted checked parallelization via `--parallel`
+- manual checked parallelization via `--parallel-current d`
+- both default and `--iss` frontend routes for:
+  - identity/no-schedule codegen
+  - affine-only codegen
+  - full tiled codegen
 
 This is no longer an affine-only story. The verified pipeline now includes the
-tiling route as a first-class checked phase.
+tiling route as a first-class checked phase, and it also includes a first
+version of verified parallel loop generation.
 
 ## 2. The Main Semantic Boundary
 
@@ -230,8 +239,12 @@ The last fully confirmed container-side build reached all of:
 - `src/PolyLang.vo`
 - `src/PrepareCodegen.vo`
 - `src/Validator.vo`
+- `src/ParallelValidator.vo`
+- `src/ParallelCodegen.vo`
 - `src/TilingRelation.vo`
 - `src/TilingBoolChecker.vo`
+- `polygen/ParallelLoop.vo`
+- `driver/ParallelPolOpt.vo`
 - `syntax/STilingOpt.vo`
 - `driver/TPolOpt.vo`
 - `driver/CPolOpt.vo`
@@ -250,6 +263,13 @@ Additionally:
   - ok: `62`
   - fail: `0`
   - changed: `60`
+- the following parallel smoke routes were manually confirmed:
+  - `--parallel`
+  - `--parallel --parallel-strict`
+  - `--parallel-current d`
+  - `--iss --parallel`
+  - `--iss --parallel --parallel-strict`
+  - `--iss --parallel-current d`
 
 ## 9. What Is Still Out Of Scope
 
@@ -279,13 +299,27 @@ What remains out of the default verified mainline is narrower:
 
 ### 9.2 Parallel semantics and parallel codegen
 
-What remains missing here is both:
+This area is no longer completely out of scope.
 
-1. the polyhedral legality side for wavefront / tile-space parallel schedules
-2. the loop/codegen side that would target actual parallel loop semantics such
-   as `#pragma omp parallel for`
+The current codebase now includes:
 
-The current verified semantics remain sequential loop semantics.
+- a dedicated checked parallel validator line
+- a `ParallelLoop` IR with explicit `ParMode`
+- an abstract verified `par for` semantics
+- a refinement bridge back to sequential loop semantics
+- checked parallel codegen driven by either:
+  - Pluto `--parallel` hints
+  - or manual `--parallel-current d`
+- frontend support on both the default and `--iss` routes
+
+What remains out of scope is narrower:
+
+1. reduction-aware parallelization
+2. nested / multi-parallel loop generation
+3. a larger systematic regression matrix rather than the current focused smoke
+   coverage
+4. any claim about verified OpenMP/C runtime semantics beyond the verified
+   loop-to-loop semantics currently used by PolCert
 
 ### 9.3 Fully verified witness extraction
 

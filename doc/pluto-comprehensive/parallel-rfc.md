@@ -6,15 +6,52 @@
 
 如果只看一份文件，请优先看本文。
 
+## 0. 当前实现状态
+
+本文原本是设计冻结 memo，但现在第一版实现已经基本落地，因此这里先记录当前代码里的事实状态。
+
+目前已经支持：
+
+- verified single-dim `par for`
+- `--parallel`
+  - Pluto `--parallel` 只作为 hint / search 驱动
+  - PolCert 仍然必须 checked 地 cert 最终维度
+- `--parallel-strict`
+  - 只接受 Pluto hinted dim
+  - hint 失败时保留顺序优化 loop
+- `--parallel-current d`
+  - 手工指定 current dimension
+- default route 与 `--iss` route
+- identity / affine-only / full tiled 三类 codegen 路线
+
+目前仍明确不做：
+
+- reduction-aware parallel
+- nested parallel
+- `multipar`
+- verified OpenMP/C runtime semantics
+
 ## 1. 第一版范围
 
 第一版 verified parallel 只做下面这些：
 
 - single-dim `par for`
-- 只在当前主线 `iss -> affine -> tiling` 的 tiling 之后尝试
+- checked cert 永远落在 `current_view_pprog` 上
 - Pluto 只负责 parallel-aware transform search
 - PolCert 自己 checked 地 cert current-view 上的 candidate dimension
 - 最终 `par for` 的抽象并行语义本身被证明 refine 到顺序语义
+
+从当前实现看，入口已经扩到三类：
+
+- Pluto-hinted automatic route：`--parallel`
+- strict hinted route：`--parallel --parallel-strict`
+- manual route：`--parallel-current d`
+
+这些入口都已经支持：
+
+- default pipeline
+- `--iss` pipeline
+- identity / affine-only / tiled path
 
 第一版明确不做：
 
@@ -43,6 +80,8 @@ Pluto 的 `--parallel` 不是“最后打 pragma”，而是会影响 schedule /
 
 - `PolOpt`
   - 接受用户 `--parallel`
+  - 接受用户 `--parallel-strict`
+  - 接受用户 `--parallel-current d`
   - 在第二次 Pluto 调用上传递 `--tile --parallel`
   - 选择 candidate dimension
   - 调用 checked cert
@@ -71,6 +110,12 @@ parallel 不是和 tiling 并列的新主 route。
 - transform correctness 先闭合
 - parallel cert 后置在 current-view 之后
 - codegen 最后消费 cert
+
+对当前实现来说，这个位置在三种 concrete frontend 路线中都是同一模式：
+
+- identity：直接对当前视图做 checked parallelize
+- affine-only：checked affine 之后做 checked parallelize
+- tiled：checked tiling + `current_view_pprog` 之后做 checked parallelize
 
 ## 3. 冻结版 IR 选择
 
@@ -285,7 +330,7 @@ annotated_codegen :
 
 ## 8. 冻结版实现顺序
 
-实现顺序现在也固定了，不再建议反复调整：
+这份顺序现在更适合作为“历史实现顺序”记录，而不是未来计划：
 
 1. 新增 `polygen/ParallelLoop.v`
 2. 新增 `src/ParallelValidator.v`
@@ -297,6 +342,7 @@ annotated_codegen :
 8. 最后新增 `src/ParallelCodegen.v`
 9. 最后才接 `driver/PolOpt.v` / `driver/Scheduler.ml`
 
+这条顺序已经被当前实现基本遵守。  
 一句话：
 
 - 先定义语义对象
@@ -327,10 +373,11 @@ annotated_codegen :
 
 ## 10. 仍保留的最小开放问题
 
-第一版只保留两个真正还算开放的问题：
+当前版本真正还算开放的问题已经收窄成这些：
 
-1. `codegen_matches_current_dims` 最终用 path-based relation 还是更轻的 structural relation 表达
-2. `parallel_swap_ok` 是否直接定义到足以推出 `Permutable_ext`，还是保留一层更弱谓词
+1. reduction-aware parallel 应该如何接入现有 cert，而不破坏当前单层 doall theorem stack
+2. nested / multipar 应该继续沿 `ParallelLoop` 扩展，还是单独分层
+3. parallel regression 应该维持轻量 smoke，还是进入更系统的默认 CI
 
 除此之外，第一版的大方向已经不再开放。
 
