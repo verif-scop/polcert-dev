@@ -13,13 +13,14 @@ exception FrontendFailure of string
 
 let frontend_failf fmt = Printf.ksprintf (fun s -> raise (FrontendFailure s)) fmt
 
+let pluto_tiling_mode second_level =
+  if second_level
+  then PlutoTilingValidator.SecondLevel
+  else PlutoTilingValidator.Ordinary
+
 let usage prog =
   Printf.sprintf
-    "Usage: %s [--dump-input] [--dump-extracted-openscop] [--dump-scheduled-openscop] [--debug-scheduler] [--extract-only] [--identity] [--notile] [--iss] [--parallel] [--parallel-strict] [--parallel-current <dim>] <file.loop>\n       %s --extract-tiling-witness-openscop <before.scop> <after.scop>\n       %s --validate-tiling-openscop <before.scop> <after.scop>\n       %s --validate-iss-debug-dumps <before.txt> <after.txt>\n       %s --validate-iss-bridge <bridge.txt>\n       %s --validate-iss-pluto-suite\n       %s --validate-iss-pluto-live-suite\n\nDefault optimization path:\n  extracted theorem-aligned affine+tiling pipeline (`SPolOpt.opt`)\n\nExplicit phase controls:\n  --identity        : no Pluto phase, just checked extraction/strengthen/codegen\n  --notile          : stop after affine scheduling validation\n  --iss             : switch to the extracted theorem-aligned ISS+affine+tiling pipeline\n                       (`SPolOpt.opt_with_iss`); with `--identity`, run the ISS-only checked split path\n  --parallel        : experimental verified `parallel for` route driven by Pluto `--parallel`\n                       loop hints; supported on both the default and `--iss` pipelines,\n                       with or without `--notile`\n  --parallel-strict : with `--parallel`, require the certified parallel loop to be the\n                       Pluto-hinted dimension; otherwise keep the sequential optimized loop\n  --parallel-current d : manual verified `parallel for` on current dimension d;\n                         supported on identity, affine-only, and full tiled paths,\n                         including their `--iss` variants\n\nExamples:\n  %s file.loop                        # default theorem-aligned affine+tiling path\n  %s --parallel file.loop             # Pluto-hinted verified parallel path\n  %s --parallel --parallel-strict file.loop\n  %s --notile file.loop               # affine-only checked path\n  %s --notile --parallel file.loop    # affine-only Pluto-hinted verified parallel path\n  %s --identity file.loop             # identity/no-schedule path\n  %s --identity --parallel-current 0 file.loop\n  %s --notile --parallel-current 0 file.loop\n  %s --parallel-current 0 file.loop   # full tiled manual verified parallel path\n  %s --iss --notile --parallel file.loop  # ISS + affine verified parallel path\n  %s --iss --notile --parallel-current 0 file.loop\n  %s --iss --parallel-current 0 file.loop\n  %s --iss --identity file.loop       # ISS-only checked split path\n"
-    prog
-    prog
-    prog
-    prog
+    "Usage: %s [--dump-input] [--dump-extracted-openscop] [--dump-scheduled-openscop] [--debug-scheduler] [--extract-only] [--identity] [--notile] [--iss] [--second-level-tile] [--parallel] [--parallel-strict] [--parallel-current <dim>] <file.loop>\n       %s [--second-level-tile] --extract-tiling-witness-openscop <before.scop> <after.scop>\n       %s [--second-level-tile] --validate-tiling-openscop <before.scop> <after.scop>\n       %s --validate-iss-debug-dumps <before.txt> <after.txt>\n       %s --validate-iss-bridge <bridge.txt>\n       %s --validate-iss-pluto-suite\n       %s --validate-iss-pluto-live-suite\n\nDefault optimization path:\n  extracted theorem-aligned affine+tiling pipeline (`SPolOpt.opt`)\n\nExplicit phase controls:\n  --identity        : no Pluto phase, just checked extraction/strengthen/codegen\n  --notile          : stop after affine scheduling validation\n  --iss             : switch to the extracted theorem-aligned ISS+affine+tiling pipeline\n                       (`SPolOpt.opt_with_iss`); with `--identity`, run the ISS-only checked split path\n  --second-level-tile : experimental verified second-level tiling path; only valid on\n                        full tiled optimization/validation routes\n  --parallel        : experimental verified `parallel for` route driven by Pluto `--parallel`\n                       loop hints; supported on both the default and `--iss` pipelines,\n                       with or without `--notile`\n  --parallel-strict : with `--parallel`, require the certified parallel loop to be the\n                       Pluto-hinted dimension; otherwise keep the sequential optimized loop\n  --parallel-current d : manual verified `parallel for` on current dimension d;\n                         supported on identity, affine-only, and full tiled paths,\n                         including their `--iss` variants\n\nExamples:\n  %s file.loop                        # default theorem-aligned affine+tiling path\n  %s --second-level-tile file.loop    # full tiled checked path with second-level tiling enabled\n  %s --parallel file.loop             # Pluto-hinted verified parallel path\n  %s --parallel --parallel-strict file.loop\n  %s --notile file.loop               # affine-only checked path\n  %s --identity file.loop             # identity/no-schedule path\n  %s --validate-tiling-openscop mid.scop after.scop\n  %s --second-level-tile --validate-tiling-openscop mid.scop after.scop\n  %s --iss --identity file.loop       # ISS-only checked split path\n"
     prog
     prog
     prog
@@ -46,6 +47,7 @@ type config = {
   mutable force_identity : bool;
   mutable force_notile : bool;
   mutable force_iss : bool;
+  mutable force_second_level_tile : bool;
   mutable force_parallel : bool;
   mutable force_parallel_strict : bool;
   mutable parallel_current_dim : int option;
@@ -69,6 +71,7 @@ let parse_args () =
       force_identity = false;
       force_notile = false;
       force_iss = false;
+      force_second_level_tile = false;
       force_parallel = false;
       force_parallel_strict = false;
       parallel_current_dim = None;
@@ -93,6 +96,7 @@ let parse_args () =
       | "--identity" -> cfg.force_identity <- true; go (i + 1)
       | "--notile" | "--affine-only" -> cfg.force_notile <- true; go (i + 1)
       | "--iss" -> cfg.force_iss <- true; go (i + 1)
+      | "--second-level-tile" -> cfg.force_second_level_tile <- true; go (i + 1)
       | "--parallel" -> cfg.force_parallel <- true; go (i + 1)
       | "--parallel-strict" -> cfg.force_parallel_strict <- true; go (i + 1)
       | "--parallel-current" ->
@@ -735,6 +739,28 @@ let normalize_stiling_validator_inputs before_pol after_pol =
   in
   (pad_spol_vars_to required before_pol, pad_spol_vars_to required after_pol)
 
+let tiling_artifact_from_scops_or_fail
+    ~second_level
+    ~before_label
+    ~after_label
+    before_scop
+    after_scop =
+  let tiling_mode = pluto_tiling_mode second_level in
+  try
+    PlutoTilingValidator.extract_phase_artifact_from_scops
+      ~tiling_mode
+      ~before_path:before_label
+      ~after_path:after_label
+      before_scop
+      after_scop
+  with
+  | PlutoTilingValidator.ValidationError msg ->
+      frontend_failf
+        "cannot extract tiling witness/artifact for %s -> %s: %s"
+        before_label
+        after_label
+        msg
+
 let canonicalize_tiled_after before_label after_label before_pol after_scop ws =
   let canonical_after = build_canonical_tiled_after before_pol ws in
   match TPolOpt.Tiling.PL.from_openscop_schedule_only canonical_after after_scop with
@@ -751,19 +777,20 @@ let affine_forward_scops before_label after_label before_scop after_scop =
   let after_pol = import_complete_tpol_or_fail after_label after_scop in
   TPolValidator.validate before_pol after_pol
 
-let tiling_forward_scops ~before_label ~after_label before_scop after_scop =
+let tiling_forward_scops ~second_level ~before_label ~after_label before_scop after_scop =
   let before_pol = import_complete_spol_or_fail before_label before_scop in
-  let witness : PlutoTilingValidator.witness =
-    PlutoTilingValidator.extract_witness_from_scops
-      ~before_path:before_label
-      ~after_path:after_label
+  let artifact =
+    tiling_artifact_from_scops_or_fail
+      ~second_level
+      ~before_label
+      ~after_label
       before_scop
       after_scop
   in
-  let ws = PhaseTiling.convert_witness witness in
+  let ws = PhaseTiling.convert_witness artifact.artifact_witness in
   let after_pol =
     let canonical_after = build_canonical_tiled_after_spol before_pol ws in
-    match SPolIRs.SPolIRs.PolyLang.from_openscop_schedule_only canonical_after after_scop with
+    match SPolIRs.SPolIRs.PolyLang.from_openscop_schedule_only canonical_after artifact.artifact_after_scop with
     | Okk pol -> pol
     | Err msg ->
         frontend_failf
@@ -1004,17 +1031,22 @@ let debug_generic_tiling_runtime loop =
         frontend_failf "cannot import mid_affine like_source: %s" (string_of_coq_err msg)
   in
   let (aff_res, aff_ok) = SPolOpt.CoreOpt.validate pol pol_mid in
-  let witness : PlutoTilingValidator.witness =
-    PlutoTilingValidator.extract_witness_from_scops
-      ~before_path:"mid_affine"
-      ~after_path:"after_tiled"
+  let artifact =
+    tiling_artifact_from_scops_or_fail
+      ~second_level:(Scheduler.second_level_tiling_enabled ())
+      ~before_label:"mid_affine"
+      ~after_label:"after_tiled"
       mid_scop
       after_scop
   in
-  let ws = PhaseTiling.convert_witness witness in
+  let ws = PhaseTiling.convert_witness artifact.artifact_witness in
   let pol_after =
     let canonical_after = build_canonical_tiled_after_spol pol_mid ws in
-    match SPolIRs.SPolIRs.PolyLang.from_openscop_schedule_only canonical_after after_scop with
+    match
+      SPolIRs.SPolIRs.PolyLang.from_openscop_schedule_only
+        canonical_after
+        artifact.artifact_after_scop
+    with
     | Okk pol' -> pol'
     | Err msg ->
         frontend_failf "cannot import after_tiled over canonical skeleton: %s"
@@ -1112,6 +1144,7 @@ let optimize_with_phase_aligned_pluto loop =
   else
     let (tiling_res, tiling_ok) =
       tiling_forward_scops
+        ~second_level:(Scheduler.second_level_tiling_enabled ())
         ~before_label:"mid_affine"
         ~after_label:"after_tiled"
         mid_scop
@@ -1122,22 +1155,28 @@ let optimize_with_phase_aligned_pluto loop =
     else
       let pol_mid = import_schedule_only_spol_or_fail "mid_affine" pol mid_scop in
       dump_poly_payload_if "POLCERT_DEBUG_TILING_CODEGEN" "mid-affine(schedule-only)" pol_mid;
-      let witness : PlutoTilingValidator.witness =
-        PlutoTilingValidator.extract_witness_from_scops
-          ~before_path:"mid_affine"
-          ~after_path:"after_tiled"
+      let artifact =
+        tiling_artifact_from_scops_or_fail
+          ~second_level:(Scheduler.second_level_tiling_enabled ())
+          ~before_label:"mid_affine"
+          ~after_label:"after_tiled"
           mid_scop
           after_scop
       in
-      let ws = PhaseTiling.convert_witness witness in
+      let ws = PhaseTiling.convert_witness artifact.artifact_witness in
       let canonical_after = build_canonical_tiled_after_spol pol_mid ws in
       dump_poly_payload_if "POLCERT_DEBUG_TILING_CODEGEN" "canonical-after" canonical_after;
       let pol_after_sched =
-        import_schedule_only_spol_or_fail "after_tiled" canonical_after after_scop
+        import_schedule_only_spol_or_fail
+          "after_tiled"
+          canonical_after
+          artifact.artifact_after_scop
       in
       dump_poly_payload_if "POLCERT_DEBUG_TILING_CODEGEN" "after-tiled(schedule-only)" pol_after_sched;
       if debug_env_enabled "POLCERT_DEBUG_TILING_CODEGEN" then begin
-        let raw_after = import_complete_spol_or_fail "after_tiled(raw)" after_scop in
+        let raw_after =
+          import_complete_spol_or_fail "after_tiled(raw)" artifact.artifact_after_scop
+        in
         dump_poly_payload "after-tiled(raw)" raw_after
       end;
       let (pol_mid_val, pol_after_val) =
@@ -1154,13 +1193,23 @@ let optimize_with_phase_aligned_pluto loop =
       else
         (loop, false)
 
-let run_tiling_validator before_file after_file =
-  let report = PlutoTilingValidator.validate_files before_file after_file in
+let run_tiling_validator ~second_level before_file after_file =
+  let report =
+    PlutoTilingValidator.validate_files
+      ~tiling_mode:(pluto_tiling_mode second_level)
+      before_file
+      after_file
+  in
   print_endline (PlutoTilingValidator.render_report report);
   if report.ok then 0 else 2
 
-let run_tiling_witness_extractor before_file after_file =
-  let witness = PlutoTilingValidator.extract_witness_from_files before_file after_file in
+let run_tiling_witness_extractor ~second_level before_file after_file =
+  let witness =
+    PlutoTilingValidator.extract_witness_from_files
+      ~tiling_mode:(pluto_tiling_mode second_level)
+      before_file
+      after_file
+  in
   print_endline (PlutoTilingValidator.render_witness witness);
   0
 
@@ -1605,12 +1654,13 @@ let optimize_parallel_phase_aligned loop dim =
   if not (affine_ok && affine_res) then
     frontend_failf
       "phase-parallel: affine validation failed before manual parallel codegen";
-  let (tiling_res, tiling_ok) =
-    tiling_forward_scops
-      ~before_label:"mid_affine"
-      ~after_label:"after_tiled"
-      mid_scop
-      after_scop
+      let (tiling_res, tiling_ok) =
+        tiling_forward_scops
+          ~second_level:(Scheduler.second_level_tiling_enabled ())
+          ~before_label:"mid_affine"
+          ~after_label:"after_tiled"
+          mid_scop
+          after_scop
   in
   if not (tiling_ok && tiling_res) then
     frontend_failf
@@ -1657,12 +1707,13 @@ let optimize_parallel_iss_phase_aligned loop dim =
       if not (affine_ok && affine_res) then
         frontend_failf
           "iss-phase-parallel: affine validation failed before manual parallel codegen";
-      let (tiling_res, tiling_ok) =
-        tiling_forward_scops
-          ~before_label:"mid_affine_iss"
-          ~after_label:"after_tiled"
-          mid_scop
-          after_scop
+	      let (tiling_res, tiling_ok) =
+	        tiling_forward_scops
+	          ~second_level:(Scheduler.second_level_tiling_enabled ())
+	          ~before_label:"mid_affine_iss"
+	          ~after_label:"after_tiled"
+	          mid_scop
+	          after_scop
       in
       if not (tiling_ok && tiling_res) then
         frontend_failf
@@ -1815,28 +1866,33 @@ let optimize_with_iss_phase_aligned_pluto loop =
       if not (affine_ok && affine_res) then
         (loop, false)
       else
-        let (tiling_res, tiling_ok) =
-          tiling_forward_scops
-            ~before_label:"mid_affine_iss"
-            ~after_label:"after_tiled"
-            mid_scop
-            after_scop
+	        let (tiling_res, tiling_ok) =
+	          tiling_forward_scops
+	            ~second_level:(Scheduler.second_level_tiling_enabled ())
+	            ~before_label:"mid_affine_iss"
+	            ~after_label:"after_tiled"
+	            mid_scop
+	            after_scop
         in
         if not (tiling_ok && tiling_res) then
           (loop, false)
-        else
-          let witness : PlutoTilingValidator.witness =
-            PlutoTilingValidator.extract_witness_from_scops
-              ~before_path:"mid_affine_iss"
-              ~after_path:"after_tiled"
-              mid_scop
-              after_scop
-          in
-          let ws = PhaseTiling.convert_witness witness in
-          let canonical_after = build_canonical_tiled_after_spol pol_mid ws in
-          let pol_after_sched =
-            import_schedule_only_spol_or_fail "after_tiled" canonical_after after_scop
-          in
+	        else
+	          let artifact =
+	            tiling_artifact_from_scops_or_fail
+	              ~second_level:(Scheduler.second_level_tiling_enabled ())
+	              ~before_label:"mid_affine_iss"
+	              ~after_label:"after_tiled"
+	              mid_scop
+	              after_scop
+	          in
+	          let ws = PhaseTiling.convert_witness artifact.artifact_witness in
+	          let canonical_after = build_canonical_tiled_after_spol pol_mid ws in
+	          let pol_after_sched =
+	            import_schedule_only_spol_or_fail
+	              "after_tiled"
+	              canonical_after
+	              artifact.artifact_after_scop
+	          in
           let pol_after = normalize_spol_codegen_input pol_after_sched in
           let (res, ok) =
             SPolOpt.CoreOpt.checked_tiling_validate pol_mid pol_after ws
@@ -1862,12 +1918,13 @@ let optimize_with_phase_aligned_pluto_parallel_hint cfg loop =
       if not (affine_ok && affine_res) then
         (tag_loop_for_parallel_pretty loop, false)
       else
-        let (tiling_res, tiling_ok) =
-          tiling_forward_scops
-            ~before_label:"mid_affine"
-            ~after_label:"after_tiled"
-            mid_scop
-            after_scop
+      let (tiling_res, tiling_ok) =
+        tiling_forward_scops
+          ~second_level:cfg.force_second_level_tile
+          ~before_label:"mid_affine"
+          ~after_label:"after_tiled"
+          mid_scop
+          after_scop
         in
         if debug_env_enabled "POLCERT_DEBUG_PARALLEL_HINT" then
           Printf.eprintf
@@ -1939,12 +1996,13 @@ let optimize_with_iss_phase_aligned_pluto_parallel_hint cfg loop =
       if not (affine_ok && affine_res) then
         (tag_loop_for_parallel_pretty loop, false)
       else
-        let (tiling_res, tiling_ok) =
-          tiling_forward_scops
-            ~before_label:"mid_affine_iss"
-            ~after_label:"after_tiled"
-            mid_scop
-            after_scop
+      let (tiling_res, tiling_ok) =
+        tiling_forward_scops
+          ~second_level:cfg.force_second_level_tile
+          ~before_label:"mid_affine_iss"
+          ~after_label:"after_tiled"
+          mid_scop
+          after_scop
         in
         if debug_env_enabled "POLCERT_DEBUG_PARALLEL_HINT" then
           Printf.eprintf
@@ -2078,13 +2136,52 @@ let () =
         prerr_endline (usage Sys.argv.(0));
         exit 2
     end;
+    if cfg.force_second_level_tile && cfg.force_identity then begin
+        prerr_endline "--second-level-tile requires a tiled Pluto phase and cannot be combined with --identity";
+        prerr_endline (usage Sys.argv.(0));
+        exit 2
+    end;
+    if cfg.force_second_level_tile && cfg.force_notile then begin
+        prerr_endline "--second-level-tile requires tiling and cannot be combined with --notile";
+        prerr_endline (usage Sys.argv.(0));
+        exit 2
+    end;
+    if cfg.force_second_level_tile && cfg.force_parallel then begin
+        prerr_endline "--second-level-tile is not yet supported with --parallel";
+        prerr_endline (usage Sys.argv.(0));
+        exit 2
+    end;
+    if cfg.force_second_level_tile && Option.is_some cfg.parallel_current_dim then begin
+        prerr_endline "--second-level-tile is not yet supported with --parallel-current";
+        prerr_endline (usage Sys.argv.(0));
+        exit 2
+    end;
+    if cfg.force_second_level_tile &&
+         (Option.is_some cfg.validate_iss_debug_dumps ||
+          Option.is_some cfg.validate_iss_bridge ||
+          cfg.validate_iss_pluto_suite ||
+          cfg.validate_iss_pluto_live_suite) then begin
+        prerr_endline "--second-level-tile only applies to tiled optimization or tiling witness/validation actions";
+        prerr_endline (usage Sys.argv.(0));
+        exit 2
+    end;
+    Scheduler.set_tiling_mode
+      (if cfg.force_second_level_tile
+       then Scheduler.SecondLevelTiling
+       else Scheduler.OrdinaryTiling);
     match cfg.extract_tiling_witness_openscop, cfg.validate_tiling_openscop,
           cfg.validate_iss_debug_dumps, cfg.validate_iss_bridge,
           cfg.validate_iss_pluto_suite, cfg.validate_iss_pluto_live_suite with
     | Some (before_file, after_file), None, None, None, false, false ->
-        exit (run_tiling_witness_extractor before_file after_file)
+        exit (run_tiling_witness_extractor
+                ~second_level:cfg.force_second_level_tile
+                before_file
+                after_file)
     | None, Some (before_file, after_file), None, None, false, false ->
-        exit (run_tiling_validator before_file after_file)
+        exit (run_tiling_validator
+                ~second_level:cfg.force_second_level_tile
+                before_file
+                after_file)
     | None, None, Some (before_file, after_file), None, false, false ->
         exit (run_iss_dump_validator before_file after_file)
     | None, None, None, Some bridge_file, false, false ->

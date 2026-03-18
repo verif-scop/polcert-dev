@@ -13,6 +13,18 @@ type pluto_parallel_hint = {
   hint_current_dim : int;
 }
 
+type tiling_mode =
+  | OrdinaryTiling
+  | SecondLevelTiling
+
+let current_tiling_mode = ref OrdinaryTiling
+
+let set_tiling_mode mode =
+  current_tiling_mode := mode
+
+let second_level_tiling_enabled () =
+  !current_tiling_mode = SecondLevelTiling
+
 let read_file path =
   let ic = open_in path in
   let buf = Buffer.create 4096 in
@@ -247,6 +259,9 @@ let tile_only_flags =
     "--rar";
   ]
 
+let tile_only_second_level_flags =
+  tile_only_flags @ ["--second-level-tile"]
+
 let affine_with_iss_flags =
   ["--iss"] @ affine_only_flags
 
@@ -274,6 +289,9 @@ let tile_only_parallel_flags =
     "--rar";
   ]
 
+let tile_only_parallel_second_level_flags =
+  tile_only_parallel_flags @ ["--second-level-tile"]
+
 let affine_with_iss_parallel_flags =
   ["--iss"] @ affine_only_parallel_flags
 
@@ -289,13 +307,23 @@ let affine_only_scop_scheduler inscop =
   run_pluto_scop affine_only_flags inscop
 
 let tile_only_scop_scheduler inscop =
-  run_pluto_scop tile_only_flags inscop
+  let flags =
+    if second_level_tiling_enabled ()
+    then tile_only_second_level_flags
+    else tile_only_flags
+  in
+  run_pluto_scop flags inscop
 
 let affine_only_scop_scheduler_with_parallel_hint inscop =
   run_pluto_scop_with_parallel_hint affine_only_parallel_flags inscop
 
 let tile_only_scop_scheduler_with_parallel_hint inscop =
-  run_pluto_scop_with_parallel_hint tile_only_parallel_flags inscop
+  let flags =
+    if second_level_tiling_enabled ()
+    then tile_only_parallel_second_level_flags
+    else tile_only_parallel_flags
+  in
+  run_pluto_scop_with_parallel_hint flags inscop
 
 let affine_only_scop_scheduler_with_iss inscop =
   run_pluto_scop affine_with_iss_flags inscop
@@ -313,7 +341,27 @@ let run_pluto_phase_pipeline inscop =
       begin
         match tile_only_scop_scheduler midscop with
         | Err msg -> Err msg
-        | Okk outscop -> Okk (midscop, outscop)
+        | Okk outscop ->
+            if second_level_tiling_enabled () then
+              begin
+                try
+                  let artifact =
+                    PlutoTilingValidator.extract_phase_artifact_from_scops
+                      ~tiling_mode:PlutoTilingValidator.SecondLevel
+                      ~before_path:"mid_affine"
+                      ~after_path:"after_tiled"
+                      midscop
+                      outscop
+                  in
+                  Okk (midscop, artifact.artifact_after_scop)
+                with
+                | PlutoTilingValidator.ValidationError msg ->
+                    Err (coqstring_of_camlstring msg)
+                | exn ->
+                    Err (coqstring_of_camlstring (Printexc.to_string exn))
+              end
+            else
+              Okk (midscop, outscop)
       end
 
 let run_pluto_phase_pipeline_with_parallel_hint inscop =
@@ -333,7 +381,27 @@ let run_pluto_phase_pipeline_with_iss inscop =
       begin
         match tile_only_scop_scheduler midscop with
         | Err msg -> Err msg
-        | Okk outscop -> Okk (midscop, outscop)
+        | Okk outscop ->
+            if second_level_tiling_enabled () then
+              begin
+                try
+                  let artifact =
+                    PlutoTilingValidator.extract_phase_artifact_from_scops
+                      ~tiling_mode:PlutoTilingValidator.SecondLevel
+                      ~before_path:"mid_affine"
+                      ~after_path:"after_tiled"
+                      midscop
+                      outscop
+                  in
+                  Okk (midscop, artifact.artifact_after_scop)
+                with
+                | PlutoTilingValidator.ValidationError msg ->
+                    Err (coqstring_of_camlstring msg)
+                | exn ->
+                    Err (coqstring_of_camlstring (Printexc.to_string exn))
+              end
+            else
+              Okk (midscop, outscop)
       end
 
 let run_pluto_phase_pipeline_with_iss_with_parallel_hint inscop =
@@ -351,7 +419,13 @@ let phase_scop_scheduler = run_pluto_phase_pipeline
 let infer_tiling_witness_scops before_scop after_scop =
   try
     let witness =
+      let tiling_mode =
+        if second_level_tiling_enabled ()
+        then PlutoTilingValidator.SecondLevel
+        else PlutoTilingValidator.Ordinary
+      in
       PlutoTilingValidator.extract_witness_from_scops
+        ~tiling_mode
         ~before_path:"mid_affine"
         ~after_path:"after_tiled"
         before_scop

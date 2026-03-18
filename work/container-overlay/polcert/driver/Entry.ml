@@ -17,9 +17,14 @@ type file_mode =
   | Iss_bridge_mode of string
   | Iss_dump_mode of string * string
 
+let pluto_tiling_mode second_level =
+  if second_level
+  then PlutoTilingValidator.SecondLevel
+  else PlutoTilingValidator.Ordinary
+
 let usage prog =
   Printf.sprintf
-    "Usage:\n  %s [--kind auto|affine|tiling] <before.scop> <after.scop>\n  %s [--kind auto|affine|tiling] <before.scop> <mid.scop> <after.scop>\n  %s --iss-bridge <bridge.txt>\n  %s --iss-debug-dumps <before.txt> <after.txt>\n\nAliases:\n  --auto      : same as --kind auto\n  --affine    : same as --kind affine\n  --tiling    : same as --kind tiling\n\nTwo-input mode:\n  auto   : try affine validation first, then tiling validation\n  affine : run affine validation on before/after\n  tiling : run tiling validation on before/after\n\nThree-input mode:\n  auto   : run affine(before, mid), then tiling(mid, after)\n  affine : run affine(before, mid) only\n  tiling : run tiling(mid, after) only\n\nISS modes:\n  --iss-bridge      : delegate to polopt --validate-iss-bridge\n  --iss-debug-dumps : delegate to polopt --validate-iss-debug-dumps\n"
+    "Usage:\n  %s [--kind auto|affine|tiling] [--second-level-tile] <before.scop> <after.scop>\n  %s [--kind auto|affine|tiling] [--second-level-tile] <before.scop> <mid.scop> <after.scop>\n  %s --iss-bridge <bridge.txt>\n  %s --iss-debug-dumps <before.txt> <after.txt>\n\nAliases:\n  --auto      : same as --kind auto\n  --affine    : same as --kind affine\n  --tiling    : same as --kind tiling\n\nTwo-input mode:\n  auto   : try affine validation first, then tiling validation\n  affine : run affine validation on before/after\n  tiling : run tiling validation on before/after\n\nThree-input mode:\n  auto   : run affine(before, mid), then tiling(mid, after)\n  affine : run affine(before, mid) only\n  tiling : run tiling(mid, after) only\n\nOptions:\n  --second-level-tile : enable dependency-aware witness canonicalization and\n                        raw-order to canonical-order import alignment for tiling modes\n\nISS modes:\n  --iss-bridge      : delegate to polopt --validate-iss-bridge\n  --iss-debug-dumps : delegate to polopt --validate-iss-debug-dumps\n"
     prog prog prog prog
 
 let string_of_coq_err msg = Camlcoq.camlstring_of_coqstring msg
@@ -186,15 +191,24 @@ let canonicalize_tiled_after before_pol after_path after_scop ws =
            after_path
            (string_of_coq_err msg))
 
-let run_tiling_pair before_path after_path =
+let tiling_artifact_from_files_or_fail ~second_level before_path after_path =
+  PlutoTilingValidator.extract_phase_artifact_from_files
+    ~tiling_mode:(pluto_tiling_mode second_level)
+    before_path
+    after_path
+
+let run_tiling_pair ~second_level before_path after_path =
   let before_scop = read_scop_or_fail before_path in
-  let after_scop = read_scop_or_fail after_path in
   let before_pol = import_complete_tiling_or_fail before_path before_scop in
-  let witness : PlutoTilingValidator.witness =
-    PlutoTilingValidator.extract_witness_from_files before_path after_path
+  let artifact = tiling_artifact_from_files_or_fail ~second_level before_path after_path in
+  let ws = PhaseTiling.convert_witness artifact.artifact_witness in
+  let after_pol =
+    canonicalize_tiled_after
+      before_pol
+      after_path
+      artifact.artifact_after_scop
+      ws
   in
-  let ws = PhaseTiling.convert_witness witness in
-  let after_pol = canonicalize_tiled_after before_pol after_path after_scop ws in
   let (before_pol, after_pol) =
     normalize_tiling_validator_inputs before_pol after_pol
   in
@@ -215,8 +229,8 @@ let print_affine_relation before_path after_path =
       "[NE] Cannot determine refinement relations between the two polyhedral models (%s, %s).\n"
       before_path after_path
 
-let print_tiling_result before_path after_path =
-  let (ok, res) = run_tiling_pair before_path after_path in
+let print_tiling_result ~second_level before_path after_path =
+  let (ok, res) = run_tiling_pair ~second_level before_path after_path in
   if ok && res then
     Printf.printf "[TILING-OK] %s validates %s as a tiling-derived refinement.\n"
       after_path before_path
@@ -233,6 +247,7 @@ let run_iss_dumps before_file after_file =
 
 let parse_args () =
   let kind = ref Kind_auto in
+  let second_level = ref false in
   let files = ref [] in
   let iss_bridge = ref None in
   let iss_dumps = ref None in
@@ -256,6 +271,9 @@ let parse_args () =
           go (i + 1)
       | "--tiling" ->
           kind := Kind_tiling;
+          go (i + 1)
+      | "--second-level-tile" ->
+          second_level := true;
           go (i + 1)
       | "--iss-bridge" ->
           if i + 1 >= Array.length Sys.argv then begin
@@ -298,22 +316,22 @@ let parse_args () =
         prerr_endline (usage Sys.argv.(0));
         exit 2
   in
-  (!kind, mode)
+  (!kind, !second_level, mode)
 
-let run_pair kind before_path after_path =
+let run_pair kind second_level before_path after_path =
   match kind with
   | Kind_affine ->
       print_affine_relation before_path after_path
   | Kind_tiling ->
-      print_tiling_result before_path after_path
+      print_tiling_result ~second_level before_path after_path
   | Kind_auto ->
       let (ok1, res1, ok2, res2) = affine_relation before_path after_path in
       if (ok1 && res1) || (ok2 && res2) then
         print_affine_relation before_path after_path
       else
-        print_tiling_result before_path after_path
+        print_tiling_result ~second_level before_path after_path
 
-let run_phase kind before_path mid_path after_path =
+let run_phase kind second_level before_path mid_path after_path =
   match kind with
   | Kind_affine ->
       let (ok, res) = affine_forward before_path mid_path in
@@ -324,10 +342,10 @@ let run_phase kind before_path mid_path after_path =
         Printf.printf "[AFFINE-FAIL] %s does not validate %s as an affine refinement.\n"
           mid_path before_path
   | Kind_tiling ->
-      print_tiling_result mid_path after_path
+      print_tiling_result ~second_level mid_path after_path
   | Kind_auto ->
       let (ok_affine, res_affine) = affine_forward before_path mid_path in
-      let (ok_tiling, res_tiling) = run_tiling_pair mid_path after_path in
+      let (ok_tiling, res_tiling) = run_tiling_pair ~second_level mid_path after_path in
       Printf.printf "[PHASE] affine(before, mid): %s\n"
         (if ok_affine && res_affine then "OK" else "FAIL");
       Printf.printf "[PHASE] tiling(mid, after): %s\n"
@@ -349,7 +367,20 @@ let _ =
         Gc.minor_heap_size = 524288;
         Gc.major_heap_increment = 4194304;
       };
-    let (kind, mode) = parse_args () in
+    let (kind, second_level, mode) = parse_args () in
+    begin
+      match mode with
+      | Iss_bridge_mode _ | Iss_dump_mode _ when second_level ->
+          prerr_endline "--second-level-tile only applies to tiling validation modes";
+          prerr_endline (usage Sys.argv.(0));
+          exit 2
+      | _ -> ()
+    end;
+    if second_level && kind = Kind_affine then begin
+      prerr_endline "--second-level-tile cannot be combined with --kind affine";
+      prerr_endline (usage Sys.argv.(0));
+      exit 2
+    end;
     begin
       match mode with
       | Iss_bridge_mode bridge ->
@@ -357,9 +388,9 @@ let _ =
       | Iss_dump_mode (before_file, after_file) ->
           exit (run_iss_dumps before_file after_file)
       | Pair_mode (before_path, after_path) ->
-          run_pair kind before_path after_path
+          run_pair kind second_level before_path after_path
       | Phase_mode (before_path, mid_path, after_path) ->
-          run_phase kind before_path mid_path after_path
+          run_phase kind second_level before_path mid_path after_path
     end
   with
   | Invalid_argument msg ->

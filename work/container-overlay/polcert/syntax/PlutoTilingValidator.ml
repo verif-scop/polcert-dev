@@ -54,6 +54,15 @@ type report = {
   limitations : string list;
 }
 
+type tiling_mode =
+  | Ordinary
+  | SecondLevel
+
+type 'scop phase_artifact = {
+  artifact_witness : witness;
+  artifact_after_scop : 'scop;
+}
+
 type tile_row_kind =
   | LowerBound
   | UpperBound
@@ -109,6 +118,16 @@ let rec last = function
 
 let sort_uniq xs =
   List.sort_uniq String.compare xs
+
+let string_to_chars = Camlcoq.coqstring_of_camlstring
+
+let rec remove_first pred = function
+  | [] -> []
+  | x :: xs -> if pred x then xs else x :: remove_first pred xs
+
+let rec range_from start len =
+  if len <= 0 then []
+  else start :: range_from (start + 1) (len - 1)
 
 let relation_param_names scop =
   match scop.context.params with
@@ -316,6 +335,218 @@ let tile_link_key link =
 let sort_links links =
   List.sort (fun lhs rhs -> String.compare (tile_link_key lhs) (tile_link_key rhs)) links
 
+let canonicalize_links original_iterators added_iterators links =
+  let rec loop available pending acc =
+    match pending with
+    | [] ->
+        let ordered = List.rev acc in
+        let parents = sort_uniq (List.map (fun link -> link.parent) ordered) in
+        let expected = sort_uniq added_iterators in
+        if parents <> expected then
+          failf
+            "ordered tile-link parents [%s] do not cover added iterators [%s]"
+            (String.concat "," parents)
+            (String.concat "," expected);
+        ordered
+    | _ ->
+        let ready, _blocked =
+          List.partition
+            (fun link ->
+              List.for_all
+                (fun dep -> List.mem dep available)
+                (affine_expr_dependencies link.expr))
+            pending
+        in
+        if ready = [] then
+          let unresolved =
+            String.concat ", "
+              (List.map
+                 (fun link ->
+                   Printf.sprintf "%s/%s"
+                     link.parent
+                     (z_to_string link.tile_size))
+                 (sort_links pending))
+          in
+          failf "cannot topologically order tile links: %s" unresolved
+        else
+          let chosen = List.hd (sort_links ready) in
+          let pending' =
+            remove_first
+              (fun link -> tile_link_key link = tile_link_key chosen)
+              pending
+          in
+          loop (available @ [chosen.parent]) pending' (chosen :: acc)
+  in
+  loop original_iterators links []
+
+let permutation_from_raw_to_canonical raw_added canonical_added =
+  if List.length raw_added <> List.length canonical_added then
+    failf
+      "raw added iterators [%s] and canonical added iterators [%s] have different lengths"
+      (String.concat "," raw_added)
+      (String.concat "," canonical_added);
+  let indexed_raw = List.mapi (fun idx name -> (name, idx)) raw_added in
+  let perm =
+    List.map
+      (fun name ->
+        match List.assoc_opt name indexed_raw with
+        | Some idx -> idx
+        | None ->
+            failf
+              "canonical added iterator %s does not occur in raw added iterators [%s]"
+              name
+              (String.concat "," raw_added))
+      canonical_added
+  in
+  let expected = range_from 0 (List.length raw_added) in
+  if List.sort Stdlib.compare perm <> expected then
+    failf
+      "raw/canonical added-iterator permutation is not a bijection: raw=[%s] canonical=[%s]"
+      (String.concat "," raw_added)
+      (String.concat "," canonical_added);
+  perm
+
+let permute_prefix permutation prefix =
+  if List.length prefix <> List.length permutation then
+    failf "cannot permute prefix of length %d with permutation of length %d"
+      (List.length prefix)
+      (List.length permutation);
+  List.map
+    (fun idx ->
+      try List.nth prefix idx
+      with Failure _ ->
+        failf "permutation index %d is out of bounds for prefix length %d"
+          idx
+          (List.length prefix))
+    permutation
+
+let permute_added_prefix permutation added_count xs =
+  let raw_added, suffix = split_at added_count xs in
+  permute_prefix permutation raw_added @ suffix
+
+let rewrite_relation_added_inputs relation added_count permutation =
+  let output_dims = relation_output_count relation in
+  let input_dims = relation_input_count relation in
+  let param_dims = relation_param_count relation in
+  let rewrite_row (is_ineq, coeffs) =
+    let outs, rest = split_at output_dims coeffs in
+    let inputs, rest = split_at input_dims rest in
+    let params, rest = split_at param_dims rest in
+    match last rest with
+    | None -> failf "malformed relation row during second-level canonicalization"
+    | Some const ->
+        begin
+          match relation.rel_type with
+          | DomTy ->
+              if output_dims < added_count then
+                failf
+                  "cannot rewrite domain relation with %d output dims using %d added iterators"
+                  output_dims
+                  added_count;
+              let added_outputs, kept_outputs = split_at added_count outs in
+              (is_ineq, permute_prefix permutation added_outputs @ kept_outputs @ inputs @ params @ [const])
+          | _ ->
+              if input_dims < added_count then
+                failf
+                  "cannot rewrite relation with %d input dims using %d added iterators"
+                  input_dims
+                  added_count;
+              let added_inputs, kept_inputs = split_at added_count inputs in
+              (is_ineq, outs @ permute_prefix permutation added_inputs @ kept_inputs @ params @ [const])
+        end
+  in
+  { relation with constrs = List.map rewrite_row relation.constrs }
+
+let rewrite_stmt_exts_added_iterators added_count permutation = function
+  | None -> None
+  | Some exts ->
+      let rewrite_ext = function
+        | StmtBody (iters, body) ->
+            let names = List.map chars_to_string iters in
+            let names' = permute_added_prefix permutation added_count names in
+            StmtBody (List.map string_to_chars names', body)
+      in
+      Some (List.map rewrite_ext exts)
+
+let rewrite_after_statement_added_iterators
+    (after_stmt : OpenScop.coq_Statement)
+    raw_added
+    canonical_added =
+  let added_count = List.length raw_added in
+  if List.length canonical_added <> added_count then
+    failf
+      "raw added iterators [%s] and canonical added iterators [%s] have different lengths"
+      (String.concat "," raw_added)
+      (String.concat "," canonical_added);
+  let permutation = permutation_from_raw_to_canonical raw_added canonical_added in
+  { after_stmt with
+    domain = rewrite_relation_added_inputs after_stmt.domain added_count permutation;
+    scattering = rewrite_relation_added_inputs after_stmt.scattering added_count permutation;
+    access =
+      List.map
+        (fun rel -> rewrite_relation_added_inputs rel added_count permutation)
+        after_stmt.access;
+    stmt_exts_opt =
+      rewrite_stmt_exts_added_iterators added_count permutation after_stmt.stmt_exts_opt; }
+
+let canonicalize_statement_witness (stmt : statement_witness) =
+  let canonical_links =
+    canonicalize_links stmt.original_iterators stmt.added_iterators stmt.links
+  in
+  let canonical_added = List.map (fun link -> link.parent) canonical_links in
+  let canonical_tiled = canonical_added @ stmt.original_iterators in
+  ({ stmt with
+     tiled_iterators = canonical_tiled;
+     added_iterators = canonical_added;
+     links = canonical_links; },
+   canonical_added)
+
+let canonicalize_witness_and_after_scop
+    (after_scop : OpenScop.coq_OpenScop)
+    (witness : witness) =
+  if List.length after_scop.statements <> List.length witness.statements then
+    failf
+      "statement count mismatch while canonicalizing second-level witness: after=%d witness=%d"
+      (List.length after_scop.statements)
+      (List.length witness.statements);
+  let statements, after_statements =
+    List.split
+      (List.map2
+         (fun stmt after_stmt ->
+           let canonical_stmt, canonical_added =
+             canonicalize_statement_witness stmt
+           in
+           let after_stmt' =
+             rewrite_after_statement_added_iterators
+               after_stmt
+               stmt.added_iterators
+               canonical_added
+           in
+           (canonical_stmt, after_stmt'))
+         witness.statements
+         after_scop.statements)
+  in
+  ({ witness with statements }, { after_scop with statements = after_statements })
+
+let reject_second_level_links (witness : witness) =
+  List.iter
+    (fun (stmt : statement_witness) ->
+      List.iter
+        (fun link ->
+          let dependent_added =
+            List.filter
+              (fun dep -> List.mem dep stmt.added_iterators)
+              (affine_expr_dependencies link.expr)
+          in
+          if dependent_added <> [] then
+            failf
+              "statement %d: second-level tiling requires --second-level-tile (link %s depends on added iterators [%s])"
+              stmt.statement
+              link.parent
+              (String.concat ", " dependent_added))
+        stmt.links)
+    witness.statements
+
 let infer_statement_shape param_names stmt_idx before_stmt after_stmt =
   let before_vars = ensure_stmt_iterators stmt_idx before_stmt in
   let after_vars = ensure_stmt_iterators stmt_idx after_stmt in
@@ -433,7 +664,7 @@ let extract_statement_witness param_names stmt_idx before_stmt after_stmt =
     links = inferred.inferred_links;
   }
 
-let extract_witness_from_scops ~before_path ~after_path before_scop after_scop =
+let extract_raw_witness_from_scops ~before_path ~after_path before_scop after_scop =
   require_same_shape before_scop after_scop;
   let params = relation_param_names before_scop in
   {
@@ -447,7 +678,38 @@ let extract_witness_from_scops ~before_path ~after_path before_scop after_scop =
         (List.combine before_scop.statements after_scop.statements);
   }
 
-let extract_witness_from_files before_path after_path =
+let extract_phase_artifact_from_scops
+    ?(tiling_mode = Ordinary)
+    ~before_path ~after_path before_scop after_scop =
+  let raw_witness =
+    extract_raw_witness_from_scops ~before_path ~after_path before_scop after_scop
+  in
+  match tiling_mode with
+  | Ordinary ->
+      reject_second_level_links raw_witness;
+      { artifact_witness = raw_witness; artifact_after_scop = after_scop }
+  | SecondLevel ->
+      let witness, after_scop =
+        canonicalize_witness_and_after_scop after_scop raw_witness
+      in
+      { artifact_witness = witness; artifact_after_scop = after_scop }
+
+let extract_witness_from_scops
+    ?(tiling_mode = Ordinary)
+    ~before_path ~after_path before_scop after_scop =
+  let artifact =
+    extract_phase_artifact_from_scops
+      ~tiling_mode
+      ~before_path
+      ~after_path
+      before_scop
+      after_scop
+  in
+  artifact.artifact_witness
+
+let extract_phase_artifact_from_files
+    ?(tiling_mode = Ordinary)
+    before_path after_path =
   let before_scop =
     match OpenScopReader.read before_path with
     | Some scop -> scop
@@ -458,7 +720,20 @@ let extract_witness_from_files before_path after_path =
     | Some scop -> scop
     | None -> failf "cannot read OpenScop file %s" after_path
   in
-  extract_witness_from_scops ~before_path ~after_path before_scop after_scop
+  extract_phase_artifact_from_scops
+    ~tiling_mode
+    ~before_path
+    ~after_path
+    before_scop
+    after_scop
+
+let extract_witness_from_files
+    ?(tiling_mode = Ordinary)
+    before_path after_path =
+  let artifact =
+    extract_phase_artifact_from_files ~tiling_mode before_path after_path
+  in
+  artifact.artifact_witness
 
 let coeff_of name coeffs =
   match List.assoc_opt name coeffs with
@@ -848,22 +1123,41 @@ let check_witness_files before_path after_path witness =
   in
   check_witness_against_scops ~before_path ~after_path before_scop after_scop witness
 
-let validate_scops ~before_path ~after_path before_scop after_scop =
-  let witness = extract_witness_from_scops ~before_path ~after_path before_scop after_scop in
-  check_witness_against_scops ~before_path ~after_path before_scop after_scop witness
+let validate_scops
+    ?(tiling_mode = Ordinary)
+    ~before_path ~after_path before_scop after_scop =
+  let artifact =
+    extract_phase_artifact_from_scops
+      ~tiling_mode
+      ~before_path
+      ~after_path
+      before_scop
+      after_scop
+  in
+  check_witness_against_scops
+    ~before_path
+    ~after_path
+    before_scop
+    artifact.artifact_after_scop
+    artifact.artifact_witness
 
-let validate_files before_path after_path =
+let validate_files
+    ?(tiling_mode = Ordinary)
+    before_path after_path =
+  let artifact =
+    extract_phase_artifact_from_files ~tiling_mode before_path after_path
+  in
   let before_scop =
     match OpenScopReader.read before_path with
     | Some scop -> scop
     | None -> failf "cannot read OpenScop file %s" before_path
   in
-  let after_scop =
-    match OpenScopReader.read after_path with
-    | Some scop -> scop
-    | None -> failf "cannot read OpenScop file %s" after_path
-  in
-  validate_scops ~before_path ~after_path before_scop after_scop
+  check_witness_against_scops
+    ~before_path
+    ~after_path
+    before_scop
+    artifact.artifact_after_scop
+    artifact.artifact_witness
 
 let render_link link =
   Printf.sprintf "%s = floor((%s) / %s)"
