@@ -85,7 +85,7 @@ Date: 2026-03-05
   - `opam exec -- make polopt`
   - `opam exec -- make polcert.ini`
   - `opam exec -- make polcert`
-  - strict `polopt` regression suite (`tests/polopt-generated/tools/materialize_polopt_cases.py`)
+  - strict `polopt` regression suite (`tests/polopt-regression/tools/materialize_polopt_cases.py`)
   - `make test`
 - Prefer one canonical workflow that uses the same README build order as local acceptance.
 - Cache opam where possible, but do not change the build semantics to chase cache hits.
@@ -135,3 +135,46 @@ Date: 2026-03-05
   - `polcert`: 2-input auto, 3-input phase-aligned
   - `polopt`: affine-only Pluto, then tile-only Pluto, then two validation gates
 5. After the padded-transformation proof debt is closed, re-check whether any of the now-debug-only syntax hooks can be simplified or removed.
+
+## Progress Update (2026-03-19, artifact-strengthening)
+
+The current bottleneck is no longer proof closure in isolation. The artifact
+now has theorem-aligned affine, tiling, ISS, and explicit-dimension parallel
+routes, and the strict loop suite already succeeds.
+
+The next milestone is therefore artifact strengthening rather than another
+single-feature proof push.
+
+The active roadmap is now recorded in:
+
+- `work/container-overlay/polcert/doc/ARTIFACT_STRENGTHENING_PLAN.md`
+
+That roadmap supersedes this file for the next iteration of work. Its four main
+tracks are:
+
+1. whole-C end-to-end wrapper and performance harness
+2. `advect3d` codegen performance repair
+3. Pluto bug reproducibility / validator-value case studies
+4. diamond tiling as a parallel architectural track
+
+## Progress Update (2026-03-23, generated perf harness)
+
+The whole-C artifact-strengthening track now has a concrete generated perf
+campaign:
+
+- a wrapper-based generated C harness over the 62-case regression corpus
+- tiered parameter sizing (`smoke / perf / heavy`)
+- per-case best-pipeline search across:
+  - default no-ISS affine+tiling
+  - affine-only
+  - ISS
+  - parallel (`4` threads)
+  - ISS+parallel (`4` threads)
+  - identity fallback
+- a fixed report table:
+  - `work/container-overlay/polcert/tests/end-to-end-generated/BEST_PIPELINES.md`
+- one-command local refresh:
+  - `opam exec -- make test-end-to-end-generated-perf-refresh`
+
+This generated perf campaign is intentionally not part of default CI. It is a
+local artifact-evaluation workflow, not a minimal regression gate.
