@@ -155,7 +155,9 @@ tracks are:
 1. whole-C end-to-end wrapper and performance harness
 2. `advect3d` codegen performance repair
 3. Pluto bug reproducibility / validator-value case studies
-4. diamond tiling as a parallel architectural track
+4. diamond tiling as an affine-midpoint-plus-ordinary-tiling track
+   - first target: sequential correctness through a diamond-aware midpoint
+   - later target: concurrent-start / load-balance style properties
 
 ## Progress Update (2026-03-23, generated perf harness)
 

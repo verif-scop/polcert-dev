@@ -44,6 +44,21 @@ This is no longer an affine-only story. The verified pipeline now includes the
 tiling route as a first-class checked phase, and it also includes a first
 version of verified parallel loop generation.
 
+Diamond tiling is not on the current mainline checked path yet, but the design
+boundary is already settled in the notes:
+
+- sequentially, it should be treated as a diamond-aware affine midpoint on
+  `before -> mid_diamond`
+- followed by ordinary checked tiling on `mid_diamond -> after`
+
+This is a narrower claim than the full diamond-tiling paper story. The current
+theorem direction would aim at sequential refinement, not at certifying:
+
+- concurrent-start optimality
+- maximal tile-level parallelism
+- load balance
+- tile-size-ratio conditions needed for those stronger properties
+
 ## 2. The Main Semantic Boundary
 
 The proof stack is still ultimately grounded in:
@@ -63,6 +78,11 @@ why the witness-centered layer is now explicit:
 
 `current_view_pprog` is the crucial bridge used to reuse the older affine
 codegen theorems after a witness-centered tiling program has been checked.
+
+The same intended layering applies to future diamond support:
+
+- the diamond-specific intelligence belongs in the affine midpoint
+- the `mid -> after` checked tiling relation should stay ordinary
 
 ## 3. What The Verified Tiling Route Actually Checks
 
@@ -100,6 +120,11 @@ The full checked tiling validator is therefore:
 1. structural tiling/witness checking
 2. import to the canonical tiled representation
 3. generic validation on the imported tiled program
+
+This is also why the current design notes do not recommend a separate
+"diamond tiling theorem family". For sequential correctness, diamond should
+reuse this same checked tiling structure after importing a diamond-aware
+midpoint.
 
 ## 4. Current File-Level Structure
 
@@ -182,6 +207,15 @@ The phase-aligned validation path is:
 3. build the canonical tiled skeleton
 4. import Pluto's final schedule over that skeleton
 5. run the extracted checked tiling validator
+
+If future diamond support is added on the public path, the intended extension is:
+
+1. import and validate `mid_diamond` as an affine midpoint
+2. infer the ordinary floor-link tiling witness from `(mid_diamond, after)`
+3. reuse the same checked tiling validator
+
+That future path would still certify sequential correctness only unless extra
+diamond-specific witness material is introduced.
 
 Confirmed working cases include:
 

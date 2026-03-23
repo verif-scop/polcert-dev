@@ -189,6 +189,10 @@ T(S1): (i/32, j/32, k/32, i, j, k)
 
 ## Stage 3: 支持 diamond tiling
 
+这部分更系统的 pipeline-facing 设计，见：
+
+- [second-level-and-diamond-design.md](./second-level-and-diamond-design.md)
+
 ### 为什么它比普通 tiling 更难
 
 diamond tiling 不只是：
@@ -203,9 +207,54 @@ diamond tiling 不只是：
 - skew
 - 再进入 tiling / reschedule
 
-### 建议的证明拆法
+更准确地说，这里至少有四个容易混在一起、但验证时必须分开的层面：
 
-不要把 diamond tiling 当作单个“黑箱 pass”验证；把它拆成三段：
+1. `diamond` 不是单纯“tile 形状变成菱形”。
+   它的关键在于：先挑一组能保住 concurrent-start face 的 hyperplanes，再围绕这些 hyperplanes 做 tiling。
+   这也是为什么“默认 affine + 普通 tiling”通常不够；真正需要的是
+   `diamond-aware affine midpoint + ordinary tiling`。
+2. `diamond` 不等于“tile 内执行顺序也必须是 diamond”。
+   论文里明确区分了：
+   - 负责 tile shape 的 diamond hyperplanes
+   - 负责 tile 内 point order 的普通 Pluto hyperplanes
+3. `--diamond-tile` 和 `--full-diamond-tile` 不是同一个目标强度。
+   - 前者更接近 partial / lower-dimensional diamond tiling，只保住部分 concurrent-start 维度
+   - 后者对应 full-dimensional diamond tiling，试图保住整个 concurrent-start face
+4. “支持 diamond” 也有两个不同的验证目标：
+   - 只把 diamond 作为一种已检查的 schedule+tiling 变换纳入 PolCert
+   - 进一步证明论文意义上的 concurrent start / maximal tile-level parallelism / load balance
+
+### 建议先区分两类验证目标
+
+#### 目标 A：与当前 PolCert 形式化保持一致
+
+如果这一步的目标只是把 diamond 纳入当前 checked tiling 管线，而不去证明 parallel / load-balance 之类更强性质，那么最自然的建模是：
+
+- `before -> mid`
+  - 继续看成 affine scheduling phase
+  - diamond 特有的 concurrent-start face 选择、hyperplane replacement、skew 都落在这里
+- `mid -> after`
+  - 继续看成普通 tiling phase
+  - 仍然用 affine floor-link witness 表达新增 tile iterators
+
+按这个边界看，diamond 和普通 tiling 的差别主要不是“需要一套新的 tiling 语义”，而是：
+
+- `mid` 里的 affine hyperplanes 已经不是普通 Pluto 默认那组 hyperplanes
+- `mid -> after` 所 tile 的对象变成了这些 diamond-friendly hyperplanes
+
+所以这里更准确的名字应该是：
+
+- 不是 “ordinary affine + ordinary tiling”
+- 而是 “diamond-aware affine midpoint + ordinary tiling”
+
+这也是为什么 partial/full diamond 的区别，首先应被理解成：
+
+- 选择多少个 hyperplanes 去满足 concurrent-start cone condition
+- 而不是引入了几种完全不同的 tile witness datatype
+
+#### 目标 B：证明论文意义上的 diamond 性质
+
+如果目标是更强的论文语义，那么不要把 diamond tiling 当作单个“黑箱 pass”验证；应当把它拆成三段：
 
 1. concurrent-start/skew correctness
 2. tiled space correctness
@@ -213,9 +262,17 @@ diamond tiling 不只是：
 
 ### 需要的 witness
 
-当前 `--dumpscop` 只有 before/after 两个快照，证据太粗。
+这部分也要区分两种需求。
 
-建议给 Pluto fork 增加可选 dump：
+- 若只做目标 A：
+  - 现有 `before/mid/after` 边界原则上就够了
+  - 重点是把 diamond-specific affine 变化干净地吸收到 `before -> mid`
+  - `mid -> after` 仍然走当前 witness-centered tiling 路线
+- 若做目标 B：
+  - 当前 `--dumpscop` 只有 before/after 两个快照，证据太粗
+  - 需要更多 phase snapshot 才能单独审计 concurrent-start/skew 是否正确
+
+对于目标 B，建议给 Pluto fork 增加可选 dump：
 
 - `after-auto-transform.scop`
 - `after-diamond-skew.scop`
@@ -223,6 +280,57 @@ diamond tiling 不只是：
 - `after-tile-schedule.scop`
 
 如果没有这些 phase snapshot，diamond tiling 的验证很难定位失败点。
+
+### partial diamond 与 full diamond 的区别
+
+这里建议在 TODO 中明确写出来，否则后续容易把 `--diamond-tile` 和
+`--full-diamond-tile` 混成一个功能点。
+
+- partial / lower-dimensional diamond tiling
+  - 只要求前几维满足 concurrent-start cone condition
+  - 通常已经能给 shared-memory stencil 足够的 tile-level parallelism
+  - 但仍给剩余维度更多自由度，用来照顾 tile 内宽度、vectorization、prefetch 等目标
+- full-dimensional diamond tiling
+  - 要求整个 concurrent-start face 都被保住
+  - 更接近论文里的 maximal tile-level parallelism
+  - 但 tile geometry 更复杂，tile 内循环宽度更不规则
+
+因此，若按工程优先级排序：
+
+1. 先把 partial diamond 纳入现有 `before -> mid -> after` checked 管线
+2. 再评估 full diamond 是否只需要更复杂的 affine band，还是还要补更强的 witness
+
+### tile shape 与 tile 内顺序要分开
+
+diamond 相关讨论里，另一个常见混淆是把：
+
+- “tile 是沿哪些 hyperplanes 切出来的”
+- “tile 内点按什么顺序执行”
+
+混成一件事。
+
+在当前 PolCert 语境下，前者更接近 tiling witness 的职责；后者如果只是 tile
+内 point-loop reorder，则更接近 Stage 4 的 intra-tile optimization。
+
+这两个义务若不拆开，后面会很难判断：
+
+- 当前失败到底是 diamond hyperplane 选得不对
+- 还是 tile 内部重排破坏了原本已经正确的 diamond decomposition
+
+### tile size 也不是完全无关
+
+如果目标只是“已检查地接受一种 diamond 风格 schedule+tiling 结果”，tile
+size 可以继续留在普通 tiling 参数层。
+
+但如果目标接近论文中的 concurrent-start / load-balance 语义，就还需要额外注意：
+
+- concurrent-start cone condition 不自动保证任意 tile-size ratio 都好
+- partial/full diamond 的效果也会受 tile-size ratio 影响
+
+因此 TODO 里最好显式保留一句：
+
+- 先验证 hyperplane-level correctness
+- 更强的 tile-size / tile-size-ratio 语义另列为后续扩展，不与第一阶段混做
 
 ### 示例程序
 
@@ -522,6 +630,8 @@ which requires an LP solver.
 成功标准：
 
 - 多层 tile space 仍可投影回原 point space
+- raw `after.scop` 顺序与 witness dependency order 可以分开处理
+- schedule-only import 能对齐 raw added-dim order 与 canonical witness order
 - point-loop reorder 不破坏 tile correctness
 
 ### Milestone D
@@ -530,8 +640,11 @@ which requires an LP solver.
 
 成功标准：
 
-- concurrent-start/skew 阶段可单独审计
-- 失败时能定位是 skew 问题还是 tiling 问题
+- 明确区分 partial diamond 与 full diamond
+- 外部 pipeline 能给出 pre-tiling diamond midpoint，而不是只在 tile-only 阶段开 flag
+- 当前 checked 管线能把 diamond-specific affine 变化和后续 tiling 变化分开定位
+- 若走更强语义路线，concurrent-start/skew 阶段可单独审计
+- 失败时能定位是 affine hyperplane 问题、tiling 问题，还是 tile-schedule 问题
 
 ### Milestone E
 

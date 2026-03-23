@@ -444,6 +444,16 @@ fk1 = floor((2*t + i + 1) / 32)
 
 - diamond tiling 仍然能落在“affine floor-link witness”这个框架里
 - 但被 tile 的对象已经明显是 skew 后的 hyperplane，而不是原始 loop index
+- 因此这里不该被概括成“默认 affine 再 ordinary tiling”
+- 更准确地说，应当是“diamond-aware affine midpoint，再 ordinary tiling”
+
+这也是当前设计上最重要的分界：
+
+- sequential correctness:
+  - 仍然可以复用 ordinary affine floor-link tiling 关系
+- stronger paper-level claims:
+  - 还需要单独记录 concurrent-start face、tile schedule 方向、以及可能的
+    tile-size ratio 约束
 
 ### 7.5 一个重要修正：不要把 before/after scattering arity 直接对齐
 
@@ -577,6 +587,19 @@ checker 当前做的是：
   - `fk0 = floor((2*t - i) / 32)`
   - `fk1 = floor((2*t + i) / 32)`
 
+这里的 PASS 要小心解读。
+
+它只说明：
+
+- diamond case 的 sequential floor-link / witness reconstruction 可以通过
+
+它不说明：
+
+- concurrent start 已被验证
+- load balance 已被验证
+- parallel optimality 已被验证
+- 论文里的 tile-size-ratio 条件已经被检查
+
 ### 9.2 过程中暴露出的一个额外缺口
 
 要让 `polopt` 真正能读 Pluto 的 diamond-tiled `after.scop`，只加 validator 还不够。
@@ -607,6 +630,16 @@ checker 当前做的是：
    - 只是 `phi(x)` 变成了 `2*t-i` 或 `2*t+i`
 4. 现有 `EqDom` 路线不能直接扩出这些能力
    - 因为它在接口层就要求 depth/domain/access 基本不变
+
+如果要把这些 prototype-level 观察真正收口到当前 verified
+`before -> mid -> after` 管线，后续应该以这份设计 note 为准：
+
+- [second-level-and-diamond-design.md](./second-level-and-diamond-design.md)
+
+它进一步固定了两件事：
+
+- second-level 的核心是 dependency order 加 raw-order 到 canonical-order 的导入桥
+- diamond 的核心是显式暴露 pre-tiling affine midpoint，而不是发明新的 tiling relation
 
 还有一个这轮更明确的修正：
 

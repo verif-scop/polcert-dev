@@ -228,6 +228,17 @@ debug 输出显示：
 
 diamond tiling 不是独立小插件，而是会改变核心调度结果，再进入后续 tiling/post-transform/codegen。
 
+这条实验结论支持当前文档里的统一理解：
+
+- diamond 的关键在 affine-band 选择 / replacement / skew
+- 不是 ordinary tiling 之后再挂一个小后处理
+
+但这里仍然只是 pipeline evidence，不应被读成：
+
+- 已经验证 concurrent-start
+- 已经验证 load balance
+- 已经验证论文里的更强并行性质
+
 ## 9. ISS 会改 statement/domain 组织，不只是换顺序
 
 ### 命令

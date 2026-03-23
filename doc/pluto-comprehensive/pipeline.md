@@ -305,6 +305,10 @@ further.
 Diamond tiling is not a completely separate post-pass. In the classic route it
 hooks into the discovery of the first suitable permutable band.
 
+From the proof-boundary viewpoint, this is the key fact: diamond changes the
+affine band that later gets tiled, rather than introducing a separate tiling
+semantics after the ordinary tiling machinery has already run.
+
 ## 8. DFP Route
 
 DFP-related code is present in the source tree and can be located from the
@@ -345,6 +349,11 @@ arbitrary; it is a fixed mini-pipeline:
 7. if parallel tiling is enabled, create the tile-space parallel schedule
 
 So "tiling" is not a single step. It is its own sequence of transformations.
+
+When diamond is enabled, the most accurate summary is therefore:
+
+- first, diamond-aware affine-band selection/rescheduling
+- then, ordinary tiling machinery over that modified band
 
 ## 10. Schedule Dimensions May Grow Even Without Tiling
 

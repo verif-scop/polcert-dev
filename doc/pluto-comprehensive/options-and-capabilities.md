@@ -107,8 +107,8 @@ DFP 在语义上仍属于“找 affine hyperplane”的范畴，本身不要求 
 | `--parallel` / `--noparallel` | `lib/tile.c`, `tool/ast_transform.c` | 可用，源码默认开 | `S1` 或 `D1` | 不 tile 时做 wavefront schedule；tile 时做 tile schedule + OMP 标记 |
 | `--multipar` | `lib/tile.c`, `tool/pluto_codegen_if.c` | 可用 | `S1` 或 `D1` | 多维 wavefront / 多层并行 |
 | `--innerpar` | `lib/tile.c` | 可用 | `S1` 或 `D1` | 倾向 inner parallel，而非 pipelined parallel |
-| `--diamond-tile` / `--nodiamond-tile` | `lib/pluto.c`, `lib/tile.c` | 可用，源码默认开 | `D1` | 先做 concurrent-start skew，再 tiling/reschedule |
-| `--full-diamond-tile` | `lib/pluto.c` | 可用 | `D1` | 在 concurrent-start cone complement 中放开到全维 |
+| `--diamond-tile` / `--nodiamond-tile` | `lib/pluto.c`, `lib/tile.c` | 可用，源码默认开 | `D1` | 先做 diamond-aware hyperplane 选择 / skew，再进入 ordinary tiling 和后续 reschedule |
+| `--full-diamond-tile` | `lib/pluto.c` | 可用 | `D1` | 更强的 producer mode：在 concurrent-start cone complement 中放开到全维；不是另一套 checked tiling relation |
 | `--intratileopt` / `--nointratileopt` | `lib/post_transform.c` | 可用，源码默认开 | `S0`、`S1` 或 `D1` 的后续重排 | 本身主要改 point-loop order，不单独引入新 statement |
 
 ### 实用分类
@@ -122,6 +122,7 @@ DFP 在语义上仍属于“找 affine hyperplane”的范畴，本身不要求 
 - `diamond-tile`
   - 也是 `D1`
   - 因为它不是只在 codegen 侧加优化，而是真正改 polyhedral 变换
+  - 但从当前 proof 设计看，它应被理解成 `diamond-aware affine midpoint + ordinary tiling`
 
 ## 8. ISS
 
