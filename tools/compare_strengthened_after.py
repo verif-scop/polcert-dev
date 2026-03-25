@@ -54,7 +54,7 @@ def parse_scop(path: pathlib.Path) -> dict[str, list[str]]:
 
 
 def extract_strengthened_before(case: str, work: pathlib.Path) -> pathlib.Path:
-    loop_path = ROOT / 'tests' / 'polopt-generated' / 'inputs' / f'{case}.loop'
+    loop_path = ROOT / 'tests' / 'polopt-regression' / 'inputs' / f'{case}.loop'
     proc = run([str(ROOT / 'polopt'), '--debug-scheduler', str(loop_path)], cwd=ROOT)
     txt = proc.stdout
     start = txt.index(BEGIN) + len(BEGIN)
@@ -94,7 +94,7 @@ def extract_c_after(case: str, work: pathlib.Path) -> pathlib.Path:
 
 
 def case_names() -> list[str]:
-    inputs = ROOT / 'tests' / 'polopt-generated' / 'inputs'
+    inputs = ROOT / 'tests' / 'polopt-regression' / 'inputs'
     return sorted(p.stem for p in inputs.glob('*.loop'))
 
 

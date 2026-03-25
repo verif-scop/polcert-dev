@@ -1,13 +1,17 @@
 # Proof TODO Inventory
 
-Date: 2026-03-05
+Date: 2026-03-24
 Scope scanned in container `/polcert`: `src/ polygen/ driver/ common/ cfrontend/ cparser/ lib/ VPL/`
 
 ## 1) Blocking Incomplete Proofs (project-local)
 
-1. `src/Extractor.v:506` — `Admitted.` (`extractor_correct`)
+No direct `Admitted.` or `Abort.` occurrences remain under the scanned
+project-local proof scope at the time of this scan.
 
-This is the only direct `Admitted` in the scanned scope and is the current proof bottleneck for end-to-end extractor soundness.
+This file should therefore no longer be read as an active blocker list. It is
+now primarily a reminder that the relevant remaining trust boundaries are the
+external interfaces and foundational axiom buckets below, not local unfinished
+proof scripts.
 
 ## 2) Untrusted / External Interface Parameters (project integration layer)
 
@@ -35,9 +39,10 @@ No `Abort.` occurrences found in scanned scope.
 
 ## 5) Immediate Actionable Next Steps
 
-1. Close `src/Extractor.v:extractor_correct` using the staged lemma plan in `proof/extractor/PLAN.md`.
-2. Keep new extractor-side invariants (depth normalization + wf guard + access-resolution checker) as locked assumptions for proof scripts.
-3. When reporting trust story, separate:
-   - extractor-local proof debt (`extractor_correct`),
+1. Keep the trust story separate across:
+   - extractor-side correctness theorems and their current status,
    - external scheduler trust boundary,
    - foundational CompCert/VPL axiom base.
+2. When updating status notes, prefer
+   [formalization-status.md](/home/hugh/research/polyhedral/polcert/doc/pluto-comprehensive/formalization-status.md)
+   as the current source of truth rather than reviving stale blocker lists here.

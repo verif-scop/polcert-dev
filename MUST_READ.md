@@ -1,9 +1,17 @@
 # Must Read
 
 ## Workspace
-- Real code repo: `gifted_curie:/polcert`
-- Active code branch: `extractor`
-- This outer repo stores notes, logs, plans, and reports only
+- This outer repo is a separate git repo: `polcert-dev`
+- `polcert-dev` remote: `git@github.com:verif-scop/polcert-dev.git`
+- Real code/proof repo lives in the container: `gifted_curie:/polcert`
+- Container repo remote: `git@github.com:Hughshine/PolCert.git`
+- Active code branch in the container: `extractor`
+- `work/container-overlay/polcert` is an overlay/edit mirror for syncing into the container repo
+- Do not confuse `work/container-overlay/polcert` with the container repo itself
+- Commit/push policy:
+  - documentation, context, notes, plans, reports, host-side analysis tools -> `polcert-dev`
+  - Coq/OCaml/runtime/build changes for PolCert itself -> `gifted_curie:/polcert`
+  - do not stage `work/container-overlay/polcert/**` in `polcert-dev` unless the change is intentionally about the overlay mirror itself
 
 ## Raw Pluto Structural Comparison
 - The checked-in raw comparison report is:
@@ -14,7 +22,7 @@
   - so it compares the pure extractor source model
   - it does **not** yet compare the strict proved-path source model after `StrengthenDomain`
   - do not confuse extractor-before with strengthened-before
-- Current report summary over the generated suite:
+- Current report summary over the `polopt` regression suite:
   - cases compared: `62`
   - source `before.scop` `SCATTERING` metadata match: `62 / 62`
   - raw Pluto `after.scop` `SCATTERING` metadata match: `62 / 62`
@@ -37,7 +45,7 @@
 - Residual domain-only mismatches are currently:
   - `fusion10`, `fusion2`, `fusion3`, `fusion4`, `fusion8`, `lu`, `nodep`, `ssymm`, `strsm`, `trisolv`
 - Important interpretation:
-  - these residual domain mismatches do not currently change the optimization family on the generated suite
+  - these residual domain mismatches do not currently change the optimization family on the regression suite
   - they remain a source-model fidelity debt, but not a current suite blocker
 - Residual domain-only mismatches currently split into:
   - tautological / obviously redundant extras: `fusion10`, `fusion2`, `fusion3`, `fusion4`, `fusion8`, `nodep`
@@ -57,6 +65,10 @@
 - Use already-approved container commands only:
   - `docker exec gifted_curie sh -lc '...'`
   - `docker cp ...`
+- Repo-handling rules:
+  - inspect `git status` separately in `polcert-dev` and in `gifted_curie:/polcert`
+  - commit/push each repo separately
+  - never assume host staging state says anything about the container repo staging state
 - Avoid `rm`; prefer overwrite or unique temp paths.
 - Follow the README build flow in the container, but invoke it under `opam exec`.
 - `make depend` exists and is valid here; the earlier failure was not a VPL issue, it was running `make depend` outside `opam exec`, so `coqdep` was missing from PATH.

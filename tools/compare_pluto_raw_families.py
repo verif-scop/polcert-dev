@@ -60,7 +60,7 @@ def parse_scop(path: pathlib.Path) -> ScopSummary:
 
 
 def collect_our(case: str, work: pathlib.Path) -> tuple[ScopSummary, ScopSummary]:
-    loop_path = ROOT / "tests" / "polopt-generated" / "inputs" / f"{case}.loop"
+    loop_path = ROOT / "tests" / "polopt-regression" / "inputs" / f"{case}.loop"
     before = work / "our.before.scop"
     proc = run([str(ROOT / "polopt"), "--extract-only", str(loop_path)], cwd=ROOT)
     before.write_text(proc.stdout)
@@ -80,7 +80,7 @@ def collect_c(case: str, work: pathlib.Path) -> tuple[ScopSummary, ScopSummary]:
 
 
 def case_names() -> list[str]:
-    inputs = ROOT / "tests" / "polopt-generated" / "inputs"
+    inputs = ROOT / "tests" / "polopt-regression" / "inputs"
     return sorted(p.stem for p in inputs.glob("*.loop"))
 
 

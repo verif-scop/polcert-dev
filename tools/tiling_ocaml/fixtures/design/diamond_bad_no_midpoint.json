@@ -1,0 +1,26 @@
+{
+  "kind": "diamond",
+  "name": "diamond_requires_midpoint_negative",
+  "before_iterators": ["t", "i"],
+  "midpoint_hyperplanes": null,
+  "links": [
+    {
+      "parent": "fk0",
+      "tile_size": 32,
+      "expr": {
+        "var_coeffs": [["t", 2], ["i", -1]],
+        "param_coeffs": [],
+        "const": 0
+      }
+    },
+    {
+      "parent": "fk1",
+      "tile_size": 32,
+      "expr": {
+        "var_coeffs": [["t", 2], ["i", 1]],
+        "param_coeffs": [],
+        "const": 1
+      }
+    }
+  ]
+}

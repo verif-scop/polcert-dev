@@ -4,7 +4,7 @@ Date: 2026-03-08
 
 ## Current state
 - Current strict proved-path result: `62 / 62`
-- There is no remaining semantic blocker in the generated suite.
+- There is no remaining semantic blocker in the regression suite.
 
 ## Historical blockers that were resolved
 

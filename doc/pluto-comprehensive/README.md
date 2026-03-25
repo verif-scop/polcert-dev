@@ -1,89 +1,280 @@
 # Pluto Comprehensive Notes
 
-这组文档记录了对 Pluto fork 的源码级整理，目标是服务两件事：
+This directory now serves two closely related roles:
 
-1. 搞清楚当前 artifact 里 Pluto 实际做了什么，而不是只看 README 或 `--help`。
-2. 为 `polcert` 从“只验证 affine scheduling”扩展到 Pluto 的更多能力，准备一套清晰的技术地图和验证提案。
+1. it remains the internal technical notebook for Pluto-side analysis and
+   PolCert/PolOpt proof engineering
+2. it now also hosts the paper-facing draft material for the "Full-fledged
+   Verified Polyhedral Compilation" story
 
-## 研究对象与来源
+The point of the directory is therefore no longer just to record engineering
+history. It should also support a paper-quality explanation of:
 
-- 主分析对象是 container 内实际运行的 Pluto 源码树 `/pluto`，commit 是 `7cb0892`，与 `pluto --version` 一致。
-- 另外在宿主机克隆了一份 fork 到 `/tmp/verif-scop-pluto`，commit 是 `3afdd71`。它更接近当前 GitHub 头，但不是当前 container 里实际跑的版本。
-- 本目录中所有带行号的源码引用，默认都指向 `/pluto` 这一份源码树。
+- what the verified compiler/validator stack is
+- what semantic relations it proves
+- how extraction, affine validation, checked tiling, compatibility bridges, and
+  codegen fit into one end-to-end theorem
 
-## 为什么需要这一组文档
+## Scope
 
-`polcert` 当前验证 envelope 基本等价于 Pluto README 里给 artifact 推荐的那组参数：
+These notes serve three related purposes:
 
-```sh
-pluto --dumpscop --nointratileopt --nodiamond-tile --noprevector \
-  --smartfuse --nounrolljam --noparallel --notile --rar
-```
+1. explain the real Pluto pipeline as implemented in the artifact, not just as
+   described in high-level READMEs or command-line help
+2. explain the current verified affine+tiling pipeline in PolCert/PolOpt
+3. record the design choices and presentation strategy needed for papers,
+   talks, and future proof extensions
 
-在这个 envelope 里，Pluto 基本只改 scheduling/scattering，不碰 tiling、ISS、OpenMP/vector/unroll、domain 扩张等更复杂的变换。
+## Primary Sources
 
-但 Pluto 源码本身远不止这部分。它还包含：
+- the main Pluto implementation analyzed in these notes is the container-side
+  source tree `/pluto`
+- the main PolCert development discussed here is the `polcert-dev` working tree
+  in this repository
+- file references inside these notes are therefore intended as technical guide
+  rails for developers, not as user-level documentation
 
-- tiling 和 second-level tiling
-- wavefront / pipelined parallel scheduling
-- diamond tiling 和 full-dimensional concurrent start
-- intra-tile loop reordering
-- ISS (index set splitting)
-- PET 前端
-- codegen 时的 OpenMP/vector/unroll-jam 标注
-- DFP / typed fusion / hybrid fusion 框架
-- libpluto API，以及面向 Polly/ISL 的 schedule 导出路径
+## Paper Draft First
 
-因此，想扩展验证，不能只继续盯着 `pluto_auto_transform()`；还得把前后两侧的 IR 变化、domain 变化、statement splitting 和 codegen-only annotation 分清楚。
+If the immediate goal is paper writing rather than engineering archaeology, the
+best starting point is:
 
-## 阅读顺序
+1. [full-fledged-verified-polyhedral-compilation-draft.md](./full-fledged-verified-polyhedral-compilation-draft.md)
+   - current paper-style draft organized around abstract, informal
+     development, relation, validator, and correctness
+2. [paper-presentation-verification-strategy.md](./paper-presentation-verification-strategy.md)
+   - shorter presentation memo for talks, defenses, and paper discussions
+   - use this after the main draft, not instead of it
+3. [latex/README.md](./latex/README.md)
+   - LaTeX paper tree corresponding to the main draft
+   - use this when the paper needs actual TeX formatting and local compilation
 
-1. `source-map.md`
-   作用：快速建立文件级地图、核心数据结构、默认值和“哪些功能是真活的，哪些是半死的”。
-2. `pipeline.md`
-   作用：从 `tool/main.cpp` 和 `lib/plutolib.c` 出发，按真实执行顺序讲完整 pipeline。
-3. `options-and-capabilities.md`
-   作用：把 CLI/隐藏选项、源码模块、当前 artifact 是否可用、对 validation 的影响放进一个矩阵。
-4. `experiments.md`
-   作用：记录在 container 中复现实验得到的行为证据。
-5. `formalization-status.md`
-   作用：单独记录当前形式化主线已经覆盖什么、还没覆盖什么。
-6. `tiling-validation-design.md`
-   作用：详细说明 tiling validation 的输入、正确性义务、以及当前 prototype 的设计。
-7. `tiling-coq-bridge.md`
-   作用：说明当前 Coq tiling core theorem 和 OCaml/OpenScop checker 之间还差哪几层桥接。
-8. `tiling-coq-checker-interface.md`
-   作用：固定 verified tiling checker 应该采用的 Coq 输入、checker 分解和 theorem 形状。
-9. `tiling-transformation-bridge-plan.md`
-   作用：单独收敛 `pi_transformation` 这条最关键的剩余 bridge，以及建议的 theorem 顺序。
-10. `tiling-pass-architecture.md`
-   作用：固定“tiling 需要独立 validation pass、现有 schedule validator 保持不动”的架构。
-11. `iss-validation-design.md`
-   作用：单独说明 ISS 为什么是 splitting-equivalence 问题，以及推荐的 witness 形状。
-12. `validation-proposals.md`
-   作用：给出从当前 `polcert` 能力向 Pluto 完整功能扩展的 staged roadmap。
+These two notes are the current paper-facing backbone. The remaining files in
+this directory should be read as supporting technical references.
 
-## 最重要的结论
+## Parallel Design Entry Point
 
-- Pluto 的唯一“核心 affine scheduler”是 `pluto_auto_transform()`，位置在 `/pluto/lib/pluto.c:1492`。其它大能力都在它之前或之后。
-- `tool/main.cpp` 是 CLI 版 Pluto 的真实总控，它决定了 phase 顺序，比 README 和 `--help` 更可信。
-- `pluto_populate_scop()` 不只回写 schedule，还会回写 domain、iterator、access 维度和 loop metadata；因此只要用了 tiling/ISS，就已经超出“schedule-only validation”。
-- 当前 artifact 的真实默认值来自 `/pluto/lib/program.cpp:833-939`，而不是 `pluto --help`。实际默认值会开 `tile`、`parallel`、`diamondtile`、`prevector`、`unrolljam`。`--help` 里的“disabled by default”有多处是过期描述。
-- DFP/typedfuse/hybridfuse 在源码里是大模块，但当前 container 的 binary 没有 GLPK/Gurobi 支持，因此这一支在 artifact 中实际上不可用。
+For the current frozen first-version design of verified `parallel for`
+generation, start with:
 
-## 和 `polcert` 的直接关系
+- [parallel-rfc.md](./parallel-rfc.md)
 
-对 `polcert` 来说，Pluto 能力大致分为五类：
+Then use the following supporting notes only as needed:
 
-1. 只改 affine schedule 的能力
-   这是当前最适合验证、也已经在用的部分。
-2. 只改 schedule，但会新增 schedule 维的能力
-   典型例子是 `--parallel --notile` 触发的 wavefront schedule。
-3. 同时改 domain 和 schedule 的能力
-   典型例子是 tiling、second-level tiling、diamond tiling。
-4. 会拆 statement / split domain 的能力
-   典型例子是 ISS。
-5. 只在 codegen AST 上做 annotation 的能力
-   典型例子是 OpenMP pragma、vector pragma、unroll-jam 标记。
+- [parallel-coq-skeleton.md](./parallel-coq-skeleton.md)
+- [parallel-proof-obligation-checklist.md](./parallel-proof-obligation-checklist.md)
+- [parallel-implementation-staging.md](./parallel-implementation-staging.md)
 
-后续验证路线最自然的扩展顺序，不是“先碰所有新 feature”，而是按这五类从易到难推进。
+## Current Source Of Truth
+
+If the verified stack changes, these are the files that should usually be
+updated first.
+
+### 1. Current factual status
+
+- [formalization-status.md](./formalization-status.md)
+
+Use this for:
+
+- what is currently proved
+- what is outside the theorem
+- what the present benchmark numbers are
+
+### 2. Current pipeline shape
+
+- [verified-phase-pipeline.md](./verified-phase-pipeline.md)
+- [verified-pipeline-design.md](./verified-pipeline-design.md)
+
+Use these for:
+
+- naming of the verified stages
+- where fallback happens
+- why the current affine+tiling route is layered the way it is
+
+### 2.5 Diamond takeaway
+
+The current settled interpretation of diamond tiling in this repository is:
+
+- not "default affine + ordinary tiling"
+- not "a brand-new tiling theorem family"
+- but "diamond-aware affine midpoint + ordinary tiling"
+
+For the clearest versions of that conclusion, start with:
+
+- [diamond-tiling-paper-notes.md](./diamond-tiling-paper-notes.md)
+- [second-level-and-diamond-design.md](./second-level-and-diamond-design.md)
+- [polopt-second-level-diamond-support.md](./polopt-second-level-diamond-support.md)
+
+### 3. Current paper narrative
+
+- [full-fledged-verified-polyhedral-compilation-draft.md](./full-fledged-verified-polyhedral-compilation-draft.md)
+- [latex/main.tex](./latex/main.tex)
+
+Use this for:
+
+- the paper-facing mainline story
+- the semantics-first explanation of extractor, validators, compatibility
+  stages, and codegen
+- the LaTeX-formatted paper draft
+
+### 4. Current talk/presentation narrative
+
+- [paper-presentation-verification-strategy.md](./paper-presentation-verification-strategy.md)
+
+Use this for:
+
+- talk-level emphasis
+- what to claim and what not to claim
+- how to answer likely audience questions
+
+## How To Maintain This Pack
+
+When a future session changes the verified stack, the recommended maintenance
+order is:
+
+1. update [formalization-status.md](./formalization-status.md) with the factual
+   status
+2. update [verified-phase-pipeline.md](./verified-phase-pipeline.md) if stage
+   names or routing changed
+3. update
+   [full-fledged-verified-polyhedral-compilation-draft.md](./full-fledged-verified-polyhedral-compilation-draft.md)
+   if the paper-level story changed
+4. update
+   [paper-presentation-verification-strategy.md](./paper-presentation-verification-strategy.md)
+   if the talk-level emphasis changed
+5. only then update older design-history notes if they are still worth keeping
+
+This keeps the directory usable as a long-lived research pack rather than a
+pile of disconnected scratch notes.
+
+## How To Grow The Main Draft
+
+The main draft should now stay relatively paper-like. Its internal structure is
+already stable enough that future sessions should prefer extending existing
+sections rather than appending more meta commentary to the draft itself.
+
+The most useful kinds of update are:
+
+- deepening one existing section with cleaner prose
+- strengthening one theorem boundary with a clearer explanation
+- refining the two running examples (`covcol` and `matmul-init`)
+- adding one compact figure/table specification that the eventual paper will
+  likely need
+
+The least useful kinds of update are:
+
+- reintroducing long maintenance notes into the main draft
+- duplicating the same narrative across multiple paper-facing notes
+- adding artifact-only detail that belongs in technical notes instead
+
+As a working rule:
+
+- keep maintenance guidance in this README
+- keep paper prose in
+  [full-fledged-verified-polyhedral-compilation-draft.md](./full-fledged-verified-polyhedral-compilation-draft.md)
+- keep talk tactics in
+  [paper-presentation-verification-strategy.md](./paper-presentation-verification-strategy.md)
+
+## When To Create A New Note
+
+This directory already has enough history documents that future sessions should
+be conservative about adding new ones.
+
+Create a new note only if at least one of the following is true:
+
+- it captures a genuinely new proof boundary or architecture change
+- it is a paper-facing draft with a distinct audience from the existing files
+- it records an experiment series that would otherwise pollute the paper-facing
+  notes
+
+Do not create a new note merely because:
+
+- one section of an existing draft needs to be expanded
+- a theorem list needs to be updated
+- a naming change happened in one module
+
+In those cases, update the current source-of-truth files instead.
+
+As a default rule:
+
+- update the draft before creating a sibling draft
+- update the status note before creating a new status note
+- update the pipeline note before creating a new pipeline note
+
+## Technical Reading Order
+
+1. [source-map.md](./source-map.md)
+   - file-level Pluto map and feature inventory
+2. [pipeline.md](./pipeline.md)
+   - execution order of the external Pluto pipeline
+3. [options-and-capabilities.md](./options-and-capabilities.md)
+   - which Pluto options are real, live, and relevant to validation
+4. [formalization-status.md](./formalization-status.md)
+   - what the current proof stack actually covers
+5. [verified-phase-pipeline.md](./verified-phase-pipeline.md)
+   - naming and layering of the final verified affine+tiling route
+6. [verified-pipeline-design.md](./verified-pipeline-design.md)
+   - why the current verified pipeline is structured the way it is
+7. [paper-presentation-verification-strategy.md](./paper-presentation-verification-strategy.md)
+   - how to present the verification story, especially extraction and tiling,
+     in a paper or talk
+8. [full-fledged-verified-polyhedral-compilation-draft.md](./full-fledged-verified-polyhedral-compilation-draft.md)
+   - current paper-style draft for the full extraction + validation + codegen
+     story
+
+## Tiling-Focused Notes
+
+The following notes are the main tiling-specific design history:
+
+- [tiling-validation-design.md](./tiling-validation-design.md)
+- [second-level-and-diamond-design.md](./second-level-and-diamond-design.md)
+- [polopt-second-level-diamond-support.md](./polopt-second-level-diamond-support.md)
+- [diamond-tiling-paper-notes.md](./diamond-tiling-paper-notes.md)
+- [tiling-coq-bridge.md](./tiling-coq-bridge.md)
+- [tiling-coq-checker-interface.md](./tiling-coq-checker-interface.md)
+- [tiling-pass-architecture.md](./tiling-pass-architecture.md)
+- [tiling-proof-engineering.md](./tiling-proof-engineering.md)
+- [tiling-witness-centered-redesign.md](./tiling-witness-centered-redesign.md)
+- [tiling-witness-centered-migration-checklist.md](./tiling-witness-centered-migration-checklist.md)
+
+These documents are more detailed and more historical. The
+[paper-presentation-verification-strategy.md](./paper-presentation-verification-strategy.md)
+file is the distilled talk version, and
+[full-fledged-verified-polyhedral-compilation-draft.md](./full-fledged-verified-polyhedral-compilation-draft.md)
+is the main paper-facing draft.
+
+For diamond specifically, keep one distinction in mind while reading these
+notes:
+
+- sequential correctness can likely reuse the ordinary checked tiling relation
+  once a diamond-aware midpoint is exposed
+- stronger concurrent-start / load-balance claims are a separate proof target
+
+## ISS-Focused Notes
+
+The following notes are the main ISS-specific design and status references:
+
+- [iss-validation-design.md](./iss-validation-design.md)
+- [iss-verified-validator-roadmap.md](./iss-verified-validator-roadmap.md)
+
+Use these for:
+
+- how Pluto ISS actually works in the implementation
+- what the validator checks on the Pluto side
+- what is now extractable, what is proof-only, and what remains an engineering choice
+
+## Main Current Takeaway
+
+The current verified story should be read as:
+
+- verified extraction from the structured loop frontend into `PolyLang`
+- verified affine validation
+- verified checked tiling on the phase-aligned `mid -> after` route
+- verified compatibility bridges such as strengthening, `current_view_pprog`,
+  and `prepare_codegen`
+- verified reuse of the affine codegen chain through `current_view_pprog`
+- verified fallback to the affine-only path when the tiling route does not
+  complete successfully
+
+This is the right top-level message for current presentations. The rest of the
+documents in this directory explain how that message is technically justified.

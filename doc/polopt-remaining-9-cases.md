@@ -4,7 +4,7 @@ Date: 2026-03-07
 
 Scope:
 - strict proved-path `polopt`
-- after the importer fixes that restored `validate(extracted, roundtrip-before) = true` across the generated suite
+- after the importer fixes that restored `validate(extracted, roundtrip-before) = true` across the regression suite
 
 Current failing set:
 - `corcol`

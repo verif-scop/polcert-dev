@@ -451,6 +451,33 @@ So:
 - `validate_general` is a reusable component
 - `checked_tiling_validate_poly` is the full checked tiling validator
 
+### 7.1 Band-aware ordinary-tiling route
+
+The repository now also contains a band-aware alternative ordinary-tiling
+schedule validator in:
+
+- [TilingBandScheduleValidator.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/src/TilingBandScheduleValidator.v)
+- [PolOptBandTiling.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/driver/PolOptBandTiling.v)
+
+This route is motivated by a presentation mismatch in the generic path:
+
+- the default checked tiling route is correct and reusable
+- but its schedule-legality story is intentionally generic
+- for paper purposes, Pluto ordinary tiling is better explained in terms of
+  inferred bands, strip-mined schedules, and permutable-band legality
+
+The experimental route therefore factors the ordinary-tiling schedule proof
+into:
+
+1. recover the candidate tiled band from the witness
+2. check the `after` schedule has the expected strip-mined form for that band
+3. discharge the resulting band-specific legality obligation
+
+This does not replace the existing generic validator architecture in the Coq
+mainline theorem family. It is a more Pluto-shaped proof route kept alongside
+the historical generic route, and it now drives the default frontend
+ordinary-tiling path.
+
 This separation exists so that:
 
 1. the structural/witness relation is checked exactly once

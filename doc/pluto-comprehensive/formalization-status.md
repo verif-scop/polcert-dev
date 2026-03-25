@@ -126,6 +126,43 @@ This is also why the current design notes do not recommend a separate
 reuse this same checked tiling structure after importing a diamond-aware
 midpoint.
 
+### 3.3 Band-aware ordinary-tiling route
+
+The repository now also contains an alternative band-aware ordinary-tiling
+schedule validator:
+
+- [TilingBandScheduleValidator.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/src/TilingBandScheduleValidator.v)
+- [PolOptBandTiling.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/driver/PolOptBandTiling.v)
+
+At the moment, the repository has two different notions of "default":
+
+- the Coq mainline theorem route in `driver/PolOpt.v` still uses the historical
+  generic `checked_tiling_validate_poly` path
+- the default `polopt` frontend route for the non-ISS full tiled path now uses
+  the band-aware route, with the historical generic route retained behind
+  `--legacy-generic-tiling`
+
+Its purpose is narrower and more Pluto-specific:
+
+1. recover the tiled band from the tiling witness
+2. check that `after` has the expected strip-mined schedule shape for that band
+3. check the band-specific legality obligation on the induced reordered pairs
+
+The proof stack for this route now also contains a Pluto-facing declarative
+specification layer for permutable bands, not only the operational reordered-
+pair obligation used by the executable checker.
+
+Important caveat:
+
+- this route is now the default ordinary-tiling path in the `polopt` frontend
+  for the non-ISS full tiled route
+- it is not yet the default theorem family inside `driver/PolOpt.v`
+- the current executable checker is already band-aware, but it still reuses the
+  list-level validator kernel (`validate_instr_list`) rather than introducing a
+  brand-new dependence emptiness engine
+- the historical generic checked tiling route is still present as a legacy
+  path and remains useful as a comparison baseline
+
 ## 4. Current File-Level Structure
 
 Validator-related modules are now organized by role rather than by historical
@@ -139,12 +176,21 @@ accumulation:
   - canonical tiled import
   - checked tiling validator
   - checked tiling + codegen bridge
+- [TilingBandScheduleValidator.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/src/TilingBandScheduleValidator.v)
+  - experimental band-aware ordinary-tiling schedule validator
+  - inferred-band certificates
+  - declarative Pluto-style permutable-band specs
+  - bridge from band-aware schedule checking to the existing tiling semantics
 - [Validator.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/src/Validator.v)
   - thin public aggregator with stable names
 
 The optimizer entry point is assembled only once:
 
 - [PolOpt.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/driver/PolOpt.v)
+
+The experimental band-aware route is assembled separately in:
+
+- [PolOptBandTiling.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/driver/PolOptBandTiling.v)
 
 Concrete language instantiations are intentionally thin wrappers:
 
@@ -279,7 +325,9 @@ The last fully confirmed container-side build reached all of:
 - `src/TilingBoolChecker.vo`
 - `polygen/ParallelLoop.vo`
 - `driver/ParallelPolOpt.vo`
+- `driver/PolOptBandTiling.vo`
 - `syntax/STilingOpt.vo`
+- `syntax/STilingBandSched.vo`
 - `driver/TPolOpt.vo`
 - `driver/CPolOpt.vo`
 - `polopt`
@@ -297,6 +345,10 @@ Additionally:
   - ok: `62`
   - fail: `0`
   - changed: `60`
+- the experimental band-aware ordinary-tiling route matched the baseline on the
+  generated optimizer suite:
+  - `status.txt` mismatches: `0`
+  - `optimized.loop` mismatches: `0`
 - the following parallel smoke routes were manually confirmed:
   - `--parallel`
   - `--parallel --parallel-strict`

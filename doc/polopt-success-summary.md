@@ -5,7 +5,7 @@ Date: 2026-03-07
 Scope:
 - strict runtime path only
 - `polopt` runs the proved path directly
-- suite root: `/polcert/tests/polopt-generated`
+- suite root: `/polcert/tests/polopt-regression`
 - result: `53 / 62` succeed
 
 Ten successful cases are effectively unchanged:

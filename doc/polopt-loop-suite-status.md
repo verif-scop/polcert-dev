@@ -9,7 +9,7 @@ Date: 2026-03-08
 ## Current strict status
 - Total generated cases: `62`
 - Current strict result: `62 / 62`
-- Current strict proved path succeeds on the full generated suite.
+- Current strict proved path succeeds on the full regression suite.
 
 ## Non-blocker performance case
 - `advect3d` is no longer treated as a semantic blocker.
@@ -26,8 +26,8 @@ Date: 2026-03-08
 - This repair restored the full strict suite to `62 / 62` without changing `Validator` and without adding a validation-only branch.
 
 ## Current generated artifacts
-- Inputs: `tests/polopt-generated/inputs/*.loop`
-- Per-case outputs: `tests/polopt-generated/cases/<case>/`
+- Inputs: `tests/polopt-regression/inputs/*.loop`
+- Per-case outputs: `tests/polopt-regression/cases/<case>/`
 
 ## Current acceptance criterion
 A benchmark is only considered really done when:

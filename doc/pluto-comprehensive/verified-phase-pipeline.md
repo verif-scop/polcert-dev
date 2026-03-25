@@ -106,6 +106,30 @@ but the code should now be read using the names below.
     1. structural/witness checker
     2. shared witness-aware validator core on the imported tiled program
 
+### Band-aware checked ordinary tiling
+
+The repository also contains an alternative band-aware ordinary-tiling route.
+This route is now the default frontend `polopt` ordinary-tiling path for the
+non-ISS full tiled route, while the historical generic route is retained behind
+`--legacy-generic-tiling`.
+
+- `infer_pprog_tiling_bands`
+  - meaning: recover the tiled schedule band from the tiling witness
+
+- `checked_tiling_schedule_stripmined_validate_poly`
+  - meaning: check that the imported `after` schedule has the expected
+    strip-mined band shape induced by the witness
+
+- `check_pprog_permutable_tiling_bands_via_validate_tiling`
+  - meaning: check the band-specific legality obligation over the reordered
+    instruction-point pairs
+  - note: despite the historical name, this is now the specialized band-aware
+    checker used by the experimental route, not a call back into the old full
+    `checked_tiling_validate_poly`
+
+- `driver/PolOptBandTiling.v`
+  - meaning: optimizer route using the band-aware ordinary-tiling checker
+
 ## `current_view_pprog`
 
 `current_view_pprog` is not another optimization pass. It is the bridge from a
@@ -127,6 +151,11 @@ Validator-related files are now organized by role:
   - checked tiling validator
   - tiling-model conversion helpers
   - checked tiling + codegen bridge
+
+- `src/TilingBandScheduleValidator.v`
+  - experimental band-aware ordinary-tiling schedule validator
+  - band inference and strip-mined schedule-shape checking
+  - Pluto-style declarative permutable-band specifications
 
 - `src/Validator.v`
   - thin public aggregator
@@ -153,3 +182,20 @@ The final verified route for programs with loop dimensions is:
 
 Programs with no loop dimensions bypass Pluto and go directly to
 `prepared_codegen`.
+
+## Band-aware frontend route
+
+The experimental route in `driver/PolOptBandTiling.v` has the same high-level
+shape up to the affine midpoint:
+
+1. extract and strengthen
+2. try the two-stage Pluto phase pipeline
+3. validate affine `before -> mid`
+4. infer tiling witness and recover the tiled band
+5. check strip-mined schedule shape for that band
+6. check band-specific legality
+7. codegen `current_view_pprog after`
+
+This route exists to make the ordinary-tiling story more Pluto-aligned. It is
+now the default frontend ordinary-tiling route, while the historical generic
+path remains available as a legacy route for comparison.

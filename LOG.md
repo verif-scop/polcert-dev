@@ -6,6 +6,13 @@ Date: 2026-03-08
 - Container: `gifted_curie`
 - Code repo: `gifted_curie:/polcert`
 - Active branch: `extractor`
+- Host notes/context repo: `/home/hugh/research/polyhedral/polcert`
+- Host repo remote: `git@github.com:verif-scop/polcert-dev.git`
+
+## Repo handling note
+- `polcert-dev` and `gifted_curie:/polcert` are separate git repositories and must be committed/pushed separately.
+- `work/container-overlay/polcert` is an overlay/edit mirror used to sync files into the container repo; it is not the container repo itself.
+- If host-side staging accidentally includes `work/container-overlay/polcert/**` while the intent is to commit container-side code, unstage it in `polcert-dev` and stage the real files inside `gifted_curie:/polcert` instead.
 
 ## Current proved state
 - `src/Extractor.v`: `extractor_correct` is `Qed`
@@ -287,7 +294,7 @@ Date: 2026-03-08
 - The strict proved path is currently:
   - proof-complete
   - clean-buildable
-  - `62 / 62` on the generated suite
+  - `62 / 62` on the regression suite
 - Remaining work, if any, is now about:
   - strengthening the source-model fidelity argument
   - or broadening the benchmark set
@@ -345,7 +352,7 @@ Date: 2026-03-08
 - Residual domain-only mismatches are limited to:
   - `fusion10`, `fusion2`, `fusion3`, `fusion4`, `fusion8`, `lu`, `nodep`, `ssymm`, `strsm`, `trisolv`
 - For those `10`, raw Pluto `after.scop` still lands in the same scattering family as the C-path raw `after.scop`.
-- Therefore the current residual source-model fidelity gap is domain-shape only; on the generated suite it is no longer changing the observed optimization family.
+- Therefore the current residual source-model fidelity gap is domain-shape only; on the regression suite it is no longer changing the observed optimization family.
 
 ## Residual domain mismatch classes
 - Residual `DOMAIN` metadata mismatches now split into:
@@ -353,7 +360,7 @@ Date: 2026-03-08
     - `fusion10`, `fusion2`, `fusion3`, `fusion4`, `fusion8`, `nodep`
   - still-nontrivial strengthening mismatches:
     - `lu`, `ssymm`, `strsm`, `trisolv`
-- Even for the second class, the raw Pluto `after.scop` scattering family currently still matches the C-path on the generated suite.
+- Even for the second class, the raw Pluto `after.scop` scattering family currently still matches the C-path on the regression suite.
 
 - The residual nontrivial domain mismatches are now better understood:
   - `lu`, `ssymm`, `trisolv` are mainly inner-range non-emptiness strengthening differences

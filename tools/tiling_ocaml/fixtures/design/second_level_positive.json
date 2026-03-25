@@ -1,0 +1,36 @@
+{
+  "kind": "second_level",
+  "name": "second_level_raw_order_positive",
+  "original_iterators": ["k"],
+  "raw_added_iterators": ["f0", "f1"],
+  "raw_links": [
+    {
+      "parent": "f0",
+      "tile_size": 8,
+      "expr": {
+        "var_coeffs": [["f1", 1]],
+        "param_coeffs": [],
+        "const": 0
+      }
+    },
+    {
+      "parent": "f1",
+      "tile_size": 32,
+      "expr": {
+        "var_coeffs": [["k", 1]],
+        "param_coeffs": [],
+        "const": 0
+      }
+    }
+  ],
+  "raw_schedule_rows": [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1]
+  ],
+  "canonical_schedule_rows": [
+    [0, 1, 0],
+    [1, 0, 0],
+    [0, 0, 1]
+  ]
+}

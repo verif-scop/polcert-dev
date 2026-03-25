@@ -22,7 +22,7 @@ For a benchmark to count as aligned with Pluto:
 - `advect3d` is no longer a semantic blocker; its remaining issue is `CodeGen.codegen` runtime.
 - The previous live semantic blockers `mxv` and `mxv-seq3` are now fixed on the proved path.
 - Current strict proved-path suite result is `62 / 62`.
-- Current raw Pluto family comparison is also aligned on the generated suite:
+- Current raw Pluto family comparison is also aligned on the regression suite:
   - raw strengthened `before.scop` matches the C-path Pluto raw `before.scop`
     on `SCATTERING` metadata across all `62`
   - raw Pluto `after.scop` matches the C-path Pluto raw `after.scop`
@@ -107,7 +107,7 @@ A full-suite comparison was run using the strict proved-path source model:
 - then run raw `pluto --readscop` on that strengthened `before.scop`
 - compare against the C-path raw Pluto `after.scop`
 
-Current result on the generated suite:
+Current result on the regression suite:
 - strengthened `before.scop` `SCATTERING` metadata match: `62 / 62`
 - strengthened `before.scop` `DOMAIN` metadata match: `52 / 62`
 - raw Pluto `after.scop` `SCATTERING` metadata match: `62 / 62`
@@ -176,7 +176,7 @@ Representative patterns:
 Important interpretation:
 - this is now a domain normalization / strengthening-rule gap
 - not a remaining source `SCATTERING` issue
-- and not an optimization-family blocker on the generated suite
+- and not an optimization-family blocker on the regression suite
 
 ## Likely next strengthening generalization
 Current `StrengthenDomain` only keeps pairwise-added guards that are parameter-only.
@@ -209,6 +209,6 @@ Current status of that direction:
 - the suite-closing strengthening repair now implements the first half of this:
   - eliminate the current innermost iterator from a bound pair
   - retain only guards over outer iterators + parameters
-- this was enough to restore the strict proved-path generated suite to `62 / 62`
+- this was enough to restore the strict proved-path regression suite to `62 / 62`
 - singleton/equality normalization remains a source-fidelity refinement task, not
   a current suite blocker

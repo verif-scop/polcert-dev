@@ -110,3 +110,67 @@ _build/default/pluto_tiling_ocaml.exe check before.scop after.scop witness.json
 它故意让一个 link 依赖不存在的 iterator，用来验证：
 
 - witness import / canonicalization 会拒绝不可解析的 link 依赖
+
+## Design Prototype For Second-Level And Diamond
+
+除了上面的 OpenScop-facing checker，这个目录现在还带了一个更小、更聚焦的
+design prototype：
+
+```sh
+dune build design_validator_prototype.exe
+_build/default/design_validator_prototype.exe fixtures/design/second_level_positive.json
+```
+
+它不是要替代 `pluto_tiling_ocaml.exe`。它的作用更窄：
+
+- 专门实验 second-level 的 `raw after order -> canonical witness order`
+  设计是否可行
+- 专门实验 diamond 的 “必须显式暴露 pre-tiling midpoint” 设计是否足够把
+  diamond 继续压回普通 affine floor-link tiling
+
+### second-level fixtures
+
+- [second_level_positive.json](/home/hugh/research/polyhedral/polcert/tools/tiling_ocaml/fixtures/design/second_level_positive.json)
+  - 正例
+  - raw added order 是 `[f0, f1]`
+  - canonical witness order 是 `[f1, f0]`
+  - prototype 会：
+    - 按依赖顺序 canonicalize links
+    - 推导 raw/canonical 之间的 added-dim permutation
+    - 验证这个 permutation 足以把 raw schedule rows 重排到 canonical schedule rows
+- [second_level_bad_cycle.json](/home/hugh/research/polyhedral/polcert/tools/tiling_ocaml/fixtures/design/second_level_bad_cycle.json)
+  - 反例
+  - 两个 link 互相依赖，无法拓扑排序
+- [second_level_bad_schedule.json](/home/hugh/research/polyhedral/polcert/tools/tiling_ocaml/fixtures/design/second_level_bad_schedule.json)
+  - 反例
+  - link 依赖顺序本身没问题
+  - 但 raw schedule rows 经 permutation 后对不上预期 canonical schedule
+
+### diamond fixtures
+
+- [diamond_positive.json](/home/hugh/research/polyhedral/polcert/tools/tiling_ocaml/fixtures/design/diamond_positive.json)
+  - 正例
+  - midpoint hyperplanes 显式给出 `2*t-i` 与 `2*t+i`
+  - tile links 则只需证明自己匹配这些 midpoint hyperplanes
+- [diamond_bad_no_midpoint.json](/home/hugh/research/polyhedral/polcert/tools/tiling_ocaml/fixtures/design/diamond_bad_no_midpoint.json)
+  - 反例
+  - 没有 midpoint，prototype 直接拒绝
+- [diamond_bad_missing_hyperplane.json](/home/hugh/research/polyhedral/polcert/tools/tiling_ocaml/fixtures/design/diamond_bad_missing_hyperplane.json)
+  - 反例
+  - 给了 midpoint，但它不足以解释所有 tile links
+
+### 一键实验
+
+```sh
+sh design_smoke.sh
+```
+
+当前 smoke 结果会验证下面这些结论：
+
+- second-level 正例会恢复出 canonical order `[f1, f0]`
+- second-level 的 cycle 反例会被拓扑排序阶段拒绝
+- second-level 的坏 schedule 反例会在 raw/canonical schedule bridge 上被拒绝
+- diamond 正例会被解释成：
+  - checked affine midpoint
+  - 加 ordinary affine floor-link tiling
+- diamond 缺少 midpoint 或 midpoint 不足时都会失败
