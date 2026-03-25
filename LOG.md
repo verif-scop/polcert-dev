@@ -5,7 +5,7 @@ Date: 2026-03-08
 ## Environment
 - Container: `gifted_curie`
 - Code repo: `gifted_curie:/polcert`
-- Active branch: `extractor`
+- Active branch: `end-to-end`
 - Host notes/context repo: `/home/hugh/research/polyhedral/polcert`
 - Host repo remote: `git@github.com:verif-scop/polcert-dev.git`
 

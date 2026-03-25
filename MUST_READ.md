@@ -5,7 +5,7 @@
 - `polcert-dev` remote: `git@github.com:verif-scop/polcert-dev.git`
 - Real code/proof repo lives in the container: `gifted_curie:/polcert`
 - Container repo remote: `git@github.com:Hughshine/PolCert.git`
-- Active code branch in the container: `extractor`
+- Default working branch in the container: `end-to-end`
 - `work/container-overlay/polcert` is an overlay/edit mirror for syncing into the container repo
 - Do not confuse `work/container-overlay/polcert` with the container repo itself
 - Commit/push policy:
