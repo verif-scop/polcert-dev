@@ -12,6 +12,7 @@ Date: 2026-03-08
 ## Repo handling note
 - `polcert-dev` and `gifted_curie:/polcert` are separate git repositories and must be committed/pushed separately.
 - `work/container-overlay/polcert` is an overlay/edit mirror used to sync files into the container repo; it is not the container repo itself.
+- `polcert-dev` now keeps `work/` ignored and untracked; host-side overlay edits should not appear in this repo's normal status anymore.
 - If host-side staging accidentally includes `work/container-overlay/polcert/**` while the intent is to commit container-side code, unstage it in `polcert-dev` and stage the real files inside `gifted_curie:/polcert` instead.
 
 ## Current proved state

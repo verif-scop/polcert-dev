@@ -8,6 +8,7 @@
 - Default working branch in the container: `end-to-end`
 - `work/container-overlay/polcert` is an overlay/edit mirror for syncing into the container repo
 - Do not confuse `work/container-overlay/polcert` with the container repo itself
+- In `polcert-dev`, `work/` is ignored and must remain untracked
 - Commit/push policy:
   - documentation, context, notes, plans, reports, host-side analysis tools -> `polcert-dev`
   - Coq/OCaml/runtime/build changes for PolCert itself -> `gifted_curie:/polcert`
