@@ -563,6 +563,41 @@ For `diamond-tile-example`, the extracted links were:
 This is strong evidence that the current affine floor-link witness language is
 already expressive enough for the tiling part of sequential diamond tiling.
 
+### 9.1.1 What this does and does not mean semantically
+
+This result should be read precisely.
+
+What the current witness language can express is:
+
+- an ordered list of tile parents
+- where each parent is computed as a floor of an affine form over the current
+  midpoint coordinates
+- for example, non-axis-aligned links such as
+  `floor((2*t - i) / 32)` or `floor((t - i) / 32)`
+
+So for the proof boundary
+
+```text
+mid_diamond
+  -> after
+```
+
+the current tiling witness is already the right kind of semantic object.
+
+What it does not express by itself is the full meaning of diamond tiling from
+the original schedule:
+
+- it does not prove how Pluto chose or replaced the diamond hyperplanes
+- it does not certify concurrent-start or load-balance properties
+- it does not turn `before -> after` into a single checked tiling theorem
+
+So the right interpretation is:
+
+- yes, the witness/mapping design is expressive enough for the tiling step of
+  diamond
+- no, it is not by itself a complete proof object for the whole diamond
+  transformation
+
 ### 9.2 The missing piece is still the midpoint artifact
 
 Pluto's `--dumpscop` output on these cases only gave the familiar pair:

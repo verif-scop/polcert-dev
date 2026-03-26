@@ -1059,3 +1059,8 @@ Date: 2026-03-08
   the first engineering target should be an explicit scheduler/orchestration
   contract for `mid_diamond`, not an early rewrite of the checked tiling
   relation.
+- Clarified the semantic boundary in the tracked design note:
+  the current tiling witness/mapping design is expressive enough for
+  `mid_diamond -> after` because it already captures non-axis-aligned affine
+  floor-links such as `floor((2*t - i) / 32)`, but it is not by itself a full
+  proof object for the whole `before -> after` diamond transformation.
