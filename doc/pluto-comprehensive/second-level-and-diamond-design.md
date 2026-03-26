@@ -522,3 +522,97 @@ The current synthetic fixture results are:
 
 This does not prove the final theorem, but it is a useful sanity check that the
 recommended proof boundaries are operational rather than purely aspirational.
+
+## 9. Docker Checkpoint: Real Pluto Diamond Artifacts
+
+On 2026-03-26, the first real Docker checkpoint for diamond tiling matched the
+recommended proof boundary above.
+
+The key observations came from Pluto's built-in stencil fixtures:
+
+- `/pluto/test/jacobi-1d-imper.c`
+- `/pluto/test/diamond-tile-example.c`
+
+using commands of the form:
+
+```sh
+pluto --silent --dumpscop --tile --noparallel --nointratileopt \
+  --nounrolljam --noprevector --diamond-tile <case.c>
+```
+
+### 9.1 The ordinary tiling witness machinery already recognizes the diamond links
+
+For both real cases, PolCert's current witness extractor and OpenScop-side
+tiling validator already succeed on `before -> after`:
+
+- `./polopt --extract-tiling-witness-openscop before.scop after.scop`
+- `./polopt --validate-tiling-openscop before.scop after.scop`
+
+For `jacobi-1d-imper`, the extracted links were:
+
+- `fk0 = floor((2*t - i) / 32)`
+- `fk1 = floor((2*t + i) / 32)`
+
+and similarly offset versions for the second statement.
+
+For `diamond-tile-example`, the extracted links were:
+
+- `fk0 = floor((t + i) / 32)`
+- `fk1 = floor((t - i) / 32)`
+
+This is strong evidence that the current affine floor-link witness language is
+already expressive enough for the tiling part of sequential diamond tiling.
+
+### 9.2 The missing piece is still the midpoint artifact
+
+Pluto's `--dumpscop` output on these cases only gave the familiar pair:
+
+- `*.beforescheduling.scop`
+- `*.afterscheduling.scop`
+
+The debug logs clearly showed a producer-side diamond midpoint, for example:
+
+- `Transformations before concurrent start enable`
+- `Transformations after concurrent start enable`
+
+but Pluto did not dump that midpoint as a separate `.scop` artifact.
+
+So the current external producer still does not hand PolCert an explicit
+`mid_diamond.scop`.
+
+### 9.3 The current phase-aligned readscop pipeline cannot synthesize diamond afterwards
+
+Trying to retrofit diamond as a tile-only phase on the ordinary `before.scop`
+did not work.
+
+In particular, a command of the form:
+
+```sh
+pluto --readscop --identity --tile --noparallel --diamond-tile before.scop
+```
+
+reported:
+
+- `Outermost tilable bands: 0 bands`
+
+That is exactly the expected failure mode if diamond is not a post-midpoint
+tiling flag but rather part of midpoint construction itself.
+
+Likewise:
+
+```sh
+pluto --notile --noparallel --diamond-tile case.c
+```
+
+did not enter the diamond path at all, so it is not a usable way to dump
+`mid_diamond`.
+
+### 9.4 Resulting implementation consequence
+
+These real runs strengthen the design conclusion:
+
+- the checked tiling relation is probably not the first blocker
+- the first blocker is the lack of an explicit producer-side
+  `mid_diamond` artifact
+- therefore the next implementation step should be on the
+  scheduler/orchestration boundary, not inside the Coq tiling kernel

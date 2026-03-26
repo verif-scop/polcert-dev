@@ -1023,3 +1023,39 @@ Date: 2026-03-08
     - `exact_match=true`
 - Recorded the detailed note in
   [doc/possible-bugs/polcert-parallel-tile-innerpar.md](/home/hugh/research/polyhedral/polcert/doc/possible-bugs/polcert-parallel-tile-innerpar.md).
+
+- Started Stage 1 of the diamond-tiling track in Docker, using Pluto's real
+  stencil fixtures:
+  - `/pluto/test/jacobi-1d-imper.c`
+  - `/pluto/test/diamond-tile-example.c`
+- Real-producer observation:
+  Pluto's `--dumpscop --tile --noparallel --diamond-tile` path only dumps:
+  - `*.beforescheduling.scop`
+  - `*.afterscheduling.scop`
+  while the debug log shows a diamond-aware midpoint internally via:
+  - `Transformations before concurrent start enable`
+  - `Transformations after concurrent start enable`
+  So the current producer still does not expose an explicit
+  `mid_diamond.scop`.
+- Important positive result:
+  the existing OpenScop-side witness extractor/checker already accepts the
+  diamond tiling links on these real fixtures:
+  - `./polopt --extract-tiling-witness-openscop before after`
+  - `./polopt --validate-tiling-openscop before after`
+  both succeed on the dumped `before/after` files.
+- Concrete extracted links included:
+  - `jacobi-1d-imper`:
+    - `fk0 = floor((2*t - i) / 32)`
+    - `fk1 = floor((2*t + i) / 32)`
+  - `diamond-tile-example`:
+    - `fk0 = floor((t + i) / 32)`
+    - `fk1 = floor((t - i) / 32)`
+- Important negative result:
+  attempting to retrofit diamond as a tile-only post-midpoint phase with
+  `pluto --readscop --identity --tile --noparallel --diamond-tile before.scop`
+  reported `0 bands`, which strongly supports the current design claim that
+  diamond cannot be treated as "ordinary midpoint + tile-only flag".
+- The implementation consequence is now sharper:
+  the first engineering target should be an explicit scheduler/orchestration
+  contract for `mid_diamond`, not an early rewrite of the checked tiling
+  relation.
