@@ -167,6 +167,95 @@ Instead:
 5. with `--parallel-strict`, the frontend keeps the sequential optimized loop
    unless the hinted dimension itself is certified
 
+## Strengthened Diagnosis From Local Code Inspection
+
+Two implementation details in PolCert make the current suspicion sharper.
+
+### 1. The mismatch does not appear to come from PolCert's hint parser
+
+In `driver/Scheduler.ml`, `extract_parallel_hint_from_outscop` does two simple
+things:
+
+1. read the raw `<loop>` extension
+2. map the chosen iterator name back to its position in `<scatnames>`
+
+So if raw Pluto output says:
+
+- `<scatnames> t1 t2 t3 t4 t5 t6 </scatnames>`
+- `<loop> ... iterator=t1 ... directive=1 ... </loop>`
+
+then PolCert will mechanically interpret that as `current_dim = 0`.
+
+That means the disagreement is not plausibly caused by PolCert inventing the
+wrong hinted dimension after the fact. The suspicious part is upstream:
+
+- either the raw Pluto `<loop>` annotation itself
+- or the dependence picture Pluto is using when it emits that annotation
+
+### 2. The validator-level reason for rejecting dim `0` is now explicit
+
+In `src/ParallelValidator.v`, `checked_parallelize_current` certifies a
+dimension `d` by checking that any two instruction points in the same
+parallel-slice are permutable.
+
+For current dimension `0`, the slice condition is maximally broad:
+
+- `same_prefix_before 0` is vacuous
+- so any two points that differ in the first current coordinate are compared
+
+On the tiled `matmul` schedule
+
+```text
+T(S1): ($i2/32, $i1/32, $i0/32, $i2, $i1, $i0)
+```
+
+that first current coordinate is `K/32`.
+
+So a pair like
+
+- `(i, j, k) = (0, 0, 0)`
+- `(i, j, k) = (0, 0, 32)`
+
+falls into the candidate parallel slice for dim `0`.
+
+Those two instances both update `C[0][0]`, so they are not ordinary
+doall-permutable. This matches the observed rejection of dim `0`.
+
+For current dimension `1`, the slice condition is narrower:
+
+- points must agree on dim `0` (`K/32`)
+- but may differ on dim `1` (`N/32`)
+
+That corresponds to keeping the same reduction tile in `K` fixed while
+parallelizing across output-column tiles, which is exactly the safe fallback
+PolCert accepts on this case.
+
+This strengthens the diagnosis:
+
+- the observed `dim 0` rejection is semantically expected from PolCert's
+  checked notion of ordinary loop parallelism
+- the suspicious behavior is Pluto choosing / annotating `t1`, not PolCert's
+  fallback logic
+
+## Practical Consequence
+
+The fallback is not merely theoretical.
+
+In the generated end-to-end performance table
+`tests/end-to-end-generated/BEST_PIPELINES.md`, `matmul` still selects the
+`--parallel` route as the best measured pipeline with real emitted parallelism
+and a substantial speedup.
+
+So the current behavior is:
+
+- Pluto's hinted dimension looks unsafe
+- PolCert rejects it
+- PolCert still recovers useful safe parallelism on the next tiled dimension
+
+That makes this case more interesting than a simple false alarm: it is a
+concrete example where checked fallback appears to rescue a practically useful
+parallel result from a suspicious upstream hint.
+
 ## Working Hypotheses
 
 There are at least three plausible explanations:

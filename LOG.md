@@ -941,3 +941,85 @@ Date: 2026-03-08
     succeeds in phase-aligned mode with:
     - affine(before, mid): OK
     - tiling(mid, after): OK
+
+2026-03-25
+
+- Continued the Pluto-bug investigation from the host-side notes/code mirror,
+  focusing on the `matmul --parallel` `--readscop` case.
+- Strengthened the local diagnosis in
+  [doc/possible-bugs/pluto-parallel-hint-matmul-readscop.md](/home/hugh/research/polyhedral/polcert/doc/possible-bugs/pluto-parallel-hint-matmul-readscop.md):
+  - `driver/Scheduler.ml` only parses raw `<loop>` + `<scatnames>` and maps
+    `t1 -> current_dim 0`, so the mismatch does not look like a PolCert hint
+    parser bug.
+  - `src/ParallelValidator.v` makes the `dim 0` rejection explainable from the
+    checked semantics itself:
+    - for dim `0`, same-prefix checking is vacuous
+    - so different `K/32` tiles for the same `(i, j)` accumulation are forced
+      to permute
+    - that is exactly the unsafe case for `matmul`
+  - the accepted fallback dim `1` lines up with fixing `K/32` and
+    parallelizing across `N/32`, which is the safe blocked-column parallelism
+    the frontend emits.
+- Also recorded the practical consequence:
+  `tests/end-to-end-generated/BEST_PIPELINES.md` still picks the `--parallel`
+  route for `matmul` with real emitted parallelism and a strong speedup, so the
+  fallback is not just conservative bookkeeping; it appears to recover useful
+  safe parallelism.
+- Limitation of this session:
+  the container/runtime path was not directly executable from the current
+  environment because `docker` was unavailable here, so this update is based on
+  the checked-in reproducer, the mirrored code under
+  `work/container-overlay/polcert`, and existing project notes rather than a
+  fresh container rerun.
+
+2026-03-26
+
+- Closed the follow-up "second bug" investigation for `matmul --parallel`.
+- Final diagnosis:
+  this was not another new Pluto upstream bug; it was a PolCert-side
+  integration/configuration bug in the tile-stage `--parallel` path.
+- What was wrong:
+  - `driver/Scheduler.ml` used the tile-stage Pluto flags
+    `--identity --tile ... --parallel`
+  - on `matmul`, Pluto's default tiled `--parallel` mode produced a
+    wavefront/skewed tile schedule rather than the canonical strip-mined tiled
+    order expected by the current phase-aligned witness path
+  - concretely, the outer tile schedule changed from a canonical first tile
+    dimension `fk0` to a skewed dimension `fk0+fk1`
+  - that made the checked frontend fail at:
+    - `[debug-parallel] phase tiling validate=false(ok=true)`
+    - followed by a checked fallback to the sequential optimized loop
+- Confirmed in Docker that this was a configuration mismatch rather than a new
+  Pluto implementation bug:
+  - both the patched local Pluto and current upstream Pluto still produce the
+    same wavefront-style tile schedule by default under
+    `--readscop --identity --tile --parallel`
+  - adding `--innerpar` keeps the tiled schedule canonical on the same input
+- Fixed PolCert by adding `--innerpar` to
+  [work/container-overlay/polcert/driver/Scheduler.ml](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/driver/Scheduler.ml)
+  `tile_only_parallel_flags`.
+- Also strengthened the whole-C harness so this behavior is easy to regression
+  test:
+  - [work/container-overlay/polcert/tools/end_to_end_c/run_case.py](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/tools/end_to_end_c/run_case.py)
+    now supports:
+    - extra `polopt` arguments via `--polopt-arg`
+    - `--require-parallelized`
+    - `parallelized_loop` reporting
+  - [work/container-overlay/polcert/Makefile](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/Makefile)
+    now provides:
+    - `test-end-to-end-c-matmul-parallel`
+- Post-fix Docker validation:
+  - `./polopt --parallel tests/end-to-end-c/cases/matmul/matmul.loop`
+    now emits verified `parallel for i1 ...`
+  - `./polopt --parallel --parallel-strict ...`
+    also succeeds instead of falling back
+  - debug output now shows:
+    - `phase affine validate=true(ok=true)`
+    - `phase tiling validate=true(ok=true)`
+    - `checked_tiling_validate=true(ok=true)`
+  - `opam exec -- make test-end-to-end-c-matmul-parallel`
+    passes with:
+    - `parallelized_loop=true`
+    - `exact_match=true`
+- Recorded the detailed note in
+  [doc/possible-bugs/polcert-parallel-tile-innerpar.md](/home/hugh/research/polyhedral/polcert/doc/possible-bugs/polcert-parallel-tile-innerpar.md).
