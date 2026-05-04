@@ -21,7 +21,7 @@ subset of Pluto's optimization surface.
 Already available:
 
 - strict generated loop suite: `62 / 62`;
-- Pluto compatibility wrapper suite: `21 / 21`;
+- native `polopt --pluto-compat` suite: `21 / 21`;
 - diamond suite over Pluto stencil fixtures:
   - six true diamond-effect cases;
   - two accepted no-effect cases;
@@ -38,11 +38,11 @@ standalone proof inventory.
 ### 1. Native Pluto-Compatible `polopt` CLI
 
 Problem:
-`tools/polopt_flag_suites/pluto_compat_driver.py` proves the normalization
-policy, but it is still a wrapper script.
+The Pluto-style flag filter must live in the same driver that runs verified
+extraction and code generation, not in an extra user-facing wrapper.
 
 Target:
-Move the Pluto-style flag filter into `polopt` itself.
+Keep the Pluto-style flag filter in `polopt` itself.
 
 Acceptance criteria:
 
@@ -54,11 +54,10 @@ Acceptance criteria:
 
 Implementation steps:
 
-1. Port the Python capability table into an OCaml route-normalization module or
-   generate OCaml data from a shared manifest.
-2. Keep the Python wrapper as a compatibility oracle until the native CLI has
-   matching test coverage.
-3. Add native-CLI tests for default tiling, affine-only, second-level,
+1. Keep `syntax/SLoopCli.ml` as the native compatibility filter.
+2. Keep Python only as suite/report infrastructure, not as a public compiler
+   entry point.
+3. Maintain native-CLI tests for default tiling, affine-only, second-level,
    parallel, diamond, full diamond, and all important rejection paths.
 
 ### 2. One-Command Artifact Check
@@ -202,5 +201,5 @@ This slice starts now:
 - add `make artifact-capability-matrix`;
 - add `make proof-report`;
 - update the diamond suite to report concrete unsupported reasons;
-- keep native `polopt` CLI integration and diamond theorem closure as the next
+- keep diamond theorem closure and route-combination support as the next
   implementation slice.
