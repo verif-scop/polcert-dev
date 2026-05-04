@@ -1064,3 +1064,125 @@ Date: 2026-03-08
   `mid_diamond -> after` because it already captures non-axis-aligned affine
   floor-links such as `floor((2*t - i) / 32)`, but it is not by itself a full
   proof object for the whole `before -> after` diamond transformation.
+
+- Implemented the first executable diamond producer/validator path in Docker.
+  The concrete changes were:
+  - Pluto now dumps an explicit midpoint artifact
+    `*.midtransform.scop` in [work/pluto-pr/tool/main.cpp](/home/hugh/research/polyhedral/polcert/work/pluto-pr/tool/main.cpp).
+  - PolCert now has:
+    - `--diamond-tile`
+    - `--full-diamond-tile`
+    - `--validate-affine-openscop`
+    wired through
+    [work/container-overlay/polcert/driver/Scheduler.ml](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/driver/Scheduler.ml)
+    and
+    [work/container-overlay/polcert/syntax/SLoopMain.ml](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/syntax/SLoopMain.ml).
+  - Scheduler resolution now prefers `POLCERT_PLUTO`, then `/pluto/tool/pluto`,
+    instead of blindly taking PATH `pluto`, so the checked route actually uses
+    the patched producer.
+- Tightened Pluto's diamond behavior so `--nointratileopt` also suppresses the
+  diamond-specific tile-internal reschedule in
+  [work/pluto-pr/lib/tile.c](/home/hugh/research/polyhedral/polcert/work/pluto-pr/lib/tile.c).
+  This matters because otherwise `mid_diamond -> after` is not pure tiling but
+  `tiling + extra intra-tile affine reorder`.
+- Added a real regression target:
+  [work/container-overlay/polcert/Makefile](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/Makefile)
+  now exports `test-diamond-tiling-suite`, backed by
+  [work/container-overlay/polcert/tools/diamond_tiling/run_pluto_diamond_suite.py](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/tools/diamond_tiling/run_pluto_diamond_suite.py).
+- The suite currently establishes three precise buckets over Pluto's
+  diamond-related stencil fixtures:
+  - true diamond + OpenScop validation passes:
+    `diamond-tile-example.c`, `fdtd-2d.c`, `heat-3d-imperfect.c`,
+    `jacobi-1d-imper.c`, `jacobi-2d-imper.c`, `jacobi-2d.c`
+  - accepted but no diamond-specific midpoint change:
+    `multi-stmt-stencil-seq.c`, `seidel.c`
+  - current Pluto/Clan frontend rejects with exit `8`:
+    `heat-2d.c`, `heat-2dp.c`, `heat-3d.c`, `jacobi-1d-mod.c`,
+    `jacobi-1d-periodic-even.c`, `jacobi-1d-periodic.c`,
+    `jacobi-2d-17pt.c`, `jacobi-2d-imper.par2d.c`,
+    `jacobi-2d-periodic.c`, `jacobi-3d-25pt.c`,
+    `jacobi-3d-periodic.c`
+- Most important boundary result:
+  the OpenScop-side diamond witness/extractor path and the theorem-aligned core
+  phase validator are not coextensive yet.
+  With `make test-diamond-tiling-suite`:
+  - phase-aligned core validation succeeds on
+    `diamond-tile-example.c`, `fdtd-2d.c`, `jacobi-2d.c`,
+    `multi-stmt-stencil-seq.c`, `seidel.c`
+  - phase-aligned core validation still fails on
+    `heat-3d-imperfect.c`, `jacobi-1d-imper.c`, `jacobi-2d-imper.c`
+- That sharpens the current implementation claim:
+  - explicit `mid_diamond` production is solved enough for real experiments
+  - OpenScop-level diamond witness recovery is solved enough for a fixture suite
+  - but the full theorem-aligned checked route is only partially supported on
+    true diamond cases and still needs additional validator-side work
+
+- Closed the remaining diamond validation gap for imperfect multi-statement
+  cases. The real blocker was not witness extraction any more; it was the
+  legality check shape.
+  - The old phase-aware common-band projection was enough to make
+    cross-statement pairs validate, but it also collapsed each statement's
+    internal schedule and therefore rejected `self` dependencies.
+  - The fix in
+    [work/container-overlay/polcert/src/TilingBandScheduleValidator.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/src/TilingBandScheduleValidator.v)
+    now splits those obligations:
+    - each statement still validates against its own full tiled schedule
+    - cross-statement pairs use the phase-aware common-band projection
+  - This makes the diamond band checker accept the real imperfect cases
+    without weakening the intra-statement legality check.
+- Wired the executable diamond route to actually consume that repaired checker.
+  - In
+    [work/container-overlay/polcert/syntax/SLoopMain.ml](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/syntax/SLoopMain.ml),
+    the `--diamond-tile` route no longer stops at the old canonical/generic
+    tiling gate; both the phase check and the final optimization handoff now
+    use the band-aware checker on the `mid -> posttile` edge.
+  - After that change, `./polopt --diamond-tile` no longer falls back on
+    `jacobi-1d-imper.loop` or `jacobi-2d-imper.loop`; both now produce the
+    Pluto-style diamond-transformed loop rather than the original sequential
+    fallback.
+- Fixed the validator-only CLI boundary to match the real diamond pipeline.
+  - The old `polcert before mid after` three-input phase mode is not the right
+    contract for diamond when Pluto inserts a final affine reschedule after raw
+    tiling.
+  - [work/container-overlay/polcert/driver/Entry.ml](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/driver/Entry.ml)
+    now supports a four-input diamond phase mode:
+    `before -> mid -> posttile -> after`
+    and reports:
+    - affine(before, mid)
+    - tiling(mid, posttile)
+    - affine(posttile, after)
+  - `polcert` also now falls back to the band-aware tiling validator when the
+    canonical/generic route rejects a tiling pair.
+  - [work/container-overlay/polcert/Makefile.extr](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/Makefile.extr)
+    was updated so the standalone `polcert` binary links the extracted
+    `TilingBandScheduleValidator` module.
+- Updated the diamond regression suite to use the real four-phase contract.
+  - [work/container-overlay/polcert/tools/diamond_tiling/run_pluto_diamond_suite.py](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/tools/diamond_tiling/run_pluto_diamond_suite.py)
+    now requires:
+    - affine(before, mid)
+    - tiling(mid, posttile)
+    - affine(posttile, after)
+  - With that correction, the full supported suite now passes:
+    - `diamond-tile-example.c`
+    - `fdtd-2d.c`
+    - `heat-3d-imperfect.c`
+    - `jacobi-1d-imper.c`
+    - `jacobi-2d-imper.c`
+    - `jacobi-2d.c`
+    - `multi-stmt-stencil-seq.c`
+    - `seidel.c`
+  - Unsupported Pluto/Clan frontend cases still remain unsupported and still
+    exit `8`; that bucket did not change.
+- Clarified the proof boundary in the tracked design note so the current
+  diamond status is stated precisely.
+  - Diamond is special for validation not because it needs a new theorem
+    family, but because the real producer path is four-phase
+    `before -> mid_diamond -> posttile_plain -> after_rescheduled`, and the
+    imperfect multi-statement cases need a split legality check:
+    - full tiled schedule for per-statement `self` legality
+    - common-band phase projection only for cross-statement legality
+  - The ordinary theorem-backed pipeline remains intact.
+  - The current diamond executable route is now checked and theorem-aligned,
+    and it reuses the proof-oriented affine and tiling validators, but the
+    exact four-phase CLI wiring is not yet lifted into the same kind of
+    top-level theorem as the ordinary band-aware route.

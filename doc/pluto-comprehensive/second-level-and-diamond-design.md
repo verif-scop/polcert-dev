@@ -651,3 +651,200 @@ These real runs strengthen the design conclusion:
   `mid_diamond` artifact
 - therefore the next implementation step should be on the
   scheduler/orchestration boundary, not inside the Coq tiling kernel
+
+### 9.5 Current executable status after midpoint dumping was added
+
+That producer-side blocker is now partially removed in the prototype:
+
+- Pluto was patched to dump:
+  - `*.beforescheduling.scop`
+  - `*.midtransform.scop`
+  - `*.afterscheduling.scop`
+- PolCert now has an explicit experimental diamond route and a dedicated
+  regression target:
+  - `./polopt --diamond-tile file.loop`
+  - `./polopt --validate-affine-openscop before.scop mid.scop`
+  - `make test-diamond-tiling-suite`
+
+The resulting fixture matrix splits into three categories.
+
+True diamond midpoint change, with OpenScop-side validation passing:
+
+- `diamond-tile-example.c`
+- `fdtd-2d.c`
+- `heat-3d-imperfect.c`
+- `jacobi-1d-imper.c`
+- `jacobi-2d-imper.c`
+- `jacobi-2d.c`
+
+Accepted by Pluto but with no diamond-specific midpoint change relative to
+`--nodiamond-tile`:
+
+- `multi-stmt-stencil-seq.c`
+- `seidel.c`
+
+Rejected by the current Pluto/Clan frontend under this route:
+
+- `heat-2d.c`
+- `heat-2dp.c`
+- `heat-3d.c`
+- `jacobi-1d-mod.c`
+- `jacobi-1d-periodic-even.c`
+- `jacobi-1d-periodic.c`
+- `jacobi-2d-17pt.c`
+- `jacobi-2d-imper.par2d.c`
+- `jacobi-2d-periodic.c`
+- `jacobi-3d-25pt.c`
+- `jacobi-3d-periodic.c`
+
+So the project now has a real, repeatable diamond fixture suite instead of
+single-case experiments.
+
+### 9.6 What the suite proves, and what it still does not prove
+
+The new suite proves two useful things.
+
+First, the producer and OpenScop-side extractor are now good enough to recover
+real diamond witnesses on multiple Pluto stencil examples. In particular, the
+suite requires that true-diamond cases differ from the corresponding
+`--nodiamond-tile` midpoint and that witness extraction exposes nontrivial
+affine floor-links.
+
+Second, it exposed the exact remaining validator gap: imperfect multi-statement
+diamond cases were no longer failing because of missing midpoint artifacts or
+missing witness extraction, but because the common-band checker was using the
+same projected schedule for both kinds of obligation:
+
+- cross-statement phase legality
+- intra-statement self legality
+
+That projection is good for the first job and wrong for the second one. On the
+imperfect cases, it made the cross-statement pairs validate, but it also
+collapsed each statement's own internal schedule and rejected `self`
+dependencies.
+
+The repaired checker now splits those obligations explicitly:
+
+- each statement validates against its own full tiled schedule
+- only cross-statement pairs use the phase-aware common-band projection
+
+This is the first place where diamond really differs from the ordinary tiling
+route in a way that matters for validation design.
+
+For ordinary first-level tiling, the checked `mid -> after` edge is usually
+well described by one common strip-mined schedule shape plus one witness
+family. Diamond tiling is different in two important ways.
+
+First, the producer-side phase structure is richer. Pluto's diamond path is
+not just "ordinary tiling with a different tile shape". On the real stencil
+cases it has the shape:
+
+```text
+before -> mid_diamond -> posttile_plain -> after_rescheduled
+```
+
+where:
+
+- `before -> mid_diamond` is an affine scheduling/skew replacement step
+- `mid_diamond -> posttile_plain` is the raw tiling step
+- `posttile_plain -> after_rescheduled` is a further affine reschedule used to
+  restore the desired intra-tile execution order
+
+Second, imperfect multi-statement diamond cases have statement-local tiled
+schedules that are still important for `self` legality, while also having
+cross-statement phase offsets that are best understood only after projecting to
+the common tiling band. A single projected schedule loses too much local
+structure for the first job, and a purely local schedule misses the intended
+phase relation for the second one.
+
+So the current diamond validator design is intentionally split:
+
+- `affine(before, mid_diamond)`
+- `tiling(mid_diamond, posttile_plain)` with a band-aware legality split:
+  - full tiled schedule for each statement's own legality
+  - common-band phase projection only for cross-statement legality
+- `affine(posttile_plain, after_rescheduled)`
+
+That repair was then threaded through both executable fronts:
+
+- `polopt --diamond-tile` now uses the band-aware checker on the real
+  `mid -> posttile` edge instead of being stopped early by the old
+  canonical/generic tiling gate
+- `polcert` now supports the real diamond phase contract
+  `before -> mid -> posttile -> after`
+  instead of trying to force those cases into a three-file
+  `before -> mid -> after` model
+
+So the current state is stronger than the earlier prototype:
+
+- explicit midpoint production exists
+- explicit `posttile` production exists
+- witness extraction on real diamond cases exists
+- the executable checked route now accepts the formerly failing imperfect
+  diamond cases
+- the regression suite now checks the real four-phase contract and passes on
+  all currently supported Pluto diamond fixtures
+
+Concretely, the suite now reports full phase success on:
+
+- `diamond-tile-example.c`
+- `fdtd-2d.c`
+- `heat-3d-imperfect.c`
+- `jacobi-1d-imper.c`
+- `jacobi-2d-imper.c`
+- `jacobi-2d.c`
+- `multi-stmt-stencil-seq.c`
+- `seidel.c`
+
+The remaining unsupported bucket is no longer a validator gap; it is still the
+same Pluto/Clan frontend rejection bucket (`exit 8`) listed above.
+
+### 9.7 Proof boundary of the current diamond route
+
+The wording above needs one important qualification.
+
+The standard ordinary theorem-backed pipeline is still intact. The existing
+top-level Coq driver for the band-aware ordinary route,
+`driver/PolOptBandTiling.v`, still proves correctness by composing:
+
+- affine validation on `before -> mid`
+- checked strip-mined tiling validation on `mid -> after`
+- the band-permutability checker
+
+and then discharging the final semantic preservation theorem.
+
+The current diamond implementation follows the same proof shape, and it reuses
+the same proof-oriented components:
+
+- the affine validators on the two affine edges
+- the checked tiling witness relation on `mid_diamond -> posttile_plain`
+- the band schedule development in
+  `src/TilingBandScheduleValidator.v`, including the strong Pluto-style
+  band reasoning
+
+But the exact current CLI wiring for diamond is not yet lifted into a matching
+top-level theorem in the same way as the ordinary route.
+
+Concretely:
+
+- the executable `polopt --diamond-tile` / `polcert before mid posttile after`
+  route is now checked and theorem-aligned
+- its special band legality split is implemented in the executable bridge and
+  runtime checker path
+- the ordinary theorem-backed driver still refers to the older direct
+  theorem-level band checker shape
+
+So the precise claim today is:
+
+- yes, the current diamond route is designed to preserve the same proof
+  boundary as the ordinary pipeline
+- yes, it is using proof-oriented validators rather than ad hoc acceptance
+  rules
+- no, the exact present diamond CLI path should not yet be described as fully
+  theorem-backed end to end
+
+The remaining proof task is now much narrower than before. It is no longer
+"invent a new diamond theorem family". It is to lift the current four-phase
+diamond bridge and its special band legality split into the top-level theorem
+driver, so that the executable route and the proved route become extensionally
+the same pipeline.
