@@ -234,6 +234,24 @@ Reasoning:
 - Split interfaces only after the duplicated flow is better understood through a
   unified planning layer.
 
+## Artifact Submission Goal
+
+The submission-facing artifact plan now lives in
+[`doc/artifact-submission-goal.md`](artifact-submission-goal.md).
+
+The immediate artifact priorities are:
+
+- native Pluto-compatible `polopt` flag filtering;
+- one-command artifact reproduction through `make artifact-check`;
+- four-phase diamond route closure;
+- second-level tiling suite and composition boundaries;
+- generated capability matrix and proof report.
+
+Diamond should be pushed to the limit of the current architecture. The current
+sequential non-ISS single-level route is supported, but the artifact still needs
+explicit work on frontend-rejection reporting, timeout stability, theorem/driver
+closure, and combinations with ISS, parallel, and second-level tiling.
+
 ## Near-Term Concrete Tasks
 
 - [x] Create a shared Python helper module under `tools/end_to_end_c/` for
