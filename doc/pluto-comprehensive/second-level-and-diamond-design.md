@@ -801,50 +801,39 @@ same Pluto/Clan frontend rejection bucket (`exit 8`) listed above.
 
 ### 9.7 Proof boundary of the current diamond route
 
-The wording above needs one important qualification.
+This section supersedes the earlier prototype caveat. The diamond route has now
+been lifted into the theorem-facing route map.
 
-The standard ordinary theorem-backed pipeline is still intact. The existing
-top-level Coq driver for the band-aware ordinary route,
-`driver/PolOptBandTiling.v`, still proves correctness by composing:
+The standard ordinary theorem-backed pipeline is still intact. The band-aware
+ordinary route proves correctness by composing:
 
-- affine validation on `before -> mid`
-- checked strip-mined tiling validation on `mid -> after`
-- the band-permutability checker
+- affine validation on `before -> mid`;
+- checked strip-mined tiling validation on `mid -> after`;
+- the band-permutability checker;
+- verified code generation.
 
-and then discharging the final semantic preservation theorem.
+The current diamond implementation follows the same proof architecture and
+reuses the same proof-oriented components:
 
-The current diamond implementation follows the same proof shape, and it reuses
-the same proof-oriented components:
-
-- the affine validators on the two affine edges
-- the checked tiling witness relation on `mid_diamond -> posttile_plain`
-- the band schedule development in
-  `src/TilingBandScheduleValidator.v`, including the strong Pluto-style
-  band reasoning
-
-But the exact current CLI wiring for diamond is not yet lifted into a matching
-top-level theorem in the same way as the ordinary route.
+- affine validation on the diamond-aware affine edge;
+- checked tiling witness validation on the tiled edge;
+- the extra affine validation edge when Pluto exposes the four-phase
+  `before -> mid -> posttile -> after` route;
+- the band schedule development in `src/TilingBandScheduleValidator.v`,
+  including the Pluto-style band reasoning.
 
 Concretely:
 
-- the executable `polopt --diamond-tile` / `polcert before mid posttile after`
-  route is now checked and theorem-aligned
-- its special band legality split is implemented in the executable bridge and
-  runtime checker path
-- the ordinary theorem-backed driver still refers to the older direct
-  theorem-level band checker shape
+- `polopt --diamond-tile` and `polopt --full-diamond-tile` are checked route
+  choices rather than ad hoc executable experiments;
+- diamond and full-diamond are part of the state-preserving theorem-facing route
+  surface;
+- diamond can compose with the supported ISS, second-level, and checked
+  parallel-current route choices when their witnesses are recoverable;
+- the current theorem proves state preservation, not the stronger
+  concurrent-start, load-balance, or performance properties from the diamond
+  tiling literature.
 
-So the precise claim today is:
-
-- yes, the current diamond route is designed to preserve the same proof
-  boundary as the ordinary pipeline
-- yes, it is using proof-oriented validators rather than ad hoc acceptance
-  rules
-- no, the exact present diamond CLI path should not yet be described as fully
-  theorem-backed end to end
-
-The remaining proof task is now much narrower than before. It is no longer
-"invent a new diamond theorem family". It is to lift the current four-phase
-diamond bridge and its special band legality split into the top-level theorem
-driver, so that the executable route and the proved route become extensionally
-the same pipeline.
+The remaining diamond work is therefore not "make diamond theorem-backed". It is
+to keep broadening fixture coverage and to decide separately whether stronger
+diamond-performance properties are worth formalizing.

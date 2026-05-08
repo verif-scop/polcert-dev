@@ -91,7 +91,18 @@ Use these for:
 - where fallback happens
 - why the current affine+tiling route is layered the way it is
 
-### 2.5 Diamond takeaway
+### 2.5 Current PolOpt/Pluto correspondence
+
+- [polopt-pipeline.md](./polopt-pipeline.md)
+
+Use this for:
+
+- how `polopt` maps Pluto-style flags to checked routes
+- where Pluto remains an oracle
+- how the unified `Loop -> ParallelLoop` compiler theorem fits the executable
+  driver
+
+### 2.6 Diamond takeaway
 
 The current settled interpretation of diamond tiling in this repository is:
 
@@ -207,18 +218,20 @@ As a default rule:
    - file-level Pluto map and feature inventory
 2. [pipeline.md](./pipeline.md)
    - execution order of the external Pluto pipeline
-3. [options-and-capabilities.md](./options-and-capabilities.md)
+3. [polopt-pipeline.md](./polopt-pipeline.md)
+   - current PolOpt driver pipeline and its correspondence with Pluto phases
+4. [options-and-capabilities.md](./options-and-capabilities.md)
    - which Pluto options are real, live, and relevant to validation
-4. [formalization-status.md](./formalization-status.md)
+5. [formalization-status.md](./formalization-status.md)
    - what the current proof stack actually covers
-5. [verified-phase-pipeline.md](./verified-phase-pipeline.md)
+6. [verified-phase-pipeline.md](./verified-phase-pipeline.md)
    - naming and layering of the final verified affine+tiling route
-6. [verified-pipeline-design.md](./verified-pipeline-design.md)
+7. [verified-pipeline-design.md](./verified-pipeline-design.md)
    - why the current verified pipeline is structured the way it is
-7. [paper-presentation-verification-strategy.md](./paper-presentation-verification-strategy.md)
+8. [paper-presentation-verification-strategy.md](./paper-presentation-verification-strategy.md)
    - how to present the verification story, especially extraction and tiling,
      in a paper or talk
-8. [full-fledged-verified-polyhedral-compilation-draft.md](./full-fledged-verified-polyhedral-compilation-draft.md)
+9. [full-fledged-verified-polyhedral-compilation-draft.md](./full-fledged-verified-polyhedral-compilation-draft.md)
    - current paper-style draft for the full extraction + validation + codegen
      story
 

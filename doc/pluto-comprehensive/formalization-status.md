@@ -14,50 +14,58 @@ For the architectural design rationale of the current verified pipeline, see:
 
 ## 1. What Is Fully Covered Today
 
-The current mainline proof stack covers the following end-to-end route:
+The current theorem-facing optimizer surface is the unified compiler wrapper:
 
-1. extract a loop program into `PolyLang`
-2. strengthen/normalize the polyhedral program
-3. run the affine scheduler route and validate `before -> mid`
-4. run the tiling phase route and checked-validate `mid -> after`
-5. convert the tiled result through `current_view_pprog`
-6. reuse the existing affine codegen correctness chain
-7. generate sequential loop code
+```coq
+compile : raw_config -> Loop.t -> imp ParallelLoop.t
+```
 
-The resulting verified optimizer therefore supports:
+The top-level theorem is
+`driver/VerifiedParallelCompilerConfig.v:compile_correct`. It says that every
+successful accepted config produces a `ParallelLoop.t` whose observable result
+is matched by an execution of the original `Loop.t` under `State.eq`.
 
-- sequential affine rescheduling
-- checked phase-aligned tiling
-- verified codegen after successful checked tiling
-- verified fallback to the affine-only route when the tiling route does not
-  complete successfully
-- verified single-dimension `parallel for` generation after checked
-  certification on `current_view_pprog`
-- Pluto-hinted checked parallelization via `--parallel`
-- manual checked parallelization via `--parallel-current d`
-- both default and `--iss` frontend routes for:
-  - identity/no-schedule codegen
-  - affine-only codegen
-  - full tiled codegen
+The main route shape is:
 
-This is no longer an affine-only story. The verified pipeline now includes the
-tiling route as a first-class checked phase, and it also includes a first
-version of verified parallel loop generation.
+1. parse and elaborate a supported `.loop` program;
+2. lower verified loop sugar such as literal stride ranges;
+3. extract `Loop.t` into `PolyLang`;
+4. strengthen and normalize the polyhedral program;
+5. choose an accepted route through `check_config`;
+6. ask Pluto only for route-specific middle artifacts or loop hints;
+7. validate the accepted middle artifacts;
+8. generate `ParallelLoop.t`.
 
-Diamond tiling is not on the current mainline checked path yet, but the design
-boundary is already settled in the notes:
+The resulting verified optimizer supports:
 
-- sequentially, it should be treated as a diamond-aware affine midpoint on
-  `before -> mid_diamond`
-- followed by ordinary checked tiling on `mid_diamond -> after`
+- identity and affine-only routes;
+- ordinary band-aware affine-plus-tiling;
+- the historical generic tiling route behind `--legacy-generic-tiling`;
+- second-level tiling on the checked tiled routes;
+- ISS variants for identity, affine, full tiled, second-level, and diamond
+  routes;
+- checked diamond and full-diamond phase routes;
+- checked explicit-current `parallel for` generation through the unified
+  `Loop -> ParallelLoop` compiler;
+- Pluto-hinted non-`multipar` `--parallel`, where Pluto supplies candidate
+  current dimensions and the unified compiler rechecks the chosen dimension;
+- checked vector routes using Pluto vector hints or explicit vector-current
+  dimensions;
+- checked loop-level unroll/jam and verified symbolic display simplification;
+- verified positive- and negative-literal stride lowering before extraction.
 
-This is a narrower claim than the full diamond-tiling paper story. The current
-theorem direction would aim at sequential refinement, not at certifying:
+This is no longer an affine-only or sequential-only story. Sequential routes
+now return all-`SeqMode` `ParallelLoop` targets, while parallel-current routes
+return `ParallelLoop` targets with `ParMode` annotations.
 
-- concurrent-start optimality
-- maximal tile-level parallelism
-- load balance
-- tile-size-ratio conditions needed for those stronger properties
+Diamond tiling is now part of the checked route surface. Its current proof
+interpretation is still deliberately narrow:
+
+- treat the diamond-specific work as a diamond-aware affine midpoint;
+- validate the later tiling boundary with the ordinary checked tiling
+  architecture;
+- prove state-preserving semantic refinement, not the stronger performance
+  properties from the diamond-tiling literature.
 
 ## 2. The Main Semantic Boundary
 
@@ -76,13 +84,15 @@ why the witness-centered layer is now explicit:
 - `current_src_args_of`
 - `current_view_pprog`
 
-`current_view_pprog` is the crucial bridge used to reuse the older affine
-codegen theorems after a witness-centered tiling program has been checked.
+`current_view_pprog` is the crucial bridge used to reuse the codegen theorem
+structure after a witness-centered tiling program has been checked. The unified
+compiler wrapper then emits a `ParallelLoop.t`, either with all loops in
+`SeqMode` or with checked `ParMode` annotations.
 
-The same intended layering applies to future diamond support:
+The diamond route follows the same layering:
 
-- the diamond-specific intelligence belongs in the affine midpoint
-- the `mid -> after` checked tiling relation should stay ordinary
+- the diamond-specific intelligence belongs in the affine midpoint;
+- the later tiling relation stays in the checked tiling architecture.
 
 ## 3. What The Verified Tiling Route Actually Checks
 
@@ -152,11 +162,12 @@ The proof stack for this route now also contains a Pluto-facing declarative
 specification layer for permutable bands, not only the operational reordered-
 pair obligation used by the executable checker.
 
-Important caveat:
+Current status:
 
 - this route is now the default ordinary-tiling path in the `polopt` frontend
   for the non-ISS full tiled route
-- it is not yet the default theorem family inside `driver/PolOpt.v`
+- it is included in the theorem-facing wrapper through
+  `VerifiedParallelCompilerConfig`
 - the current executable checker is already band-aware, but it still reuses the
   list-level validator kernel (`validate_instr_list`) rather than introducing a
   brand-new dependence emptiness engine
@@ -254,20 +265,19 @@ The phase-aligned validation path is:
 4. import Pluto's final schedule over that skeleton
 5. run the extracted checked tiling validator
 
-If future diamond support is added on the public path, the intended extension is:
+The diamond public path follows the same phase discipline:
 
-1. import and validate `mid_diamond` as an affine midpoint
-2. infer the ordinary floor-link tiling witness from `(mid_diamond, after)`
-3. reuse the same checked tiling validator
-
-That future path would still certify sequential correctness only unless extra
-diamond-specific witness material is introduced.
+1. import and validate the diamond-aware midpoint;
+2. validate the posttile target with the checked tiling architecture;
+3. validate the final affine reschedule when Pluto produces one.
 
 Confirmed working cases include:
 
 - basic rectangular tiling
 - second-level tiling
 - skewed tiling
+- diamond and full-diamond tiling
+- diamond plus ISS, second-level tiling, and checked parallel-current routes
 
 The three-input phase-aligned checker now succeeds on:
 
@@ -314,98 +324,57 @@ Important theorems:
 
 ## 8. Confirmed Build / Test Status
 
-The last fully confirmed container-side build reached all of:
+The current container-side smoke command is:
 
-- `src/PolyLang.vo`
-- `src/PrepareCodegen.vo`
-- `src/Validator.vo`
-- `src/ParallelValidator.vo`
-- `src/ParallelCodegen.vo`
-- `src/TilingRelation.vo`
-- `src/TilingBoolChecker.vo`
-- `polygen/ParallelLoop.vo`
-- `driver/ParallelPolOpt.vo`
-- `driver/PolOptBandTiling.vo`
-- `syntax/STilingOpt.vo`
-- `syntax/STilingBandSched.vo`
-- `driver/TPolOpt.vo`
-- `driver/CPolOpt.vo`
-- `polopt`
-- `polcert`
+```bash
+make -j4 artifact-check
+```
 
-Additionally:
+The most recent confirmed run passed:
 
-- no `Admitted.` remained under:
-  - `src/`
-  - `driver/`
-  - `syntax/`
-  - `polygen/`
-- the generated optimizer suite succeeded:
-  - total: `62`
-  - ok: `62`
-  - fail: `0`
-  - changed: `60`
-- the experimental band-aware ordinary-tiling route matched the baseline on the
-  generated optimizer suite:
-  - `status.txt` mismatches: `0`
-  - `optimized.loop` mismatches: `0`
-- the following parallel smoke routes were manually confirmed:
-  - `--parallel`
-  - `--parallel --parallel-strict`
-  - `--parallel-current d`
-  - `--iss --parallel`
-  - `--iss --parallel --parallel-strict`
-  - `--iss --parallel-current d`
+- extraction and `polopt`/`polcert` builds;
+- `make -s check-admitted` with `Nothing admitted.`;
+- proof report generation with no missing listed route theorem;
+- capability matrix generation;
+- Pluto compatibility suite with 105 checks;
+- generated-C end-to-end checks for stride and unroll/jam cases;
+- second-level tiling suite;
+- diamond tiling suite.
+
+The proof report lists the unified route:
+
+- route: unified `Loop -> ParallelLoop` compiler config wrapper;
+- theorem file: `driver/VerifiedParallelCompilerConfig.v`;
+- theorem names:
+  - `compile_correct`;
+  - `compile_verified_correct`;
+  - `compile_seq_verified_correct`;
+  - `checked_sequential_current_annotated_codegen_correct`;
+  - `compile_unsupported_no_result`.
 
 ## 9. What Is Still Out Of Scope
 
-The current verified mainline still does not cover:
+The remaining hard boundaries are narrower than before.
 
-### 9.1 ISS
+### 9.1 Memory-changing transformations
 
-ISS is not just a schedule reordering. It changes statement/domain structure and
-requires one-to-many statement reasoning rather than a one-to-one validator.
+Scalar privatization, array contraction, storage remapping, and related
+layout-changing transformations are outside the current `State.eq` theorem
+boundary. They can be attacked as future validator families, but they need a
+state relation that accounts for fresh or remapped storage.
 
-That is no longer completely out of scope in the codebase:
+### 9.2 Parallel and vector extensions beyond the current certificate
 
-- there is now a dedicated ISS validator line in `polcert`
-- the extracted runtime checker validates Pluto-style
-  `complete-cut-shape` witnesses
-- proof-only modules establish the backward semantic correctness theorem for
-  that checker
-- Pluto can emit a native ISS bridge consumed by
-  `./polopt --validate-iss-bridge`
+The current proof stack covers checked doall-style dimensions and the
+`ParallelLoop` semantic bridge. It does not cover:
 
-What remains out of the default verified mainline is narrower:
+1. reduction-aware parallelization;
+2. arbitrary nested or unbounded multi-parallel route selection as a single
+   unified config theorem;
+3. OpenMP runtime semantics beyond the verified loop-to-loop target semantics.
 
-- ISS is still not enabled in the default `PolOpt` phase pipeline
-- the ISS suites are still manual rather than part of default CI
-- the Docker-pinned Pluto image still needs to move from `latest` to the
-  versioned ISS bridge image
-
-### 9.2 Parallel semantics and parallel codegen
-
-This area is no longer completely out of scope.
-
-The current codebase now includes:
-
-- a dedicated checked parallel validator line
-- a `ParallelLoop` IR with explicit `ParMode`
-- an abstract verified `par for` semantics
-- a refinement bridge back to sequential loop semantics
-- checked parallel codegen driven by either:
-  - Pluto `--parallel` hints
-  - or manual `--parallel-current d`
-- frontend support on both the default and `--iss` routes
-
-What remains out of scope is narrower:
-
-1. reduction-aware parallelization
-2. nested / multi-parallel loop generation
-3. a larger systematic regression matrix rather than the current focused smoke
-   coverage
-4. any claim about verified OpenMP/C runtime semantics beyond the verified
-   loop-to-loop semantics currently used by PolCert
+The existing `--multipar` path has checked multi-certificate code generation,
+but it is still separate from the single-config `compile` wrapper.
 
 ### 9.3 Fully verified witness extraction
 
@@ -432,13 +401,16 @@ is still worth isolating later.
 
 ## 11. Recommended Next Extensions
 
-If the project extends beyond the current verified affine+tiling pipeline, the
-cleanest order remains:
+The cleanest next extensions are:
 
-1. richer schedules without domain growth
-2. domain-augmenting transformations such as more aggressive tiling variants
-3. statement/domain splitting transformations such as ISS
-4. true parallel code generation over an explicit concurrent loop semantics
+1. fold the existing `--multipar` path into the single config wrapper or state
+   its separate theorem boundary more prominently;
+2. broaden vector-route evidence without changing the current doall
+   certificate story;
+3. finish a memory-changing validation layer for scalar privatization,
+   contraction, and layout transformations;
+4. add a generalized state relation for transformations that allocate,
+   privatize, or remap storage.
 
-That order preserves the current semantic layering instead of collapsing several
-orthogonal generalizations into one step.
+That order keeps state-preserving polyhedral compilation separate from the
+storage-changing families that need a different semantic relation.

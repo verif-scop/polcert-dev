@@ -13,6 +13,11 @@ For the design rationale of the internal verified pipeline, see:
 
 - [verified-pipeline-design.md](/home/hugh/research/polyhedral/polcert/doc/pluto-comprehensive/verified-pipeline-design.md)
 
+For the `polopt` driver pipeline and the phase-by-phase correspondence between
+Pluto and PolOpt, see:
+
+- [polopt-pipeline.md](/home/hugh/research/polyhedral/polcert/doc/pluto-comprehensive/polopt-pipeline.md)
+
 ## 1. CLI Top-Level Flow
 
 The CLI entry point is concentrated in:
