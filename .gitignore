@@ -1,4 +1,5 @@
 .work/
+experiments/storage-validation-standalone/latest-run.log
 *.swp
 *.swo
 *~
