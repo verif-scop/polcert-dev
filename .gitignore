@@ -1,4 +1,5 @@
 .work/
+.worktree/
 *.swp
 *.swo
 *~
