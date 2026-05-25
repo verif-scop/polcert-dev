@@ -1312,6 +1312,9 @@ overlap_closure_obligations tiles
 
 check_overlap_ordered_closureb tiles = true ->
 overlap_ordered_closure_obligations tiles
+
+check_overlap_valueb value_eqb (overlap_tiles_targets tiles) target_values = true ->
+overlap_value_obligations value (overlap_tiles_targets tiles) target_values
 ```
 
 Each finite tile dependency records a consumer and producer source instance.
@@ -1370,6 +1373,14 @@ checked_overlap_private_ordered_closure_compatible_view_correct:
   private/tile-local separation witness
   logical-to-private storage compatibility witness
   semantic overlap refinement
+
+checked_overlap_private_ordered_closure_compatible_value_view_correct:
+  projection witness over flattened tile targets
+  tile-local dependence-closure and producer-order witness
+  private/tile-local separation witness
+  logical-to-private storage compatibility witness
+  finite recomputation value witness for every projected target
+  semantic overlap refinement
 ```
 
 This keeps two facts separate: duplicated target instances are justified by
@@ -1377,7 +1388,9 @@ the projection/commit witness; tile-local recomputation is justified by a
 closure witness; materialized halo or tile buffers require storage separation
 and an output view that hides or commits them.  The compatible variant adds
 the size/alignment side condition for the declared logical-to-private mapping;
-it still does not derive that mapping from generated tile code.
+the value variant adds finite source/target value entries for every projected
+target computation.  It still does not derive the mapping or recomputed values
+from generated tile code.
 
 ## Integration Rule
 

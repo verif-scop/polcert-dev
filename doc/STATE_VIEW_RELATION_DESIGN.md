@@ -1708,8 +1708,12 @@ tile-private separation witness for materialized halo/local buffers.
 `checked_overlap_private_closure_view_correct` additionally package the finite
 tile-local closure witness.  `checked_overlap_ordered_closure_view_correct` and
 `checked_overlap_private_ordered_closure_view_correct` package the stronger
-producer-order variant.  Value equivalence of recomputed halo/internal
-instances is still a separate semantic refinement obligation.
+producer-order variant.  `OverlapValueWitness.check_overlap_valueb_sound` and
+`checked_overlap_private_ordered_closure_compatible_value_view_correct` add a
+finite value-equivalence layer for recomputed halo/internal instances: every
+projected target computation must carry a value equal to the source instance it
+represents.  Deriving those finite values from the generated tile trace remains
+a separate semantic refinement obligation.
 
 Overlap support requires keeping instance duplication separate from state
 projection.

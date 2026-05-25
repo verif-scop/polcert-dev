@@ -990,18 +990,30 @@ def validate_overlapped_tiling() -> List[str]:
     source_b = {i: source_t[i - 1] + source_t[i] + source_t[i + 1]
                 for i in range(2, n - 2)}
     target_b: Dict[int, int] = {}
-    for _tile_id, (l, r) in enumerate(tile_ranges):
+    target_value_entries: List[Tuple[Tuple[int, str, int, str], int, int]] = []
+    for tile_id, (l, r) in enumerate(tile_ranges):
         local_t: Dict[int, int] = {}
         for i in range(max(1, l - halo), min(n - 1, r + halo)):
             local_t[i] = a[i - 1] + a[i] + a[i + 1]
+            target_value_entries.append(
+                ((tile_id, "T", i, "internal"), source_t[i], local_t[i]))
         for i in range(l, r):
             target_b[i] = local_t[i - 1] + local_t[i] + local_t[i + 1]
+            target_value_entries.append(
+                ((tile_id, "B", i, "commit"), source_b[i], target_b[i]))
+    require([target for target, _source_value, _target_value in target_value_entries]
+            == target_instances,
+            "overlap value entries do not align with target projection")
+    require(all(source_value == target_value
+                for _target, source_value, target_value in target_value_entries),
+            "overlap recomputed value mismatch")
     same_dict(source_b, target_b, "B")
     return [
         "projection maps every target computation to a valid source instance",
         "commit instances form an exact cover of source live-out instances",
         "tile-local dependence closure covers every committed B computation",
         "tile-local producers precede their consumers in the target trace",
+        "every recomputed/internal target value matches its projected source value",
         "duplicated halo/internal writes are tile-local and invisible",
         "tile-private halo storage is compatible with represented T values",
     ]
@@ -1675,6 +1687,16 @@ def reject_overlap_incompatible_private_storage() -> None:
     require(all(logical_specs[source_cell] == local_specs[local_cell]
                 for source_cell, local_cell in private_mapping),
             "overlap private storage spec mismatch")
+
+
+@add_negative("overlap_bad_recomputed_value", "overlapped_tiling")
+def reject_overlap_bad_recomputed_value() -> None:
+    target_value_entries = [
+        ((0, "T", 1, "internal"), 3, 4),
+    ]
+    require(all(source_value == target_value
+                for _target, source_value, target_value in target_value_entries),
+            "overlap recomputed value mismatch")
 
 
 @add_negative("overlapping_reduction_chunks", "reduction_privatization")

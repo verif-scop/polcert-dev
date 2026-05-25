@@ -160,7 +160,7 @@ POLCERT_SRC = Base.v Convert.v \
   TransformContract.v StateView.v ViewPipeline.v StorageWitness.v CellView.v SourceNoAliasWitness.v FramePreservationWitness.v FramePreservationValidator.v StateObservation.v LayoutWitness.v \
   LayoutRemapValidator.v PrivateStorageWitness.v PrivateBoundaryWitness.v PaddingLayoutWitness.v LayoutValueWitness.v PaddingLayoutValidator.v PrivateStorageValidator.v CopyProtocolWitness.v CopyCommitWitness.v CopyInstanceWitness.v CopyMappingWitness.v \
   ScalarPromotionWitness.v ScalarPromotionValueWitness.v ScalarPromotionValidator.v CopyProtocolValueWitness.v CopyProtocolValidator.v ScratchpadCopyValidator.v ReuseConflictWitness.v LifetimeConflictWitness.v ReuseValueWitness.v StorageCompatibilityWitness.v InterArrayReuseWitness.v InterArrayReuseValidator.v ReuseStateView.v StorageBoundaryView.v ReuseConflictValidator.v InstanceProjectionWitness.v \
-  InstanceProjectionValidator.v OverlapClosureWitness.v OverlapTilingValidator.v VersionCommitWitness.v VersionCommitValueWitness.v VersionCommitValidator.v \
+  InstanceProjectionValidator.v OverlapClosureWitness.v OverlapValueWitness.v OverlapTilingValidator.v VersionCommitWitness.v VersionCommitValueWitness.v VersionCommitValidator.v \
   ReductionMergeWitness.v ReductionMergeValueWitness.v ReductionAlgebraWitness.v ReductionMergeValidator.v PhaseSeparationWitness.v PhaseValueWitness.v PhaseProjectionWitness.v \
   PhaseSeparationValidator.v CStateObservation.v \
   ParallelValidator.v ParallelCodegen.v \
