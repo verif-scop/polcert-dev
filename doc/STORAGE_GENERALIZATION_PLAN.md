@@ -1213,6 +1213,10 @@ facts, then compose the pass under the remaining semantic refinement.  For
 double buffering, that remaining refinement is now narrower: it must justify
 that the concrete swap/phase update produces the supplied projection evidence,
 rather than leaving the existence of the final projection implicit.
+`checked_phase_projection_compatible_value_view_correct` is the strongest
+current phase wrapper: it also requires `StorageCompatibilityWitness` for the
+final projection map, so every physical final-live phase cell is compatible
+with the logical source live-out it represents.
 
 ### 11. Instance Projection and Overlap
 

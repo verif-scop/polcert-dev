@@ -793,8 +793,12 @@ matches `phase_protocol_final_live`.  The projection witness can then be read
 as a projection out of that checked final physical snapshot.
 The
 `PhaseSeparationValidator.checked_phase_*` theorem family packages these into
-the common composition theorem, while leaving the derivation of the supplied
-swap/phase projection from concrete code explicit.
+the common composition theorem.
+`checked_phase_projection_compatible_value_view_correct` adds the final
+projection storage side condition: each logical source live-out and final
+physical phase cell pair must have compatible size/alignment specs.  The
+derivation of the supplied swap/phase projection and storage specs from
+concrete code remains explicit.
 
 ### Overlapped Tiling
 

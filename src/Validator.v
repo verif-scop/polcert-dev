@@ -922,6 +922,8 @@ Definition storage_phase_projection_view_contract :=
   PhaseSeparationCore.phase_projection_view_contract.
 Definition storage_phase_projection_value_view_contract :=
   PhaseSeparationCore.phase_projection_value_view_contract.
+Definition storage_phase_projection_compatible_value_view_contract :=
+  PhaseSeparationCore.phase_projection_compatible_value_view_contract.
 Definition storage_checked_phase_separation_view_correct :=
   PhaseSeparationCore.checked_phase_separation_view_correct.
 Definition storage_checked_phase_separation_value_view_correct :=
@@ -930,6 +932,8 @@ Definition storage_checked_phase_projection_view_correct :=
   PhaseSeparationCore.checked_phase_projection_view_correct.
 Definition storage_checked_phase_projection_value_view_correct :=
   PhaseSeparationCore.checked_phase_projection_value_view_correct.
+Definition storage_checked_phase_projection_compatible_value_view_correct :=
+  PhaseSeparationCore.checked_phase_projection_compatible_value_view_correct.
 
 (** Legacy validator API.  These definitions remain unchanged: the generalized
     contract above only wraps their existing correctness theorem as the

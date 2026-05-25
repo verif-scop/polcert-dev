@@ -1149,6 +1149,11 @@ def validate_double_buffering() -> List[str]:
     require(all(source_value == target_value
                 for _source_cell, _target_cell, source_value, target_value in projection_values),
             "phase projection value mismatch")
+    source_specs = {("A", t_max, i): (8, 8) for i in range(n)}
+    final_specs = {("cur", i): (8, 8) for i in range(n)}
+    require(all(source_specs[source_cell] == final_specs[target_cell]
+                for source_cell, target_cell in projection.items()),
+            "phase projection storage spec mismatch")
     return [
         "next buffer is written before it is read in the following phase",
         "cur buffer remains live until the phase's computation completes",
@@ -1157,6 +1162,7 @@ def validate_double_buffering() -> List[str]:
         "final phase value snapshot matches the final-live physical cells",
         "final phase projection covers every logical live-out",
         "phase projection values match final physical buffer cells",
+        "final phase physical cells are storage-compatible with logical live-outs",
     ]
 
 
@@ -1745,6 +1751,18 @@ def reject_double_buffer_bad_projection_value() -> None:
     require(all(source_value == target_value
                 for _source_cell, _target_cell, source_value, target_value in projection_values),
             "phase projection value mismatch")
+
+
+@add_negative("double_buffer_incompatible_projection_storage", "double_buffering")
+def reject_double_buffer_incompatible_projection_storage() -> None:
+    source_cell = ("A", 2, 0)
+    target_cell = ("cur", 0)
+    source_specs = {source_cell: (8, 8)}
+    final_specs = {target_cell: (4, 4)}
+    projection = {source_cell: target_cell}
+    require(all(source_specs[src] == final_specs[dst]
+                for src, dst in projection.items()),
+            "phase projection storage spec mismatch")
 
 
 @add_negative("composition_bad_intermediate_public", "storage_view_composition")
