@@ -153,6 +153,14 @@ This is the access-function analogue of `StateView.view_refinement_compose`.
 It lets multi-pass storage validation compose declared layout, private erasure,
 copy, or reuse remaps through a shared intermediate program instead of
 constructing a bespoke combined access relation for each pass sequence.
+- `src/CellView.v` defines the observer-independent public-cell view carrier
+  `generic_cell_view`.  This is the cell-level analogue of
+  `StateView.generic_state_view`: it is defined outside any observer functor, so
+  layout, private, reuse, phase, and copy validators can eventually share the
+  same public footprint type.  It also defines
+  `generic_cell_view_mid_observables_compatible` and
+  `compose_generic_cell_view`, the common composition rule for target-to-source
+  cell relations plus public source/target coverage.
 - `src/StateObservation.v` defines an abstract `CELL_OBSERVER` interface and
   lifts a target-to-source cell relation into a state-level observation.  It
   proves that the identity cell relation yields an observation containing
@@ -170,6 +178,12 @@ constructing a bespoke combined access relation for each pass sequence.
   as layout projection followed by private erasure can be collapsed into one
   public endpoint view only when both passes expose the same intermediate
   public footprint.
+- `src/StateObservation.v` currently keeps its historical functor-local
+  `cell_view` record so existing validators are not rewritten at once.  It now
+  provides adapters between that record and `generic_cell_view`, plus
+  reflexive bridge lemmas showing that both carriers induce the same
+  observer-backed state view.  This makes the existing proof stack an instance
+  of the shared carrier instead of a competing endpoint relation.
 - `src/StateObservation.v` now also packages this into
   `cell_view_transform_contract`: one pass carries a public `cell_view`, a
   `pprog_same_instance_access_remap` witness under that view's cell relation,

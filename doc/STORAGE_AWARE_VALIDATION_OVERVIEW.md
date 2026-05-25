@@ -35,7 +35,8 @@ and what the surrounding context can observe.
 ## Current Status
 
 In this host worktree, the storage-generalization material is documentation,
-the standalone executable experiment package, and uncommitted Coq skeletons.
+the standalone executable experiment package, and checked Coq exploration
+modules on the `storage-generalization-20260507` branch.
 The first implementation step is `StateView.v`, which packages endpoint
 relations as views and wraps the existing affine/general validators as
 `same_state_view -> identity_view` refinements.  It also exposes a small
@@ -43,7 +44,14 @@ relation-inclusion algebra (`view_included_refl`, `view_included_trans`, and
 `compose_view_monotone`) so storage validators can compose endpoint views
 without unfolding the underlying state relations.  The current layout skeleton
 also exposes `related_cells_view` and a `layout_view`-level theorem, so the
-layout prototype no longer bypasses the view endpoint.  `StateObservation.v`
+layout prototype no longer bypasses the view endpoint.  `CellView.v` now
+extracts the observer-independent public-cell view carrier from
+`StateObservation.v`: it records the target-to-source cell relation, public
+source/target observable sets, coverage facts, and the intermediate-public-cell
+compatibility condition for composing two such views.  `StateObservation.v`
+keeps its historical functor-local `cell_view` for existing validators, but now
+provides adapters to and from `generic_cell_view` so later feature validators
+can migrate without rewriting the current proof stack.  `StateObservation.v`
 now proves that observer-backed cell views compose through
 `compose_cell_relation`, and its `compose_cell_view` constructor makes public
 footprint composition explicit through a shared-intermediate-observable
@@ -70,7 +78,7 @@ private cell.  It also adds a value-entry checker showing that copy-in/copy-out
 public and private boundary values match for each aligned boundary pair.
 Related skeletons include
 `TransformContract.v`, `StateView.v`, `ViewPipeline.v`,
-`StorageWitness.v`, `SourceNoAliasWitness.v`,
+`StorageWitness.v`, `CellView.v`, `SourceNoAliasWitness.v`,
 `FramePreservationWitness.v`, `FramePreservationValidator.v`,
 `StateObservation.v`,
 `LayoutWitness.v`, `LayoutRemapValidator.v`, `PaddingLayoutWitness.v`,

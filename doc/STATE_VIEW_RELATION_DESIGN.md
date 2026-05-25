@@ -1916,7 +1916,14 @@ private_view public_repr private_cells separation
 
 This is the first view that forces separation obligations.
 
-Current exploration status: `StateObservation.cell_view` records the public
+Current exploration status: `CellView.generic_cell_view` is now the
+observer-independent carrier for the public source/target footprint of a cell
+relation.  It is defined outside `StateObservation` for the same reason
+`StateView.generic_state_view` is defined outside the `StateView` functor:
+independently instantiated validators should not expose incompatible record
+types for the same endpoint concept.  `StateObservation.cell_view` remains as a
+compatibility layer for existing validators, with adapters to and from the
+shared carrier.  `StateObservation.cell_view` records the public
 source/target footprint of a cell relation, and
 `PrivateStorageValidator.private_erasure_view` uses it to state the theorem
 shape for target-private storage.  `PrivateStorageWitness.hidden_identity_cell_view`
@@ -1973,6 +1980,9 @@ of one endpoint relation discipline, while pass-specific validators only
 justify their own witness obligations.  The composed public view is meaningful
 only when the intermediate cells hidden by the first pass are not required as
 public target cells by the second pass, and vice versa.
+`CellView.compose_generic_cell_view` is the observer-independent form of the
+same composition rule; the current functor-local composition can be migrated to
+that carrier incrementally.
 
 `StorageBoundaryView.v` now factors out one common endpoint instance of that
 discipline.  It treats a finite logical-to-physical boundary selector as the
