@@ -4,6 +4,14 @@ This document records the current proof boundary of the PolCert/PolOpt stack.
 It is intentionally about the verified status of the implementation as it
 exists now, not about speculative future extensions.
 
+Implementation provenance: this document is maintained in the `polcert-dev`
+documentation repository, while the implementation paths, theorem names, and
+artifact command refer to the PolCert implementation repository
+`Hughshine/PolCert` on branch `end-to-end`. The artifact evidence cited below
+was run on code commit `72deba1`, tagged
+`state-eq-polyhedral-verification-complete-2026-05-25`; later commits on that
+branch may be documentation-only.
+
 For the public naming and layering of the final affine+tiling route, see:
 
 - [verified-phase-pipeline.md](/home/hugh/research/polyhedral/polcert/doc/pluto-comprehensive/verified-phase-pipeline.md)
@@ -189,20 +197,25 @@ accumulation:
   - checked tiling validator
   - checked tiling + codegen bridge
 - [TilingBandScheduleValidator.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/src/TilingBandScheduleValidator.v)
-  - experimental band-aware ordinary-tiling schedule validator
+  - band-aware ordinary-tiling schedule validator
   - inferred-band certificates
   - declarative Pluto-style permutable-band specs
   - bridge from band-aware schedule checking to the existing tiling semantics
 - [Validator.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/src/Validator.v)
   - thin public aggregator with stable names
 
-The optimizer entry point is assembled only once:
+The sequential optimizer entry point remains in:
 
 - [PolOpt.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/driver/PolOpt.v)
 
-The experimental band-aware route is assembled separately in:
+The band-aware ordinary-tiling route is defined in:
 
 - [PolOptBandTiling.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/driver/PolOptBandTiling.v)
+
+The theorem-facing `Loop -> ParallelLoop` wrapper composes accepted sequential,
+ISS, diamond, second-level, and checked parallel route choices in:
+
+- [VerifiedParallelCompilerConfig.v](/home/hugh/research/polyhedral/polcert/work/container-overlay/polcert/driver/VerifiedParallelCompilerConfig.v)
 
 Concrete language instantiations are intentionally thin wrappers:
 
@@ -325,13 +338,14 @@ Important theorems:
 
 ## 8. Confirmed Build / Test Status
 
-The current container-side smoke command is:
+The current container-side smoke command, run from the root of a PolCert
+implementation checkout, is:
 
 ```bash
 make -j4 artifact-check
 ```
 
-The most recent confirmed run passed:
+The most recent confirmed run on `Hughshine/PolCert@end-to-end` commit `72deba1` passed:
 
 - extraction and `polopt`/`polcert` builds;
 - `make -s check-admitted` with `Nothing admitted.`;

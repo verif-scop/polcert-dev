@@ -6,6 +6,13 @@ an optimization oracle: it proposes middle-stage polyhedral artifacts and loop
 hints, while `polopt` keeps the verified front end, validation, route selection,
 and code generation.
 
+Implementation provenance: this document lives in the `polcert-dev` documentation
+repository, but the executable and theorem references are to the PolCert
+implementation repository `Hughshine/PolCert`, branch `end-to-end`. The last
+full artifact smoke cited here was run on code commit `72deba1`; later
+documentation-only commits may exist on that branch. Run artifact commands from
+a PolCert implementation checkout, not from this documentation repository.
+
 ## 1. Top-Level Shape
 
 The current `polopt` optimizer path is:
@@ -146,13 +153,14 @@ as scalar privatization and storage/layout transformations.
 
 ## 6. Artifact Checks
 
-The reviewer-facing smoke command is:
+The reviewer-facing smoke command, run from the root of a PolCert implementation
+checkout, is:
 
 ```bash
-make artifact-check
+make -j4 artifact-check
 ```
 
-The current smoke check rebuilds the extracted tools and runs:
+That smoke check rebuilds the extracted tools and runs:
 
 - Python syntax checks for artifact tools;
 - proof report generation;
