@@ -513,6 +513,20 @@ finite permutation, or affine index composition.  The older specialized
 rename/permutation/affine theorem names are retained as compatibility slices,
 but new layout clients should target the declared-layout interface so future
 layout fragments do not add another parallel theorem family.
+`checked_padding_layout_declared_access_compatible_value_view_correct` is the
+current strongest padding/layout wrapper.  It packages padding separation,
+declared-layout access remapping, boundary value evidence, and
+`StorageCompatibilityWitness` size/alignment compatibility for every mapped
+logical-to-physical layout cell:
+
+```text
+check_storage_compatibilityb mapping logical_specs physical_specs = true ->
+storage_compatibility_obligations mapping logical_specs physical_specs
+```
+
+This matters for layout and padding for the same reason it matters for reuse:
+injectivity and in-bounds allocation are not enough if a physical layout cell
+cannot actually represent the logical source cell's storage class.
 The next missing piece is still the proof that a concrete rewritten target
 instruction refines the source-view instruction under the induced cell
 relation and that layout declarations are derived from generated C.

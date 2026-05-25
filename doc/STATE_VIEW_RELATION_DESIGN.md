@@ -1140,9 +1140,13 @@ map with the source access function, covering linearized layouts such as
 `checked_padding_layout_declared_access_view_correct` and
 `checked_padding_layout_declared_access_value_view_correct` wrappers expose
 the same proof shape through one declared-layout relation whose cases are
-same-index, finite permutation, and affine composition.  The proof that
-concrete target instruction semantics realizes those rewritten accesses
-remains explicit.
+same-index, finite permutation, and affine composition.
+`checked_padding_layout_declared_access_compatible_value_view_correct` adds the
+storage-compatibility layer to the same wrapper: every mapped logical cell must
+have a finite storage spec, every mapped physical layout cell must have a
+finite storage spec, and the paired specs must agree on size and alignment.
+The proof that concrete target instruction semantics realizes those rewritten
+accesses, values, and storage specs remains explicit.
 
 Padding support is a special case of layout support plus a proof that extra
 cells are unobservable.

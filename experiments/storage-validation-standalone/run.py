@@ -458,6 +458,31 @@ def validate_layout_remap_padding() -> List[str]:
                 for _source_cell, _target_cell, source_value, target_value
                 in layout_value_entries),
             "layout boundary value mismatch")
+    logical_specs = {("A", i, j): (8, 8) for i, j in domain}
+    physical_specs = {
+        ("A_pad", pad_map[i, j]): (8, 8) for i, j in domain
+    }
+    physical_specs.update({
+        ("A_t", transpose_map[i, j]): (8, 8) for i, j in domain
+    })
+    physical_specs.update({
+        ("A_lin", linearized_map[i, j]): (8, 8) for i, j in domain
+    })
+    storage_mappings = [
+        (("A", i, j), ("A_pad", pad_map[i, j]))
+        for i, j in sorted(domain)
+    ]
+    storage_mappings.extend(
+        (("A", i, j), ("A_t", transpose_map[i, j]))
+        for i, j in sorted(domain)
+    )
+    storage_mappings.extend(
+        (("A", i, j), ("A_lin", linearized_map[i, j]))
+        for i, j in sorted(domain)
+    )
+    require(all(logical_specs[source_cell] == physical_specs[target_cell]
+                for source_cell, target_cell in storage_mappings),
+            "layout storage spec mismatch")
     target_b = {(i, j): phys[pad_map[i, j]] + 1 for i, j in domain}
     transpose_target_b = {
         (i, j): transpose_phys[transpose_map[i, j]] + 1 for i, j in domain
@@ -478,6 +503,7 @@ def validate_layout_remap_padding() -> List[str]:
         "linearized accesses use a declared affine layout witness",
         "one declared-layout checker covers same-index, permutation, and affine cases",
         "layout boundary values match the represented logical cells",
+        "mapped physical layout cells are storage-compatible with represented logical cells",
     ]
 
 
@@ -1263,6 +1289,23 @@ def reject_layout_bad_boundary_value() -> None:
                 for _source_cell, _target_cell, source_value, target_value
                 in layout_value_entries),
             "layout boundary value mismatch")
+
+
+@add_negative("layout_incompatible_storage", "layout_remap_padding")
+def reject_layout_incompatible_storage() -> None:
+    n, m = 2, 3
+    domain = {(i, j) for i in range(n) for j in range(m)}
+    pad_stride = m + 1
+    pad_map = {(i, j): i * pad_stride + j for i, j in domain}
+    logical_specs = {("A", i, j): (8, 8) for i, j in domain}
+    physical_specs = {("A_pad", pad_map[i, j]): (4, 4) for i, j in domain}
+    storage_mappings = [
+        (("A", i, j), ("A_pad", pad_map[i, j]))
+        for i, j in sorted(domain)
+    ]
+    require(all(logical_specs[source_cell] == physical_specs[target_cell]
+                for source_cell, target_cell in storage_mappings),
+            "layout storage spec mismatch")
 
 
 @add_negative("layout_bad_access_remap", "layout_remap_padding")
