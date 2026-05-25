@@ -1940,8 +1940,12 @@ boundary uniqueness facts.
 value facts.
 `checked_boundary_private_unique_value_expansion_view_correct` combines the
 unique-private-boundary and boundary-value layers in one observer-backed
-private-erasure theorem.  Non-escape and full instruction-derived
-value-simulation checkers are future work.
+private-erasure theorem.
+`checked_boundary_private_unique_compatible_value_expansion_view_correct` adds
+boundary storage compatibility for the same copy-in/copy-out pairs: public and
+private cells must both have finite storage specs, and paired specs must agree
+on size and alignment.  Non-escape, deriving those specs from C types, and full
+instruction-derived value-simulation checkers are future work.
 
 `StateObservation.compose_cell_view` now composes these public views when the
 two passes agree on the shared intermediate public cells:

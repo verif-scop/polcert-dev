@@ -628,6 +628,12 @@ aligned public/private boundary value evidence under the same observer-backed
 private-erasure view theorem.  This is the private-storage analogue of the
 larger scratchpad contract: it keeps the finite boundary protocol explicit
 while still leaving expression-derived copy values to the semantic refinement.
+`checked_boundary_private_unique_compatible_value_expansion_view_correct` adds
+the same size/alignment compatibility layer used by layout and reuse: every
+copy-in and copy-out boundary pair is interpreted as a public-to-private
+storage mapping, and `StorageCompatibilityWitness` must prove the mapped cells
+have compatible storage specs.  This makes private copies more than fresh
+names: they must also be capable of representing the public value they copy.
 
 Later syntactic validators should discharge this obligation with freshness,
 reaching-definition, boundary value-flow, and non-escape checks.  The

@@ -308,6 +308,18 @@ def validate_private_copy_boundary() -> List[str]:
     require(all(public_value == private_value
                 for _pair, public_value, private_value in copyout_values),
             "copy-out boundary value mismatch")
+    public_specs = {
+        "seed": (8, 8),
+        "tmp": (8, 8),
+    }
+    private_specs = {
+        **{("seed_priv", i): (8, 8) for i in range(n)},
+        **{("tmp_priv", i): (8, 8) for i in range(n)},
+    }
+    boundary_pairs = copyins + copyouts
+    require(all(public_specs[public] == private_specs[private]
+                for public, private in boundary_pairs),
+            "private boundary storage spec mismatch")
 
     target_b: Dict[int, int] = {}
     seed_priv: Dict[int, int] = {}
@@ -326,6 +338,7 @@ def validate_private_copy_boundary() -> List[str]:
         "boundary pairs use declared private storage cells",
         "boundary copy private cells are unique on the private side",
         "copy-in/copy-out boundary values match across public and private cells",
+        "boundary public/private cells are storage-compatible for copy-in and copy-out",
     ]
 
 
@@ -1256,6 +1269,16 @@ def reject_private_bad_copyout_value() -> None:
     require(all(public_value == private_value
                 for _pair, public_value, private_value in copyout_values),
             "copy-out boundary value mismatch")
+
+
+@add_negative("private_incompatible_boundary_storage", "private_copy_boundary")
+def reject_private_incompatible_boundary_storage() -> None:
+    public_specs = {"seed": (8, 8)}
+    private_specs = {("seed_priv", 0): (4, 4)}
+    boundary_pairs = [("seed", ("seed_priv", 0))]
+    require(all(public_specs[public] == private_specs[private]
+                for public, private in boundary_pairs),
+            "private boundary storage spec mismatch")
 
 
 @add_negative("scalar_promotion_incompatible_storage", "scalar_promotion")

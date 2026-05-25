@@ -12,6 +12,7 @@ Require Import StorageWitness.
 Require Import StateObservation.
 Require Import PrivateStorageWitness.
 Require Import PrivateBoundaryWitness.
+Require Import StorageCompatibilityWitness.
 
 Import ListNotations.
 
@@ -71,6 +72,15 @@ Definition private_source_view_refines_view
     (private_erasure_view public_view)
     (private_erasure_view public_view)
     source_view after.
+
+Fixpoint private_boundary_storage_mapping
+    (pairs: list private_boundary_pair) : list (MemCell * MemCell) :=
+  match pairs with
+  | [] => []
+  | boundary :: tail =>
+      (private_boundary_public boundary, private_boundary_private boundary) ::
+      private_boundary_storage_mapping tail
+  end.
 
 Record private_expansion_view_contract
     (public_view: Observation.cell_view)
@@ -155,6 +165,32 @@ Record private_boundary_unique_value_view_contract
       trace source_view after;
   pbuvvc_private_unique :
     private_boundary_private_unique_obligations copyins copyouts;
+}.
+
+Record private_boundary_unique_compatible_value_view_contract
+    (value: Type)
+    (public_view: Observation.cell_view)
+    (hidden_cells private_cells public_liveins public_liveouts: list MemCell)
+    (copyins copyouts: list private_boundary_pair)
+    (copyin_values copyout_values:
+       list (private_boundary_value_entry value))
+    (public_specs private_specs: list storage_spec)
+    (trace: list private_event)
+    (source_view after: PolyLang.t) : Prop := {
+  pbucvvc_value_base :
+    private_boundary_unique_value_view_contract
+      value public_view
+      hidden_cells private_cells public_liveins public_liveouts
+      copyins copyouts copyin_values copyout_values
+      trace source_view after;
+  pbucvvc_copyins_compatible :
+    storage_compatibility_obligations
+      (private_boundary_storage_mapping copyins)
+      public_specs private_specs;
+  pbucvvc_copyouts_compatible :
+    storage_compatibility_obligations
+      (private_boundary_storage_mapping copyouts)
+      public_specs private_specs;
 }.
 
 Theorem checked_private_expansion_view_correct :
@@ -442,6 +478,76 @@ Proof.
        public_liveins public_liveouts copyins copyouts
        copyin_values copyout_values trace before source_view after ok
        Hvalue_eqb Hret Hok Hlocal Hboundary Hboundary_values Hprivate)
+    as [Hvalue_contract Hview].
+  split.
+  - constructor; assumption.
+  - exact Hview.
+Qed.
+
+Theorem checked_boundary_private_unique_compatible_value_expansion_view_correct :
+  forall (value: Type) (value_eqb: value -> value -> bool)
+         hidden_cells private_cells public_liveins public_liveouts
+         copyins copyouts copyin_values copyout_values
+         public_specs private_specs
+         trace before source_view after ok,
+    (forall left right,
+        value_eqb left right = true ->
+        left = right) ->
+    mayReturn (check_private_source_view before source_view) ok ->
+    ok = true ->
+    Witness.check_private_local_obligationsb
+      hidden_cells private_cells trace = true ->
+    check_private_boundaryb
+      private_cells public_liveins public_liveouts copyins copyouts = true ->
+    check_private_boundary_private_uniqueb copyins copyouts = true ->
+    check_private_boundary_valueb
+      value_eqb copyins copyouts copyin_values copyout_values = true ->
+    check_storage_compatibilityb
+      (private_boundary_storage_mapping copyins)
+      public_specs private_specs = true ->
+    check_storage_compatibilityb
+      (private_boundary_storage_mapping copyouts)
+      public_specs private_specs = true ->
+    private_source_view_refines_view
+      (Witness.hidden_identity_cell_view hidden_cells)
+      source_view after ->
+    private_boundary_unique_compatible_value_view_contract
+      value
+      (Witness.hidden_identity_cell_view hidden_cells)
+      hidden_cells private_cells public_liveins public_liveouts
+      copyins copyouts copyin_values copyout_values
+      public_specs private_specs trace source_view after /\
+    View.view_refinement
+      (private_erasure_view
+         (Witness.hidden_identity_cell_view hidden_cells))
+      (private_pipeline_final_view
+         (Witness.hidden_identity_cell_view hidden_cells))
+      before after.
+Proof.
+  intros value value_eqb
+         hidden_cells private_cells public_liveins public_liveouts
+         copyins copyouts copyin_values copyout_values
+         public_specs private_specs
+         trace before source_view after ok
+         Hvalue_eqb Hret Hok Hlocal Hboundary Hunique
+         Hboundary_values Hcopyins_storage Hcopyouts_storage Hprivate.
+  pose proof
+    (check_storage_compatibilityb_sound
+       (private_boundary_storage_mapping copyins)
+       public_specs private_specs Hcopyins_storage)
+    as Hcopyins_compatible.
+  pose proof
+    (check_storage_compatibilityb_sound
+       (private_boundary_storage_mapping copyouts)
+       public_specs private_specs Hcopyouts_storage)
+    as Hcopyouts_compatible.
+  pose proof
+    (checked_boundary_private_unique_value_expansion_view_correct
+       value value_eqb hidden_cells private_cells
+       public_liveins public_liveouts copyins copyouts
+       copyin_values copyout_values trace before source_view after ok
+       Hvalue_eqb Hret Hok Hlocal Hboundary Hunique
+       Hboundary_values Hprivate)
     as [Hvalue_contract Hview].
   split.
   - constructor; assumption.
