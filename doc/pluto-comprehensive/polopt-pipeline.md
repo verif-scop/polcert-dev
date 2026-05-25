@@ -69,7 +69,7 @@ It then composes optional dimensions:
 | --- | --- |
 | Structural extension | plain or ISS |
 | Tiling family | none, ordinary band-aware, legacy generic, second-level, diamond, full diamond |
-| Parallel family | sequential, Pluto-hinted parallel, explicit `--parallel-current d` |
+| Parallel family | sequential, Pluto-hinted parallel, Pluto-hinted `--multipar`, explicit `--parallel-current d` |
 | Vector family | Pluto-hinted vector or explicit `--vector-current d` outside the unified parallel wrapper |
 | Post loop route | checked constant/block unroll and checked same-bound jam on sequential Loop IR |
 
@@ -95,6 +95,15 @@ RawParallelCurrentDiamondISS d
 RawParallelCurrentIdentityISS d
 RawParallelCurrentAffineISS d
 RawParallelCurrentDefaultISS d
+RawParallelCurrentManyIdentity dims
+RawParallelCurrentManyIdentityTiled dims
+RawParallelCurrentManyAffine dims
+RawParallelCurrentManyDefault dims
+RawParallelCurrentManyDiamond dims
+RawParallelCurrentManyDiamondISS dims
+RawParallelCurrentManyIdentityISS dims
+RawParallelCurrentManyAffineISS dims
+RawParallelCurrentManyDefaultISS dims
 ```
 
 `RawSeq` covers the sequential variants. Most sequential variants now code
@@ -103,10 +112,12 @@ Some existing second-level identity variants still use the old sequential
 compiler internally and then pass through a checked lift into `ParallelLoop`.
 
 The explicit-current parallel variants preserve `ParMode` by calling the
-existing checked parallel-current routes. Non-`multipar` Pluto-hinted
-`--parallel` first obtains candidate current dimensions from Pluto, then calls
-the same unified compiler on those candidates. In strict mode, only Pluto's
-hinted dimension may be accepted.
+existing checked parallel-current routes. Pluto-hinted `--parallel` first
+obtains candidate current dimensions from Pluto, then calls the same unified
+compiler on those candidates. `--multipar` uses the `RawParallelCurrentMany*`
+configs, so the emitted target is still produced by the extracted wrapper rather
+than by a side printer. In strict mode, only Pluto's hinted dimensions may be
+accepted.
 
 ## 5. How Pluto-Compatible Flags Map to Routes
 
@@ -125,7 +136,7 @@ surface, and then selects a PolOpt route.
 | `--diamond-tile` / `--full-diamond-tile` | checked diamond phase route |
 | `--parallel` | Pluto hint -> checked current dimension -> unified compiler |
 | `--parallel-current d` | explicit checked current dimension -> unified compiler |
-| `--multipar` | checked multi-certificate code generation path, currently outside the single-config wrapper |
+| `--multipar` | Pluto hints -> checked multi-current dimensions -> unified compiler |
 | `--prevector` | checked vector route using Pluto vector hints and the doall certificate |
 | `--unrolljam [--ufactor N]` | checked Loop-level unroll/jam subset |
 

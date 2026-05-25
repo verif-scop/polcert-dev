@@ -47,8 +47,9 @@ The resulting verified optimizer supports:
 - checked diamond and full-diamond phase routes;
 - checked explicit-current `parallel for` generation through the unified
   `Loop -> ParallelLoop` compiler;
-- Pluto-hinted non-`multipar` `--parallel`, where Pluto supplies candidate
-  current dimensions and the unified compiler rechecks the chosen dimension;
+- Pluto-hinted `--parallel` and `--multipar`, where Pluto supplies candidate
+  current dimensions and the unified compiler rechecks the chosen one- or
+  multi-current plan;
 - checked vector routes using Pluto vector hints or explicit vector-current
   dimensions;
 - checked loop-level unroll/jam and verified symbolic display simplification;
@@ -336,7 +337,7 @@ The most recent confirmed run passed:
 - `make -s check-admitted` with `Nothing admitted.`;
 - proof report generation with no missing listed route theorem;
 - capability matrix generation;
-- Pluto compatibility suite with 105 checks;
+- Pluto compatibility suite with 113 checks;
 - generated-C end-to-end checks for stride and unroll/jam cases;
 - second-level tiling suite;
 - diamond tiling suite.
@@ -365,16 +366,14 @@ state relation that accounts for fresh or remapped storage.
 
 ### 9.2 Parallel and vector extensions beyond the current certificate
 
-The current proof stack covers checked doall-style dimensions and the
-`ParallelLoop` semantic bridge. It does not cover:
+The current proof stack covers checked doall-style dimensions, the
+`ParallelLoop` semantic bridge, and the `--multipar` route exposed by the
+`RawParallelCurrentMany*` configs in the unified wrapper. It does not cover:
 
 1. reduction-aware parallelization;
-2. arbitrary nested or unbounded multi-parallel route selection as a single
-   unified config theorem;
-3. OpenMP runtime semantics beyond the verified loop-to-loop target semantics.
-
-The existing `--multipar` path has checked multi-certificate code generation,
-but it is still separate from the single-config `compile` wrapper.
+2. OpenMP runtime semantics beyond the verified loop-to-loop target semantics;
+3. future Pluto builds that expose a broader nested-parallel hint surface than
+   the current checked multi-current route exercises.
 
 ### 9.3 Fully verified witness extraction
 
@@ -403,13 +402,11 @@ is still worth isolating later.
 
 The cleanest next extensions are:
 
-1. fold the existing `--multipar` path into the single config wrapper or state
-   its separate theorem boundary more prominently;
-2. broaden vector-route evidence without changing the current doall
+1. broaden vector and multipar evidence without changing the current doall
    certificate story;
-3. finish a memory-changing validation layer for scalar privatization,
+2. finish a memory-changing validation layer for scalar privatization,
    contraction, and layout transformations;
-4. add a generalized state relation for transformations that allocate,
+3. add a generalized state relation for transformations that allocate,
    privatize, or remap storage.
 
 That order keeps state-preserving polyhedral compilation separate from the
