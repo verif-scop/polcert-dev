@@ -190,6 +190,14 @@ constructing a bespoke combined access relation for each pass sequence.
   composition induce the same endpoint state view.  This makes the existing
   proof stack an instance of the shared carrier instead of a competing endpoint
   relation.
+- `src/StateObservation.v` also introduces
+  `generic_cell_view_transform_contract` and
+  `generic_cell_view_transform_contract_compose`.  This is the same
+  access-remap plus semantic-refinement pass shape as the old
+  `cell_view_transform_contract`, but stated over the shared carrier.  The
+  adapter theorems `cell_view_transform_contract_to_generic` and
+  `generic_cell_view_transform_contract_to_cell_view` keep existing validators
+  usable while future storage validators target the generic form directly.
 - `src/StateObservation.v` now also packages this into
   `cell_view_transform_contract`: one pass carries a public `cell_view`, a
   `pprog_same_instance_access_remap` witness under that view's cell relation,

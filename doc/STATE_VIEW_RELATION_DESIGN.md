@@ -1988,6 +1988,10 @@ that carrier incrementally.  The bridge lemmas
 observer-local composition and the new generic composition induce the same
 endpoint state view, so this migration is a refactoring of the relation layer
 rather than a second semantics.
+`generic_cell_view_transform_contract_compose` lifts this to whole
+same-instance storage passes: access-remap composition and endpoint
+`view_refinement` composition are now stated over the shared public-cell view
+carrier, with adapters back to the old observer-local pass contract.
 
 `StorageBoundaryView.v` now factors out one common endpoint instance of that
 discipline.  It treats a finite logical-to-physical boundary selector as the

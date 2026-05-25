@@ -391,6 +391,92 @@ Proof.
   reflexivity.
 Qed.
 
+(** The same pass contract as [cell_view_transform_contract], but stated over
+    the observer-independent public-cell view carrier.  The local
+    [cell_view_transform_contract] below remains for existing validators while
+    feature-specific code migrates to [generic_cell_view]. *)
+Record generic_cell_view_transform_contract
+    (public_view: generic_cell_view)
+    (before after: PolIRs.PolyLang.t) : Prop := {
+  gcvtc_access_remap :
+    Storage.pprog_same_instance_access_remap
+      (gcv_cell_relation public_view) before after;
+  gcvtc_view_refinement :
+    View.view_refinement
+      (generic_cell_view_state_view public_view)
+      (generic_cell_view_state_view public_view)
+      before after;
+}.
+
+Record composed_generic_cell_view_transform_contract
+    (target_mid mid_source: generic_cell_view)
+    (Hcompatible:
+       generic_cell_view_mid_observables_compatible target_mid mid_source)
+    (before after: PolIRs.PolyLang.t) : Prop := {
+  cgcvtc_access_remap :
+    Storage.pprog_same_instance_access_remap
+      (gcv_cell_relation
+         (compose_generic_cell_view
+            target_mid mid_source Hcompatible))
+      before after;
+  cgcvtc_view_refinement :
+    View.view_refinement
+      (View.compose_view
+         (generic_cell_view_state_view target_mid)
+         (generic_cell_view_state_view mid_source))
+      (generic_cell_view_state_view
+         (compose_generic_cell_view
+            target_mid mid_source Hcompatible))
+      before after;
+}.
+
+Theorem generic_cell_view_transform_contract_compose :
+  forall target_mid mid_source
+         (Hcompatible:
+            generic_cell_view_mid_observables_compatible
+              target_mid mid_source)
+         before mid after,
+    generic_cell_view_transform_contract target_mid mid after ->
+    generic_cell_view_transform_contract mid_source before mid ->
+    composed_generic_cell_view_transform_contract
+      target_mid mid_source Hcompatible before after.
+Proof.
+  intros target_mid mid_source Hcompatible before mid after
+         Htarget_mid Hmid_source.
+  destruct Htarget_mid as [Haccess_target_mid Hview_target_mid].
+  destruct Hmid_source as [Haccess_mid_source Hview_mid_source].
+  constructor.
+  - simpl.
+    eapply Storage.pprog_same_instance_access_remap_compose; eauto.
+  - pose proof
+      (View.view_refinement_compose
+         (generic_cell_view_state_view target_mid)
+         (generic_cell_view_state_view target_mid)
+         (generic_cell_view_state_view mid_source)
+         (generic_cell_view_state_view mid_source)
+         before mid after
+         Hview_target_mid Hview_mid_source)
+      as Hcomposed.
+    eapply
+      (View.view_refinement_monotone
+         (View.compose_view
+            (generic_cell_view_state_view target_mid)
+            (generic_cell_view_state_view mid_source))
+         (View.compose_view
+            (generic_cell_view_state_view target_mid)
+            (generic_cell_view_state_view mid_source))
+         (View.compose_view
+            (generic_cell_view_state_view target_mid)
+            (generic_cell_view_state_view mid_source))
+         (generic_cell_view_state_view
+            (compose_generic_cell_view
+               target_mid mid_source Hcompatible))
+         before after).
+    + apply View.view_included_refl.
+    + apply generic_cell_view_state_view_compose_included.
+    + exact Hcomposed.
+Qed.
+
 (** A reusable contract for a same-instance storage pass whose access remap and
     endpoint relation are governed by the same public cell view.  The semantic
     refinement remains explicit: the syntactic access witness is only the
@@ -471,6 +557,28 @@ Proof.
     + apply View.view_included_refl.
     + apply cell_view_state_view_compose_included.
     + exact Hcomposed.
+Qed.
+
+Theorem cell_view_transform_contract_to_generic :
+  forall public_view before after,
+    cell_view_transform_contract public_view before after ->
+    generic_cell_view_transform_contract
+      (cell_view_to_generic public_view) before after.
+Proof.
+  intros public_view before after Hcontract.
+  destruct Hcontract as [Haccess Hview].
+  constructor; assumption.
+Qed.
+
+Theorem generic_cell_view_transform_contract_to_cell_view :
+  forall public_view before after,
+    generic_cell_view_transform_contract public_view before after ->
+    cell_view_transform_contract
+      (generic_cell_view_to_cell_view public_view) before after.
+Proof.
+  intros public_view before after Hcontract.
+  destruct Hcontract as [Haccess Hview].
+  constructor; assumption.
 Qed.
 
 Definition all_cells_observable (_: MemCell) : Prop := True.
