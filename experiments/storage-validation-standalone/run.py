@@ -546,10 +546,15 @@ def validate_scratchpad_packing() -> List[str]:
     for kk in range(0, n, tile):
         bp: Dict[int, int] = {}
         local_mapping = {("Bp", k): ("B", kk + k) for k in range(tile)}
+        public_specs = {("B", kk + k): (8, 8) for k in range(tile)}
+        local_specs = {("Bp", k): (8, 8) for k in range(tile)}
         require(len(set(local_mapping.keys())) == len(local_mapping),
                 "local buffer cells are not injective")
         require(len(set(local_mapping.values())) == len(local_mapping),
                 "public cells mapped to local buffer are not injective")
+        require(all(public_specs[public] == local_specs[local]
+                    for local, public in local_mapping.items()),
+                "scratchpad local storage spec mismatch")
         copy_events = set()
         for k in range(tile):
             require(local_mapping[("Bp", k)] == ("B", kk + k),
@@ -567,6 +572,7 @@ def validate_scratchpad_packing() -> List[str]:
         "copy-in covers every later local read",
         "local buffer address k consistently maps to source B[kk+k]",
         "public-to-local copy mapping is injective during each tile",
+        "local buffer cells are storage-compatible with represented public cells",
         "local buffer lifetime is tile-scoped and fresh between tiles",
     ]
 
@@ -1417,6 +1423,17 @@ def reject_scratchpad_bad_local_remap() -> None:
     for k in range(tile):
         require(local_mapping[("Bp", k)] == ("B", kk + k),
                 "local read does not match the declared local remap")
+
+
+@add_negative("scratchpad_incompatible_local_storage", "scratchpad_packing")
+def reject_scratchpad_incompatible_local_storage() -> None:
+    kk, tile = 0, 4
+    local_mapping = {("Bp", k): ("B", kk + k) for k in range(tile)}
+    public_specs = {("B", kk + k): (8, 8) for k in range(tile)}
+    local_specs = {("Bp", k): (4, 4) for k in range(tile)}
+    require(all(public_specs[public] == local_specs[local]
+                for local, public in local_mapping.items()),
+            "scratchpad local storage spec mismatch")
 
 
 @add_negative("missing_copy_out", "scratchpad_copy_out")

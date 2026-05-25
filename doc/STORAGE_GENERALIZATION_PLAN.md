@@ -981,8 +981,13 @@ copy-instance role-alignment obligation.
 contract used by packing-style transformations: projection, copy protocol,
 copy-out exact cover, copy-instance role alignment, public-to-local remapping,
 copy value flow, and local-buffer separation all compose under the same
-`view_refinement` endpoint.  It still leaves the derivation of traces and
-values from concrete target instructions as the explicit semantic refinement.
+`view_refinement` endpoint.
+`checked_scratchpad_copy_compatible_full_view_correct` additionally requires
+`StorageCompatibilityWitness` on the public-to-local copy mapping, so the local
+buffer cells used for packing/scratchpad storage must have size/alignment
+compatible with the public cells they represent.  It still leaves the
+derivation of traces, values, and storage specs from concrete target
+instructions as the explicit semantic refinement.
 
 ### 9. Conflict-Safe Reuse
 

@@ -548,6 +548,8 @@ Definition storage_scratchpad_copy_instance_commit_view_contract :=
   ScratchpadCopyCore.scratchpad_copy_instance_commit_view_contract.
 Definition storage_scratchpad_copy_full_view_contract :=
   ScratchpadCopyCore.scratchpad_copy_full_view_contract.
+Definition storage_scratchpad_copy_compatible_full_view_contract :=
+  ScratchpadCopyCore.scratchpad_copy_compatible_full_view_contract.
 Definition storage_checked_scratchpad_copy_view_correct :=
   ScratchpadCopyCore.checked_scratchpad_copy_view_correct.
 Definition storage_checked_scratchpad_copy_commit_view_correct :=
@@ -558,6 +560,8 @@ Definition storage_checked_scratchpad_copy_instance_commit_view_correct :=
   ScratchpadCopyCore.checked_scratchpad_copy_instance_commit_view_correct.
 Definition storage_checked_scratchpad_copy_full_view_correct :=
   ScratchpadCopyCore.checked_scratchpad_copy_full_view_correct.
+Definition storage_checked_scratchpad_copy_compatible_full_view_correct :=
+  ScratchpadCopyCore.checked_scratchpad_copy_compatible_full_view_correct.
 Definition storage_reuse_mapping := reuse_mapping.
 Definition storage_conflict_pairs := conflict_pairs.
 Definition storage_live_interval := live_interval.

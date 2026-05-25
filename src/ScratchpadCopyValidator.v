@@ -15,6 +15,7 @@ Require Import CopyInstanceWitness.
 Require Import CopyMappingWitness.
 Require Import CopyProtocolValueWitness.
 Require Import InstanceProjectionWitness.
+Require Import StorageCompatibilityWitness.
 
 Import ListNotations.
 
@@ -152,6 +153,28 @@ Record scratchpad_copy_full_view_contract
     copy_mapping_obligations mapping copy_trace;
   sccf_value_simulation :
     copy_value_simulation_obligations value value_trace;
+}.
+
+Record scratchpad_copy_compatible_full_view_contract
+    (value: Type)
+    (input_view output_view: View.view)
+    (source_domain source_liveouts: list logical_instance)
+    (targets: list projected_instance)
+    (expected_commit_targets: list MemCell)
+    (mapping: copy_cell_mapping)
+    (copy_trace: list copy_event)
+    (value_trace: copy_value_trace value)
+    (local_cells public_cells frame_cells: list MemCell)
+    (public_specs local_specs: list storage_spec)
+    (source_view after: PolyLang.t) : Prop := {
+  scccf_base :
+    scratchpad_copy_full_view_contract
+      value input_view output_view
+      source_domain source_liveouts targets expected_commit_targets
+      mapping copy_trace value_trace
+      local_cells public_cells frame_cells source_view after;
+  scccf_storage_compatible :
+    storage_compatibility_obligations mapping public_specs local_specs;
 }.
 
 Definition scratchpad_pipeline_final_view
@@ -403,6 +426,70 @@ Proof.
        copy_trace local_cells public_cells frame_cells
        before source_view after ok
        Hret Hok Hprojection Hcopy Hcommit Hinstance
+       Hseparation Hsemantics)
+    as [Hbase Hview].
+  split.
+  - constructor; assumption.
+  - exact Hview.
+Qed.
+
+Theorem checked_scratchpad_copy_compatible_full_view_correct :
+  forall (value: Type) (value_eqb: value -> value -> bool)
+         input_view output_view
+         source_domain source_liveouts targets expected_commit_targets
+         mapping copy_trace value_trace
+         local_cells public_cells frame_cells
+         public_specs local_specs
+         before source_view after ok,
+    (forall left right,
+       value_eqb left right = true ->
+       left = right) ->
+    mayReturn
+      (check_scratchpad_source_view before source_view) ok ->
+    ok = true ->
+    check_instance_projectionb
+      source_domain source_liveouts targets = true ->
+    check_copy_protocol_wfb copy_trace = true ->
+    check_copy_commit_coverb expected_commit_targets copy_trace = true ->
+    check_copy_instance_traceb targets copy_trace = true ->
+    check_copy_mappingb mapping copy_trace = true ->
+    check_copy_value_traceb value_eqb value_trace = true ->
+    check_private_separationb
+      local_cells public_cells frame_cells = true ->
+    check_storage_compatibilityb mapping public_specs local_specs = true ->
+    scratchpad_source_view_refines_view
+      input_view output_view source_view after ->
+    scratchpad_copy_compatible_full_view_contract
+      value input_view output_view
+      source_domain source_liveouts targets expected_commit_targets
+      mapping copy_trace value_trace
+      local_cells public_cells frame_cells
+      public_specs local_specs source_view after /\
+    View.view_refinement
+      input_view
+      (scratchpad_pipeline_final_view output_view)
+      before after.
+Proof.
+  intros value value_eqb input_view output_view
+         source_domain source_liveouts targets expected_commit_targets
+         mapping copy_trace value_trace
+         local_cells public_cells frame_cells
+         public_specs local_specs
+         before source_view after ok Hvalue_eqb Hret Hok
+         Hprojection Hcopy Hcommit Hinstance Hmapping Hvalue
+         Hseparation Hstorage Hsemantics.
+  pose proof
+    (check_storage_compatibilityb_sound
+       mapping public_specs local_specs Hstorage)
+    as Hstorage_obligations.
+  pose proof
+    (checked_scratchpad_copy_full_view_correct
+       value value_eqb input_view output_view
+       source_domain source_liveouts targets expected_commit_targets
+       mapping copy_trace value_trace
+       local_cells public_cells frame_cells
+       before source_view after ok Hvalue_eqb Hret Hok
+       Hprojection Hcopy Hcommit Hinstance Hmapping Hvalue
        Hseparation Hsemantics)
     as [Hbase Hview].
   split.

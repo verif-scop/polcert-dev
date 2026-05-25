@@ -1231,6 +1231,10 @@ copy-instance role-alignment obligation.
 contract: exact copy-out cover, helper-instance roles, remapping consistency,
 value-flow simulation, and local-buffer separation are returned together under
 the common view theorem.
+`checked_scratchpad_copy_compatible_full_view_correct` adds the storage-spec
+side condition to the same public-to-local remapping: each local buffer cell
+must be size/alignment-compatible with the public cell it temporarily
+represents.
 
 This support cannot be reduced to schedule legality.  The copy protocol is part
 of correctness.
