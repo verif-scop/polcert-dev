@@ -1354,12 +1354,21 @@ checked_overlap_private_ordered_closure_view_correct:
   tile-local dependence-closure and producer-order witness
   private/tile-local separation witness
   semantic overlap refinement
+
+checked_overlap_private_ordered_closure_compatible_view_correct:
+  projection witness over flattened tile targets
+  tile-local dependence-closure and producer-order witness
+  private/tile-local separation witness
+  logical-to-private storage compatibility witness
+  semantic overlap refinement
 ```
 
 This keeps two facts separate: duplicated target instances are justified by
 the projection/commit witness; tile-local recomputation is justified by a
 closure witness; materialized halo or tile buffers require storage separation
-and an output view that hides or commits them.
+and an output view that hides or commits them.  The compatible variant adds
+the size/alignment side condition for the declared logical-to-private mapping;
+it still does not derive that mapping from generated tile code.
 
 ## Integration Rule
 

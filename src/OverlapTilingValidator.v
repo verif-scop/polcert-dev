@@ -9,8 +9,10 @@ Require Import TransformContract.
 Require Import StateView.
 Require Import ViewPipeline.
 Require Import PrivateStorageWitness.
+Require Import ReuseConflictWitness.
 Require Import InstanceProjectionWitness.
 Require Import OverlapClosureWitness.
+Require Import StorageCompatibilityWitness.
 
 Import ListNotations.
 
@@ -160,6 +162,23 @@ Record overlap_private_ordered_closure_view_contract
   opoc_semantic_refinement :
     overlap_source_view_refines_view
       input_view output_view source_view after;
+}.
+
+Record overlap_private_ordered_closure_compatible_view_contract
+    (input_view output_view: View.view)
+    (source_domain source_liveouts: list logical_instance)
+    (tiles: list overlap_tile)
+    (private_cells public_cells frame_cells: list MemCell)
+    (private_mapping: reuse_mapping)
+    (logical_specs private_specs: list storage_spec)
+    (source_view after: PolyLang.t) : Prop := {
+  opocc_base :
+    overlap_private_ordered_closure_view_contract
+      input_view output_view source_domain source_liveouts tiles
+      private_cells public_cells frame_cells source_view after;
+  opocc_storage_compatible :
+    storage_compatibility_obligations
+      private_mapping logical_specs private_specs;
 }.
 
 Definition overlap_pipeline_final_view
@@ -415,6 +434,55 @@ Proof.
       (Pipeline.compose_checked_source_view
          input_view output_view before source_view after ok);
       assumption.
+Qed.
+
+Theorem checked_overlap_private_ordered_closure_compatible_view_correct :
+  forall input_view output_view
+         source_domain source_liveouts tiles
+         private_cells public_cells frame_cells
+         private_mapping logical_specs private_specs
+         before source_view after ok,
+    mayReturn (check_overlap_source_view before source_view) ok ->
+    ok = true ->
+    check_instance_projectionb
+      source_domain source_liveouts
+      (overlap_tiles_targets tiles) = true ->
+    check_overlap_ordered_closureb tiles = true ->
+    check_private_separationb
+      private_cells public_cells frame_cells = true ->
+    check_storage_compatibilityb
+      private_mapping logical_specs private_specs = true ->
+    overlap_source_view_refines_view
+      input_view output_view source_view after ->
+    overlap_private_ordered_closure_compatible_view_contract
+      input_view output_view source_domain source_liveouts tiles
+      private_cells public_cells frame_cells
+      private_mapping logical_specs private_specs source_view after /\
+    View.view_refinement
+      input_view
+      (overlap_pipeline_final_view output_view)
+      before after.
+Proof.
+  intros input_view output_view
+         source_domain source_liveouts tiles
+         private_cells public_cells frame_cells
+         private_mapping logical_specs private_specs
+         before source_view after ok
+         Hret Hok Hprojection Hclosure Hseparation Hstorage Hsemantics.
+  pose proof
+    (checked_overlap_private_ordered_closure_view_correct
+       input_view output_view source_domain source_liveouts tiles
+       private_cells public_cells frame_cells
+       before source_view after ok
+       Hret Hok Hprojection Hclosure Hseparation Hsemantics)
+    as [Hbase Hview].
+  pose proof
+    (check_storage_compatibilityb_sound
+       private_mapping logical_specs private_specs Hstorage)
+    as Hstorage_obligations.
+  split.
+  - constructor; assumption.
+  - exact Hview.
 Qed.
 
 End OverlapTilingValidator.

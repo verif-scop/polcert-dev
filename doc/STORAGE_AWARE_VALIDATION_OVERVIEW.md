@@ -240,7 +240,12 @@ target state.  `OverlapClosureWitness.v` adds the finite local-dependence
 closure and ordering side conditions: each tile dependency must be supplied
 either by a tile live-in or by a computation projected inside the same tile, and
 tile-produced values must appear before their consumers in the tile target
-trace.  Recomputed-value equivalence remains an explicit semantic obligation.
+trace.
+`OverlapTilingValidator.checked_overlap_private_ordered_closure_compatible_view_correct`
+adds the storage-class side condition for materialized tile-private halo
+storage: each represented logical cell and tile-private cell in the declared
+private mapping must have compatible finite size/alignment specs.
+Recomputed-value equivalence remains an explicit semantic obligation.
 `VersionCommitWitness.v` starts the array-expansion/versioning route by
 checking that each source live-out selects exactly one target version and that
 selected versions are duplicate-free.  It also exposes the exact-cover
@@ -348,7 +353,7 @@ feature-specific instruction or trace simulation proofs.
 | P8 reduction merge | `ReductionMergeWitness.check_reduction_mergeb_sound`; `ReductionMergeValueWitness.check_reduction_value_mergeb_sound`; `ReductionAlgebraWitness.check_reduction_*_lawb_sound`; `StorageCompatibilityWitness.check_storage_compatibilityb_sound`; `ReductionMergeValidator.checked_reduction_merge_commutative_compatible_value_view_correct` | chunks cover the reduction domain; private accumulators and merge order are well formed; merge-order accumulator values fold to the claimed final value; a finite carrier can witness closure, associativity, commutativity, and identity laws; private accumulators can be required size/alignment-compatible with the public reduction cell; bookkeeping, value, algebra, and storage evidence can be packaged in one view theorem | deriving accumulator values/storage specs and connecting finite-carrier laws to concrete C/FP semantics |
 | P9 phase separation | `PhaseSeparationWitness.check_phase_protocolb_sound`; `PhaseValueWitness.check_phase_value_protocolb_sound`; `PhaseValueWitness.check_phase_value_protocolb_final_snapshot`; `PhaseProjectionWitness.check_phase_projectionb_sound`; `PhaseProjectionWitness.check_phase_projection_valueb_sound`; `StorageCompatibilityWitness.check_storage_compatibilityb_sound`; `StorageBoundaryView.checked_storage_boundary_refinement_correct`; `PhaseSeparationValidator.checked_phase_projection_compatible_value_view_correct` | reads are visible, writes do not overwrite live cells, next-live cells are covered, next-live values come from phase writes or entry-live values, the checked value protocol yields a final snapshot matching final-live cells, final source live-outs are exactly projected to final phase-live cells, projected boundary values match, projected final phase cells can be required size/alignment-compatible with represented live-outs, and the final projection can use the shared storage-backed boundary view shape | deriving the phase/swap projection and storage specs from concrete phase arithmetic and target code |
 | P10 frame preservation | `FramePreservationWitness.check_frame_preservationb_sound`; per-cell corollaries such as `FramePreservationWitness.frame_preservation_write_not_frame`; `FramePreservationValidator.checked_frame_preservation_view_correct` | writes are included in the allowed-write set; allowed writes are disjoint from frame cells; each fragment write is therefore outside the context frame; the side condition can be packaged with the common source-view theorem shape | deriving the write set from concrete instruction semantics |
-| overlap-specific composition | `OverlapTilingValidator.checked_overlap_*_view_correct` | duplicated/internal instances project to source instances and commits are unique; optional tile-local closure and private separation | recomputed-value equivalence |
+| overlap-specific composition | `OverlapTilingValidator.checked_overlap_*_view_correct`; `OverlapTilingValidator.checked_overlap_private_ordered_closure_compatible_view_correct` | duplicated/internal instances project to source instances and commits are unique; optional tile-local closure and private separation; materialized tile-private halo cells can be required size/alignment-compatible with represented logical values | recomputed-value equivalence and deriving private mapping/storage specs from generated tile code |
 
 ## Theorem Families
 

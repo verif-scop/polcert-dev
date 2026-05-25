@@ -948,12 +948,14 @@ def validate_overlapped_tiling() -> List[str]:
     tile_ranges = [(l, min(l + tile, n - 2)) for l in range(2, n - 2, tile)]
     target_instances: List[Tuple[int, str, int, str]] = []
     commits: List[Tuple[str, int]] = []
+    private_mapping: List[Tuple[Tuple[str, int], Tuple[str, int, int]]] = []
     for tile_id, (l, r) in enumerate(tile_ranges):
         local_t_points = set(range(max(1, l - halo), min(n - 1, r + halo)))
         tile_trace: List[Tuple[str, int]] = []
         for i in sorted(local_t_points):
             role = "commit" if l <= i < r else "internal"
             target_instances.append((tile_id, "T", i, "internal"))
+            private_mapping.append((("T", i), ("LocalT", tile_id, i)))
             tile_trace.append(("T", i))
             require(("T", i) in source_domain, "overlap computes an invalid T instance")
             require(all(0 <= q < n for q in (i - 1, i, i + 1)), "halo read out of input bounds")
@@ -973,6 +975,11 @@ def validate_overlapped_tiling() -> List[str]:
     require(set(commits) == b_domain, "commits do not cover every source output")
     require(len(commits) == len(b_domain), "more than one tile commits a source output")
     require(len(target_instances) > len(source_domain), "target did not actually duplicate work")
+    logical_specs = {("T", i): (8, 8) for i in range(1, n - 1)}
+    local_specs = {local_cell: (8, 8) for _source_cell, local_cell in private_mapping}
+    require(all(logical_specs[source_cell] == local_specs[local_cell]
+                for source_cell, local_cell in private_mapping),
+            "overlap private storage spec mismatch")
 
     a = {i: i for i in range(n)}
     source_t = {i: a[i - 1] + a[i] + a[i + 1] for i in range(1, n - 1)}
@@ -992,6 +999,7 @@ def validate_overlapped_tiling() -> List[str]:
         "tile-local dependence closure covers every committed B computation",
         "tile-local producers precede their consumers in the target trace",
         "duplicated halo/internal writes are tile-local and invisible",
+        "tile-private halo storage is compatible with represented T values",
     ]
 
 
@@ -1645,6 +1653,16 @@ def reject_overlap_bad_producer_order() -> None:
     for dep in {1, 2, 3}:
         require(positions[("T", dep)] < consumer_pos,
                 "tile producer does not precede consumer")
+
+
+@add_negative("overlap_incompatible_private_storage", "overlapped_tiling")
+def reject_overlap_incompatible_private_storage() -> None:
+    logical_specs = {("T", 1): (8, 8)}
+    local_specs = {("LocalT", 0, 1): (4, 4)}
+    private_mapping = [(("T", 1), ("LocalT", 0, 1))]
+    require(all(logical_specs[source_cell] == local_specs[local_cell]
+                for source_cell, local_cell in private_mapping),
+            "overlap private storage spec mismatch")
 
 
 @add_negative("overlapping_reduction_chunks", "reduction_privatization")

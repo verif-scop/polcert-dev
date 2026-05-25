@@ -728,6 +728,8 @@ Definition storage_overlap_ordered_closure_view_contract :=
   OverlapTilingCore.overlap_ordered_closure_view_contract.
 Definition storage_overlap_private_ordered_closure_view_contract :=
   OverlapTilingCore.overlap_private_ordered_closure_view_contract.
+Definition storage_overlap_private_ordered_closure_compatible_view_contract :=
+  OverlapTilingCore.overlap_private_ordered_closure_compatible_view_contract.
 Definition storage_checked_overlap_no_private_view_correct :=
   OverlapTilingCore.checked_overlap_no_private_view_correct.
 Definition storage_checked_overlap_private_view_correct :=
@@ -740,6 +742,8 @@ Definition storage_checked_overlap_ordered_closure_view_correct :=
   OverlapTilingCore.checked_overlap_ordered_closure_view_correct.
 Definition storage_checked_overlap_private_ordered_closure_view_correct :=
   OverlapTilingCore.checked_overlap_private_ordered_closure_view_correct.
+Definition storage_checked_overlap_private_ordered_closure_compatible_view_correct :=
+  OverlapTilingCore.checked_overlap_private_ordered_closure_compatible_view_correct.
 Definition storage_version_commit_mapping :=
   version_commit_mapping.
 Definition storage_version_value_entry := version_value_entry.
