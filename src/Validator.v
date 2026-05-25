@@ -41,6 +41,7 @@ Require Import OverlapValueWitness.
 Require Import OverlapTilingValidator.
 Require Import VersionCommitWitness.
 Require Import VersionCommitValueWitness.
+Require Import VersionReadWitness.
 Require Import VersionCommitValidator.
 Require Import ReductionMergeWitness.
 Require Import ReductionMergeValueWitness.
@@ -773,6 +774,24 @@ Definition storage_check_version_valueb_sound :=
   check_version_valueb_sound.
 Definition storage_version_value_obligations :=
   version_value_obligations.
+Definition storage_produced_version_mapping :=
+  produced_version_mapping.
+Definition storage_version_read_entry :=
+  version_read_entry.
+Definition storage_version_read_value_entry :=
+  version_read_value_entry.
+Definition storage_check_version_read_selectionb :=
+  check_version_read_selectionb.
+Definition storage_check_version_read_selectionb_sound :=
+  check_version_read_selectionb_sound.
+Definition storage_version_read_selection_obligations :=
+  version_read_selection_obligations.
+Definition storage_check_version_read_valueb :=
+  @check_version_read_valueb.
+Definition storage_check_version_read_valueb_sound :=
+  check_version_read_valueb_sound.
+Definition storage_version_read_value_obligations :=
+  version_read_value_obligations.
 Definition storage_check_version_commitb :=
   check_version_commitb.
 Definition storage_check_version_commitb_sound :=
@@ -809,6 +828,8 @@ Definition storage_version_commit_compatible_view_contract :=
   VersionCommitCore.version_commit_compatible_view_contract.
 Definition storage_version_commit_compatible_value_view_contract :=
   VersionCommitCore.version_commit_compatible_value_view_contract.
+Definition storage_version_commit_read_compatible_value_view_contract :=
+  VersionCommitCore.version_commit_read_compatible_value_view_contract.
 Definition storage_checked_version_commit_view_correct :=
   VersionCommitCore.checked_version_commit_view_correct.
 Definition storage_checked_version_commit_value_view_correct :=
@@ -817,6 +838,8 @@ Definition storage_checked_version_commit_compatible_view_correct :=
   VersionCommitCore.checked_version_commit_compatible_view_correct.
 Definition storage_checked_version_commit_compatible_value_view_correct :=
   VersionCommitCore.checked_version_commit_compatible_value_view_correct.
+Definition storage_checked_version_commit_read_compatible_value_view_correct :=
+  VersionCommitCore.checked_version_commit_read_compatible_value_view_correct.
 Definition storage_reduction_chunks := reduction_chunks.
 Definition storage_reduction_accumulator_value :=
   reduction_accumulator_value.

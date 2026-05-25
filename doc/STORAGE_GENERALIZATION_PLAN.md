@@ -807,6 +807,26 @@ the array-expansion analogue of the reuse compatibility side condition:
 selected physical versions must be able to store the source live-out values
 they represent, while deriving size/alignment specs from concrete C types and
 allocations remains explicit.
+`src/VersionReadWitness.v` adds the internal read-selection layer:
+
+```text
+check_version_read_selectionb expected_reads produced_versions read_entries = true ->
+version_read_selection_obligations
+  expected_reads produced_versions read_entries
+
+check_version_read_valueb value_eqb read_entries read_value_entries = true ->
+version_read_value_obligations value read_entries read_value_entries
+```
+
+Here producer and read identities are dynamic `logical_instance`s, while the
+selected target version remains a `MemCell`.  The checker proves that the
+finite read entries cover the expected source reads positionally, each selected
+version was produced by the intended dynamic source write, and optional value
+entries match the selected read entries.  The composed
+`checked_version_commit_read_compatible_value_view_correct` theorem packages
+live-out commit, boundary value, storage compatibility, read selection, and
+read value evidence together; deriving `expected_reads`, `produced_versions`,
+and read values from concrete instruction semantics remains explicit.
 
 ### 7. Reduction Merge
 

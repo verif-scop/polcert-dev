@@ -892,15 +892,37 @@ def validate_array_expansion_versioning() -> List[str]:
 
     x_exp: Dict[Tuple[int, int], int] = {}
     target_y: Dict[Tuple[int, int], int] = {}
+    produced_versions = {
+        ("write_X", t, i): ("X_exp", t, i)
+        for t in range(t_max) for i in range(n)
+    }
+    expected_reads = [("read_Y", t, i) for t in range(t_max) for i in range(n)]
+    read_entries: List[
+        Tuple[Tuple[str, int, int], Tuple[str, int, int], Tuple[str, int, int]]
+    ] = []
     for t in range(t_max):
         for i in range(n):
             x_exp[t, i] = t + i
             require((t, i) in x_exp, "expanded version read before write")
+            read_entries.append(
+                (("read_Y", t, i), ("write_X", t, i), ("X_exp", t, i)))
             target_y[t, i] = x_exp[t, i]
     target_x = {i: x_exp[t_max - 1, i] for i in range(n)}
 
     same_dict(y, target_y, "Y")
     same_dict(x, target_x, "final X")
+    require([read for read, _producer, _version in read_entries] == expected_reads,
+            "version read selection does not cover expected reads")
+    require(all(produced_versions[producer] == version
+                for _read, producer, version in read_entries),
+            "version read selects wrong producer")
+    read_value_entries = [
+        (entry, y[entry[0][1], entry[0][2]], x_exp[entry[2][1], entry[2][2]])
+        for entry in read_entries
+    ]
+    require(all(source_value == version_value
+                for _entry, source_value, version_value in read_value_entries),
+            "version read value mismatch")
     source_liveouts = {("X", i) for i in range(n)}
     selected_versions = {("X", i): ("X_exp", t_max - 1, i) for i in range(n)}
     require(set(selected_versions.keys()) == source_liveouts,
@@ -917,6 +939,7 @@ def validate_array_expansion_versioning() -> List[str]:
             "selected version value does not match source live-out")
     return [
         "each read selects the version produced by the same logical iteration",
+        "selected read-version values match the source read values",
         "extra versions project back to one source logical array",
         "selected committed versions cover source live-outs exactly once",
         "selected target versions are storage-compatible with source live-outs",
@@ -1641,6 +1664,25 @@ def reject_expansion_incompatible_version_storage() -> None:
     version_specs = {version_cell: (4, 4)}
     require(logical_specs[source_cell] == version_specs[version_cell],
             "selected version storage spec mismatch")
+
+
+@add_negative("expansion_wrong_read_selection", "array_expansion_versioning")
+def reject_expansion_wrong_read_selection() -> None:
+    produced_versions = {("write_X", 1, 0): ("X_exp", 1, 0)}
+    read_entries = [(("read_Y", 1, 0), ("write_X", 1, 0), ("X_exp", 0, 0))]
+    require(all(produced_versions[producer] == version
+                for _read, producer, version in read_entries),
+            "version read selects wrong producer")
+
+
+@add_negative("expansion_bad_read_value", "array_expansion_versioning")
+def reject_expansion_bad_read_value() -> None:
+    read_value_entries = [
+        ((("read_Y", 1, 0), ("write_X", 1, 0), ("X_exp", 1, 0)), 1, 0),
+    ]
+    require(all(source_value == version_value
+                for _entry, source_value, version_value in read_value_entries),
+            "version read value mismatch")
 
 
 @add_negative("duplicate_overlap_commit", "overlapped_tiling")

@@ -1487,6 +1487,13 @@ storage compatibility for selected source/version pairs, so array expansion can
 state in one theorem that selected versions cover live-outs, are unique,
 contain the represented boundary values, and have compatible size/alignment
 specs.
+`VersionReadWitness.check_version_read_selectionb_sound` adds the internal
+read-selection witness: finite expected dynamic reads are aligned with read
+entries, and every read entry selects a target version produced by its intended
+dynamic source write.  `check_version_read_valueb_sound` adds matching
+read-value evidence.  `checked_version_commit_read_compatible_value_view_correct`
+packages these read-side obligations with the existing live-out commit,
+boundary value, and storage-compatibility obligations.
 
 This is useful as a counterpart to contraction and as a generalization of scalar
 expansion.
