@@ -1037,6 +1037,15 @@ def validate_reduction_privatization() -> List[str]:
             "reduction merge order reuses a private accumulator")
     require(set(merge_order) == set(partial_accumulators),
             "reduction merge order does not cover private accumulators exactly")
+    public_accumulator = ("sum",)
+    public_specs = {public_accumulator: (8, 8)}
+    accumulator_specs = {accumulator: (8, 8) for accumulator in partial_accumulators}
+    storage_mapping = {
+        accumulator: public_accumulator for accumulator in partial_accumulators
+    }
+    require(all(public_specs[public_cell] == accumulator_specs[private_cell]
+                for private_cell, public_cell in storage_mapping.items()),
+            "reduction accumulator storage spec mismatch")
 
     require(identity in carrier, "reduction identity is outside the finite carrier")
     require(all(merge(x, y) in carrier for x in carrier for y in carrier),
@@ -1069,6 +1078,7 @@ def validate_reduction_privatization() -> List[str]:
     return [
         "iteration chunks are disjoint and exactly cover the source reduction domain",
         "private accumulators are fresh per chunk",
+        "private accumulators are storage-compatible with the public reduction cell",
         "merge order consumes every private accumulator exactly once",
         "merge-order accumulator values fold to the final reduction value",
         "merge operator is closed, associative, commutative, and has an identity on the finite carrier",
@@ -1645,6 +1655,20 @@ def reject_reduction_missing_merge_accumulator() -> None:
     merge_order = [("local", 0), ("local", 2)]
     require(set(merge_order) == set(partial_accumulators),
             "reduction merge order does not cover private accumulators exactly")
+
+
+@add_negative("reduction_incompatible_accumulator_storage", "reduction_privatization")
+def reject_reduction_incompatible_accumulator_storage() -> None:
+    public_accumulator = ("sum",)
+    partial_accumulators = [("local", 0), ("local", 1)]
+    public_specs = {public_accumulator: (8, 8)}
+    accumulator_specs = {accumulator: (4, 4) for accumulator in partial_accumulators}
+    storage_mapping = {
+        accumulator: public_accumulator for accumulator in partial_accumulators
+    }
+    require(all(public_specs[public_cell] == accumulator_specs[private_cell]
+                for private_cell, public_cell in storage_mapping.items()),
+            "reduction accumulator storage spec mismatch")
 
 
 @add_negative("reduction_non_associative_law", "reduction_privatization")

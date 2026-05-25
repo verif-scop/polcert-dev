@@ -839,6 +839,8 @@ Definition storage_reduction_merge_associative_value_view_contract :=
   ReductionMergeCore.reduction_merge_associative_value_view_contract.
 Definition storage_reduction_merge_commutative_value_view_contract :=
   ReductionMergeCore.reduction_merge_commutative_value_view_contract.
+Definition storage_reduction_merge_commutative_compatible_value_view_contract :=
+  ReductionMergeCore.reduction_merge_commutative_compatible_value_view_contract.
 Definition storage_checked_reduction_merge_view_correct :=
   ReductionMergeCore.checked_reduction_merge_view_correct.
 Definition storage_checked_reduction_merge_value_view_correct :=
@@ -851,6 +853,8 @@ Definition storage_checked_reduction_merge_associative_value_view_correct :=
   ReductionMergeCore.checked_reduction_merge_associative_value_view_correct.
 Definition storage_checked_reduction_merge_commutative_value_view_correct :=
   ReductionMergeCore.checked_reduction_merge_commutative_value_view_correct.
+Definition storage_checked_reduction_merge_commutative_compatible_value_view_correct :=
+  ReductionMergeCore.checked_reduction_merge_commutative_compatible_value_view_correct.
 Definition storage_phase_step := phase_step.
 Definition storage_phase_cell_value := phase_cell_value.
 Definition storage_phase_value_step := phase_value_step.

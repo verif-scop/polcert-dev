@@ -12,6 +12,7 @@ Require Import InstanceProjectionWitness.
 Require Import ReductionMergeWitness.
 Require Import ReductionMergeValueWitness.
 Require Import ReductionAlgebraWitness.
+Require Import StorageCompatibilityWitness.
 
 Import ListNotations.
 
@@ -49,6 +50,16 @@ Definition reduction_source_view_refines_view
     (source_view after: PolyLang.t) : Prop :=
   Pipeline.source_view_refines_view
     input_view output_view source_view after.
+
+Fixpoint reduction_accumulator_storage_mapping
+    (public_accumulator: MemCell)
+    (partial_accumulators: list MemCell) : list (MemCell * MemCell) :=
+  match partial_accumulators with
+  | [] => []
+  | partial_accumulator :: tail =>
+      (public_accumulator, partial_accumulator) ::
+      reduction_accumulator_storage_mapping public_accumulator tail
+  end.
 
 Record reduction_merge_view_contract
     (input_view output_view: View.view)
@@ -186,6 +197,32 @@ Record reduction_merge_commutative_value_view_contract
   rmcsvc_semantic_refinement :
     reduction_source_view_refines_view
       input_view output_view source_view after;
+}.
+
+Record reduction_merge_commutative_compatible_value_view_contract
+    (value: Type)
+    (merge_op: value -> value -> value)
+    (identity: value)
+    (input_view output_view: View.view)
+    (source_domain: list logical_instance)
+    (chunks: reduction_chunks)
+    (partial_accumulators merge_order: list MemCell)
+    (public_accumulator: MemCell)
+    (public_specs accumulator_specs: list storage_spec)
+    (initial_value final_value: value)
+    (accumulator_values: list (reduction_accumulator_value value))
+    (carrier: list value)
+    (source_view after: PolyLang.t) : Prop := {
+  rmccsvc_value_base :
+    reduction_merge_commutative_value_view_contract
+      value merge_op identity input_view output_view source_domain chunks
+      partial_accumulators merge_order initial_value final_value
+      accumulator_values carrier source_view after;
+  rmccsvc_storage_compatible :
+    storage_compatibility_obligations
+      (reduction_accumulator_storage_mapping
+         public_accumulator partial_accumulators)
+      public_specs accumulator_specs;
 }.
 
 Definition reduction_pipeline_final_view
@@ -492,6 +529,70 @@ Proof.
       (Pipeline.compose_checked_source_view
          input_view output_view before source_view after ok);
       assumption.
+Qed.
+
+Theorem checked_reduction_merge_commutative_compatible_value_view_correct :
+  forall (value: Type)
+         (value_eqb: value -> value -> bool)
+         (merge_op: value -> value -> value)
+         identity
+         input_view output_view
+         source_domain chunks partial_accumulators merge_order
+         public_accumulator public_specs accumulator_specs
+         initial_value final_value accumulator_values carrier
+         before source_view after ok,
+    (forall left right,
+       value_eqb left right = true ->
+       left = right) ->
+    mayReturn (check_reduction_source_view before source_view) ok ->
+    ok = true ->
+    check_reduction_mergeb
+      source_domain chunks partial_accumulators merge_order = true ->
+    @check_reduction_value_mergeb
+      value value_eqb merge_op initial_value final_value
+      merge_order accumulator_values = true ->
+    @check_reduction_commutative_lawb
+      value value_eqb merge_op identity carrier = true ->
+    check_storage_compatibilityb
+      (reduction_accumulator_storage_mapping
+         public_accumulator partial_accumulators)
+      public_specs accumulator_specs = true ->
+    reduction_source_view_refines_view
+      input_view output_view source_view after ->
+    reduction_merge_commutative_compatible_value_view_contract
+      value merge_op identity input_view output_view source_domain chunks
+      partial_accumulators merge_order public_accumulator
+      public_specs accumulator_specs
+      initial_value final_value accumulator_values carrier source_view after /\
+    View.view_refinement
+      input_view
+      (reduction_pipeline_final_view output_view)
+      before after.
+Proof.
+  intros value value_eqb merge_op identity
+         input_view output_view
+         source_domain chunks partial_accumulators merge_order
+         public_accumulator public_specs accumulator_specs
+         initial_value final_value accumulator_values carrier
+         before source_view after ok
+         Hvalue_eqb Hret Hok Hmerge Hvalue Halgebra Hstorage Hsemantics.
+  pose proof
+    (check_storage_compatibilityb_sound
+       (reduction_accumulator_storage_mapping
+          public_accumulator partial_accumulators)
+       public_specs accumulator_specs Hstorage)
+    as Hstorage_obligations.
+  pose proof
+    (checked_reduction_merge_commutative_value_view_correct
+       value value_eqb merge_op identity input_view output_view
+       source_domain chunks partial_accumulators merge_order
+       initial_value final_value accumulator_values carrier
+       before source_view after ok
+       Hvalue_eqb Hret Hok Hmerge Hvalue Halgebra Hsemantics)
+    as [Hvalue_contract Hview].
+  split.
+  - constructor; assumption.
+  - exact Hview.
 Qed.
 
 End ReductionMergeValidator.

@@ -845,10 +845,14 @@ carrier-law obligations.  The combined wrappers
 `checked_reduction_merge_associative_value_view_correct` and
 `checked_reduction_merge_commutative_value_view_correct` package all three
 pieces together: finite reduction chunk/merge cover, accumulator-value folding,
-and the relevant finite-carrier algebra law.  These wrappers still compose the
-pass under the feature-specific semantic refinement; for floating point,
-bit-exact and relaxed-reassociation reductions must remain different semantic
-claims.
+and the relevant finite-carrier algebra law.
+`checked_reduction_merge_commutative_compatible_value_view_correct` adds the
+private-accumulator storage side condition: each private partial accumulator is
+paired with the public reduction accumulator and must be size/alignment
+compatible according to `StorageCompatibilityWitness`.  These wrappers still
+compose the pass under the feature-specific semantic refinement; for floating
+point, bit-exact and relaxed-reassociation reductions must remain different
+semantic claims.
 
 ### 8. Copy Protocol
 

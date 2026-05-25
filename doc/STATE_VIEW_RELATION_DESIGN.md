@@ -1418,8 +1418,12 @@ law witnesses.  The newer
 `checked_reduction_merge_associative_value_view_correct` and
 `checked_reduction_merge_commutative_value_view_correct` wrappers package the
 bookkeeping witness, accumulator-value fold witness, and finite-carrier law in
-one view theorem.  The remaining semantic question is how those finite-carrier
-facts connect to the concrete source language semantics.
+one view theorem.
+`checked_reduction_merge_commutative_compatible_value_view_correct` adds the
+storage view side condition for privatized reductions: the public reduction
+cell and each private partial accumulator must have compatible finite storage
+specs.  The remaining semantic question is how those finite-carrier facts and
+storage specs connect to the concrete source language semantics.
 
 For floating point, the view must say whether it preserves bit-exact results or
 uses relaxed reduction semantics.
