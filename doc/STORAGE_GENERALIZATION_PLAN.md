@@ -169,6 +169,8 @@ constructing a bespoke combined access relation for each pass sequence.
   observation implies the observation induced by
   `compose_cell_relation`.  This is the state-observation counterpart of the
   access-remap composition lemmas above.
+  `generic_cell_view_state_view_compose_included` lifts the same observation
+  composition theorem to the new `generic_cell_view` carrier.
 - `src/StateObservation.v` also defines `cell_view`, which records the public
   source and target cells represented by a relation; target-private cells are
   precisely cells left outside this public view.  `compose_cell_view` composes
@@ -182,8 +184,12 @@ constructing a bespoke combined access relation for each pass sequence.
   `cell_view` record so existing validators are not rewritten at once.  It now
   provides adapters between that record and `generic_cell_view`, plus
   reflexive bridge lemmas showing that both carriers induce the same
-  observer-backed state view.  This makes the existing proof stack an instance
-  of the shared carrier instead of a competing endpoint relation.
+  observer-backed state view.  It also proves
+  `cell_view_to_generic_compose_state_view` and
+  `generic_cell_view_to_cell_view_compose_state_view`, so local and generic
+  composition induce the same endpoint state view.  This makes the existing
+  proof stack an instance of the shared carrier instead of a competing endpoint
+  relation.
 - `src/StateObservation.v` now also packages this into
   `cell_view_transform_contract`: one pass carries a public `cell_view`, a
   `pprog_same_instance_access_remap` witness under that view's cell relation,

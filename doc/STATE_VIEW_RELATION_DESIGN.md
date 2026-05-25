@@ -1982,7 +1982,12 @@ only when the intermediate cells hidden by the first pass are not required as
 public target cells by the second pass, and vice versa.
 `CellView.compose_generic_cell_view` is the observer-independent form of the
 same composition rule; the current functor-local composition can be migrated to
-that carrier incrementally.
+that carrier incrementally.  The bridge lemmas
+`cell_view_to_generic_compose_state_view` and
+`generic_cell_view_to_cell_view_compose_state_view` state that the old
+observer-local composition and the new generic composition induce the same
+endpoint state view, so this migration is a refactoring of the relation layer
+rather than a second semantics.
 
 `StorageBoundaryView.v` now factors out one common endpoint instance of that
 discipline.  It treats a finite logical-to-physical boundary selector as the

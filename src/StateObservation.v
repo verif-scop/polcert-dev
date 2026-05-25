@@ -209,6 +209,23 @@ Definition generic_cell_view_state_view
     (gcv: generic_cell_view) : View.view :=
   related_cells_view (gcv_cell_relation gcv).
 
+Theorem generic_cell_view_state_view_compose_included :
+  forall target_mid mid_source
+         (Hcompatible:
+            generic_cell_view_mid_observables_compatible
+              target_mid mid_source),
+    View.view_included
+      (View.compose_view
+         (generic_cell_view_state_view target_mid)
+         (generic_cell_view_state_view mid_source))
+      (generic_cell_view_state_view
+         (compose_generic_cell_view
+            target_mid mid_source Hcompatible)).
+Proof.
+  intros target_mid mid_source Hcompatible.
+  apply related_cells_view_compose_included.
+Qed.
+
 Theorem generic_cell_view_to_cell_view_state_view :
   forall gcv,
     cell_view_state_view (generic_cell_view_to_cell_view gcv) =
@@ -237,6 +254,24 @@ Definition cell_view_mid_observables_compatible
   (forall mid_cell,
       cv_target_observable mid_source mid_cell ->
       cv_source_observable target_mid mid_cell).
+
+Definition cell_view_mid_observables_compatible_to_generic
+    (target_mid mid_source: cell_view)
+    (Hcompatible:
+       cell_view_mid_observables_compatible target_mid mid_source)
+    : generic_cell_view_mid_observables_compatible
+        (cell_view_to_generic target_mid)
+        (cell_view_to_generic mid_source) :=
+  Hcompatible.
+
+Definition generic_cell_view_mid_observables_compatible_to_cell_view
+    (target_mid mid_source: generic_cell_view)
+    (Hcompatible:
+       generic_cell_view_mid_observables_compatible target_mid mid_source)
+    : cell_view_mid_observables_compatible
+        (generic_cell_view_to_cell_view target_mid)
+        (generic_cell_view_to_cell_view mid_source) :=
+  Hcompatible.
 
 Definition compose_cell_view
     (target_mid mid_source: cell_view)
@@ -318,6 +353,42 @@ Theorem cell_view_state_view_compose_included :
 Proof.
   intros target_mid mid_source Hcompatible.
   apply related_cells_view_compose_included.
+Qed.
+
+Theorem cell_view_to_generic_compose_state_view :
+  forall target_mid mid_source
+         (Hcompatible:
+            cell_view_mid_observables_compatible target_mid mid_source),
+    generic_cell_view_state_view
+      (cell_view_to_generic
+         (compose_cell_view target_mid mid_source Hcompatible)) =
+    generic_cell_view_state_view
+      (compose_generic_cell_view
+         (cell_view_to_generic target_mid)
+         (cell_view_to_generic mid_source)
+         (cell_view_mid_observables_compatible_to_generic
+            target_mid mid_source Hcompatible)).
+Proof.
+  reflexivity.
+Qed.
+
+Theorem generic_cell_view_to_cell_view_compose_state_view :
+  forall target_mid mid_source
+         (Hcompatible:
+            generic_cell_view_mid_observables_compatible
+              target_mid mid_source),
+    cell_view_state_view
+      (generic_cell_view_to_cell_view
+         (compose_generic_cell_view
+            target_mid mid_source Hcompatible)) =
+    cell_view_state_view
+      (compose_cell_view
+         (generic_cell_view_to_cell_view target_mid)
+         (generic_cell_view_to_cell_view mid_source)
+         (generic_cell_view_mid_observables_compatible_to_cell_view
+            target_mid mid_source Hcompatible)).
+Proof.
+  reflexivity.
 Qed.
 
 (** A reusable contract for a same-instance storage pass whose access remap and
