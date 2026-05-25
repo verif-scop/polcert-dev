@@ -8,6 +8,7 @@ Require Import StateObservation.
 Require Import LayoutRemapValidator.
 Require Import PrivateStorageValidator.
 Require Import ReuseStateView.
+Require Import StorageBoundaryView.
 
 (** Concrete observer for the C-like state model.
 
@@ -110,3 +111,5 @@ Module CPrivateStorageWitness :=
   CPrivateStorageValidator.Witness.
 Module CReuseStateView :=
   ReuseStateView CPolIRs CStateObserver.
+Module CStorageBoundaryView :=
+  StorageBoundaryView CPolIRs CStateObserver.

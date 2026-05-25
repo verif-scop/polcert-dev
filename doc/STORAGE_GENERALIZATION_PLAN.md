@@ -1132,6 +1132,22 @@ mapping was live-range safe throughout execution.  The new boundary cell view
 restricts the public relation to the declared source live-outs and makes target
 observability the image of that relation.  This connects non-injective reuse to
 the same `cell_view` vocabulary used by layout and private erasure.
+`src/StorageBoundaryView.v` packages the reusable endpoint version of this
+pattern.  Its checked theorem combines finite source-liveout coverage,
+logical/physical size-alignment compatibility, and the observer-backed boundary
+view:
+
+```text
+check_storage_boundary_viewb mapping source_liveouts logical_specs physical_specs = true
+semantic view_refinement to reuse_boundary_view mapping source_liveouts
+----------------------------------------------------------------------
+view_refinement before after under the storage-backed boundary view
+```
+
+This is deliberately not a new feature-specific optimizer theorem.  It is a
+shared relation layer for any pass whose final observable state is described by
+a finite logical-to-physical boundary selector, including phase projection,
+reuse/contraction, layout live-outs, and copy-out protocols.
 `src/ReuseConflictValidator.v` then exposes
 `checked_conflict_reuse_view_correct`, which returns the finite conflict
 obligations and composes the pass under the still-explicit reuse semantic

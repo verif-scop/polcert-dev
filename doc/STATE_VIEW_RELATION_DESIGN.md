@@ -1974,6 +1974,15 @@ justify their own witness obligations.  The composed public view is meaningful
 only when the intermediate cells hidden by the first pass are not required as
 public target cells by the second pass, and vice versa.
 
+`StorageBoundaryView.v` now factors out one common endpoint instance of that
+discipline.  It treats a finite logical-to-physical boundary selector as the
+source of both the observer-backed `cell_view` and the storage-compatibility
+obligation.  This is the intended non-adhoc path for passes whose final public
+state is a projected live-out boundary: layout live-outs, phase/double-buffer
+projection, contraction/inter-array reuse, and copy-out/packing can all use the
+same final relation shape while keeping their feature-specific trace,
+lifetime, or value-simulation obligations separate.
+
 The next mechanized layer is `cell_view_transform_contract`.  It packages the
 common pass shape:
 
