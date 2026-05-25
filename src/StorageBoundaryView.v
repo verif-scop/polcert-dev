@@ -4,6 +4,7 @@ Require Import List.
 Require Import ImpureAlarmConfig.
 Require Import PolyBase.
 Require Import PolIRs.
+Require Import CellView.
 Require Import StateObservation.
 Require Import ViewPipeline.
 Require Import ReuseConflictWitness.
@@ -57,6 +58,15 @@ Definition storage_boundary_cell_view
   ReuseView.reuse_boundary_cell_view
     mapping source_cells Hboundary.
 
+Definition storage_boundary_generic_cell_view
+    (mapping: reuse_mapping)
+    (source_cells: list MemCell)
+    (Hboundary:
+       reuse_boundary_obligations mapping source_cells)
+    : generic_cell_view :=
+  Observation.cell_view_to_generic
+    (storage_boundary_cell_view mapping source_cells Hboundary).
+
 Record storage_boundary_view_contract
     (mapping: reuse_mapping)
     (source_cells: list MemCell)
@@ -109,6 +119,27 @@ Theorem storage_boundary_contract_cell_view_rel :
   forall mapping source_cells logical_specs physical_specs contract,
     Observation.cell_view_state_view
       (storage_boundary_contract_cell_view
+         mapping source_cells logical_specs physical_specs contract) =
+    storage_boundary_output_view mapping source_cells.
+Proof.
+  reflexivity.
+Qed.
+
+Definition storage_boundary_contract_generic_cell_view
+    (mapping: reuse_mapping)
+    (source_cells: list MemCell)
+    (logical_specs physical_specs: list storage_spec)
+    (contract:
+       storage_boundary_view_contract
+         mapping source_cells logical_specs physical_specs)
+    : generic_cell_view :=
+  storage_boundary_generic_cell_view
+    mapping source_cells (sbvc_boundary _ _ _ _ contract).
+
+Theorem storage_boundary_contract_generic_cell_view_rel :
+  forall mapping source_cells logical_specs physical_specs contract,
+    Observation.generic_cell_view_state_view
+      (storage_boundary_contract_generic_cell_view
          mapping source_cells logical_specs physical_specs contract) =
     storage_boundary_output_view mapping source_cells.
 Proof.

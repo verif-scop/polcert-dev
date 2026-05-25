@@ -1,6 +1,7 @@
 Require Import PolyBase.
 Require Import PolIRs.
 Require Import StorageWitness.
+Require Import CellView.
 Require Import TransformContract.
 Require Import StateView.
 
@@ -165,11 +166,64 @@ Record cell_view := {
         cv_cell_relation target_cell source_cell;
 }.
 
+Definition cell_view_to_generic (cv: cell_view) : generic_cell_view := {|
+  gcv_cell_relation := cv_cell_relation cv;
+  gcv_source_observable := cv_source_observable cv;
+  gcv_target_observable := cv_target_observable cv;
+  gcv_related_source_observable :=
+    cv_related_source_observable cv;
+  gcv_related_target_observable :=
+    cv_related_target_observable cv;
+  gcv_source_observable_covered :=
+    cv_source_observable_covered cv;
+  gcv_target_observable_covered :=
+    cv_target_observable_covered cv;
+|}.
+
+Definition generic_cell_view_to_cell_view
+    (gcv: generic_cell_view) : cell_view := {|
+  cv_cell_relation := gcv_cell_relation gcv;
+  cv_source_observable := gcv_source_observable gcv;
+  cv_target_observable := gcv_target_observable gcv;
+  cv_related_source_observable :=
+    gcv_related_source_observable gcv;
+  cv_related_target_observable :=
+    gcv_related_target_observable gcv;
+  cv_source_observable_covered :=
+    gcv_source_observable_covered gcv;
+  cv_target_observable_covered :=
+    gcv_target_observable_covered gcv;
+|}.
+
 Definition cell_view_observation (cv: cell_view) : Transform.observation :=
   related_cells_observation (cv_cell_relation cv).
 
 Definition cell_view_state_view (cv: cell_view) : View.view :=
   related_cells_view (cv_cell_relation cv).
+
+Definition generic_cell_view_observation
+    (gcv: generic_cell_view) : Transform.observation :=
+  related_cells_observation (gcv_cell_relation gcv).
+
+Definition generic_cell_view_state_view
+    (gcv: generic_cell_view) : View.view :=
+  related_cells_view (gcv_cell_relation gcv).
+
+Theorem generic_cell_view_to_cell_view_state_view :
+  forall gcv,
+    cell_view_state_view (generic_cell_view_to_cell_view gcv) =
+    generic_cell_view_state_view gcv.
+Proof.
+  reflexivity.
+Qed.
+
+Theorem cell_view_to_generic_state_view :
+  forall cv,
+    generic_cell_view_state_view (cell_view_to_generic cv) =
+    cell_view_state_view cv.
+Proof.
+  reflexivity.
+Qed.
 
 (** [target_mid] observes target cells against the intermediate source side,
     while [mid_source] observes intermediate target cells against source cells.

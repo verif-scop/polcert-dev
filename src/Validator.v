@@ -6,6 +6,7 @@ Require Import TransformContract.
 Require Import StateView.
 Require Import ViewPipeline.
 Require Import StorageWitness.
+Require Import CellView.
 Require Import SourceNoAliasWitness.
 Require Import FramePreservationWitness.
 Require Import FramePreservationValidator.
@@ -232,6 +233,14 @@ Definition storage_cell_relation := cell_relation.
 Definition storage_identity_cell_relation := identity_cell_relation.
 Definition storage_compose_cell_relation := compose_cell_relation.
 Definition storage_access_list_relation := access_list_relation.
+Definition storage_generic_cell_view := generic_cell_view.
+Definition storage_gcv_cell_relation := gcv_cell_relation.
+Definition storage_gcv_source_observable := gcv_source_observable.
+Definition storage_gcv_target_observable := gcv_target_observable.
+Definition storage_generic_cell_view_mid_observables_compatible :=
+  generic_cell_view_mid_observables_compatible.
+Definition storage_compose_generic_cell_view :=
+  compose_generic_cell_view.
 Definition storage_source_footprint := source_footprint.
 Definition storage_check_source_no_aliasb :=
   check_source_no_aliasb.
