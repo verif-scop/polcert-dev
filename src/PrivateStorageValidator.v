@@ -193,6 +193,27 @@ Record private_boundary_unique_compatible_value_view_contract
       public_specs private_specs;
 }.
 
+Record private_boundary_unique_compatible_non_escape_value_view_contract
+    (value: Type)
+    (public_view: Observation.cell_view)
+    (hidden_cells private_cells escaped_cells
+       public_liveins public_liveouts: list MemCell)
+    (copyins copyouts: list private_boundary_pair)
+    (copyin_values copyout_values:
+       list (private_boundary_value_entry value))
+    (public_specs private_specs: list storage_spec)
+    (trace: list private_event)
+    (source_view after: PolyLang.t) : Prop := {
+  pbucnevvc_compatible_base :
+    private_boundary_unique_compatible_value_view_contract
+      value public_view
+      hidden_cells private_cells public_liveins public_liveouts
+      copyins copyouts copyin_values copyout_values
+      public_specs private_specs trace source_view after;
+  pbucnevvc_non_escape :
+    private_non_escape_obligations private_cells escaped_cells;
+}.
+
 Theorem checked_private_expansion_view_correct :
   forall public_view private_target_cell before source_view after ok,
     mayReturn (check_private_source_view before source_view) ok ->
@@ -549,6 +570,73 @@ Proof.
        Hvalue_eqb Hret Hok Hlocal Hboundary Hunique
        Hboundary_values Hprivate)
     as [Hvalue_contract Hview].
+  split.
+  - constructor; assumption.
+  - exact Hview.
+Qed.
+
+Theorem checked_boundary_private_unique_compatible_non_escape_value_expansion_view_correct :
+  forall (value: Type) (value_eqb: value -> value -> bool)
+         hidden_cells private_cells escaped_cells public_liveins public_liveouts
+         copyins copyouts copyin_values copyout_values
+         public_specs private_specs
+         trace before source_view after ok,
+    (forall left right,
+        value_eqb left right = true ->
+        left = right) ->
+    mayReturn (check_private_source_view before source_view) ok ->
+    ok = true ->
+    Witness.check_private_local_obligationsb
+      hidden_cells private_cells trace = true ->
+    check_private_boundaryb
+      private_cells public_liveins public_liveouts copyins copyouts = true ->
+    check_private_boundary_private_uniqueb copyins copyouts = true ->
+    check_private_boundary_valueb
+      value_eqb copyins copyouts copyin_values copyout_values = true ->
+    check_storage_compatibilityb
+      (private_boundary_storage_mapping copyins)
+      public_specs private_specs = true ->
+    check_storage_compatibilityb
+      (private_boundary_storage_mapping copyouts)
+      public_specs private_specs = true ->
+    check_private_non_escapeb private_cells escaped_cells = true ->
+    private_source_view_refines_view
+      (Witness.hidden_identity_cell_view hidden_cells)
+      source_view after ->
+    private_boundary_unique_compatible_non_escape_value_view_contract
+      value
+      (Witness.hidden_identity_cell_view hidden_cells)
+      hidden_cells private_cells escaped_cells public_liveins public_liveouts
+      copyins copyouts copyin_values copyout_values
+      public_specs private_specs trace source_view after /\
+    View.view_refinement
+      (private_erasure_view
+         (Witness.hidden_identity_cell_view hidden_cells))
+      (private_pipeline_final_view
+         (Witness.hidden_identity_cell_view hidden_cells))
+      before after.
+Proof.
+  intros value value_eqb
+         hidden_cells private_cells escaped_cells public_liveins public_liveouts
+         copyins copyouts copyin_values copyout_values
+         public_specs private_specs
+         trace before source_view after ok
+         Hvalue_eqb Hret Hok Hlocal Hboundary Hunique
+         Hboundary_values Hcopyins_storage Hcopyouts_storage
+         Hnon_escape Hprivate.
+  pose proof
+    (check_private_non_escapeb_sound
+       private_cells escaped_cells Hnon_escape)
+    as Hnon_escape_obligations.
+  pose proof
+    (checked_boundary_private_unique_compatible_value_expansion_view_correct
+       value value_eqb hidden_cells private_cells
+       public_liveins public_liveouts copyins copyouts
+       copyin_values copyout_values public_specs private_specs
+       trace before source_view after ok
+       Hvalue_eqb Hret Hok Hlocal Hboundary Hunique
+       Hboundary_values Hcopyins_storage Hcopyouts_storage Hprivate)
+    as [Hcompatible_contract Hview].
   split.
   - constructor; assumption.
   - exact Hview.

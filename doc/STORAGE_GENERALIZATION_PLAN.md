@@ -589,6 +589,9 @@ mem_cells_nodupb private_cells = true
 check_private_separationb private_cells public_cells frame_cells = true
   -> private cells are duplicate-free and disjoint from public/frame cells
 
+check_private_non_escapeb private_cells escaped_cells = true
+  -> private cells are disjoint from the finite context escape set
+
 check_private_use_def_traceb trace = true
   -> every private read in trace has an earlier same-cell private write
 
@@ -662,13 +665,19 @@ copy-in and copy-out boundary pair is interpreted as a public-to-private
 storage mapping, and `StorageCompatibilityWitness` must prove the mapped cells
 have compatible storage specs.  This makes private copies more than fresh
 names: they must also be capable of representing the public value they copy.
+`checked_boundary_private_unique_compatible_non_escape_value_expansion_view_correct`
+adds the finite non-escape layer: given an explicit set of cells whose
+locations may be exposed to the surrounding context, the private cells must be
+disjoint from that set.  This is intentionally only the witness layer; deriving
+the escaped set from C address-taking, pointer stores, or call boundaries is a
+separate front-end/context proof.
 
 Later syntactic validators should discharge this obligation with freshness,
-reaching-definition, boundary value-flow, and non-escape checks.  The
-hidden-cell subset checker, private trace checker, boundary checker, and
-boundary value checker are local witness components; they are not yet a proof
-that the privatized program computes the same public values from concrete
-instructions.
+reaching-definition, boundary value-flow, and escape-set derivation checks.
+The hidden-cell subset checker, private trace checker, boundary checker,
+boundary value checker, storage compatibility checker, and non-escape checker
+are local witness components; they are not yet a proof that the privatized
+program computes the same public values from concrete instructions.
 
 ### 5. Scalar Promotion
 

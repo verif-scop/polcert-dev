@@ -280,6 +280,7 @@ def validate_private_copy_boundary() -> List[str]:
     private_cells |= {("tmp_priv", i) for i in range(n)}
     public_liveins = {"seed"}
     public_liveouts = {"tmp"}
+    escaped_cells = {"seed", "tmp", "C"}
     copyins = [("seed", ("seed_priv", i)) for i in range(n)]
     copyouts = [("tmp", ("tmp_priv", n - 1))]
 
@@ -320,6 +321,8 @@ def validate_private_copy_boundary() -> List[str]:
     require(all(public_specs[public] == private_specs[private]
                 for public, private in boundary_pairs),
             "private boundary storage spec mismatch")
+    require(private_cells.isdisjoint(escaped_cells),
+            "private cell escapes fragment")
 
     target_b: Dict[int, int] = {}
     seed_priv: Dict[int, int] = {}
@@ -339,6 +342,7 @@ def validate_private_copy_boundary() -> List[str]:
         "boundary copy private cells are unique on the private side",
         "copy-in/copy-out boundary values match across public and private cells",
         "boundary public/private cells are storage-compatible for copy-in and copy-out",
+        "private cells are disjoint from the context escape set",
     ]
 
 
@@ -1309,6 +1313,14 @@ def reject_private_incompatible_boundary_storage() -> None:
     require(all(public_specs[public] == private_specs[private]
                 for public, private in boundary_pairs),
             "private boundary storage spec mismatch")
+
+
+@add_negative("private_escape", "private_copy_boundary")
+def reject_private_escape() -> None:
+    private_cells = {("tmp_priv", 0)}
+    escaped_cells = {"tmp", ("tmp_priv", 0)}
+    require(private_cells.isdisjoint(escaped_cells),
+            "private cell escapes fragment")
 
 
 @add_negative("scalar_promotion_incompatible_storage", "scalar_promotion")

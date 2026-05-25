@@ -18,7 +18,10 @@ Import ListNotations.
     enough to mechanize the "private cells are not observable" side condition
     used by [PrivateStorageValidator].  Freshness, reaching definitions,
     copy-in/copy-out, and non-escape are separate obligations and should not be
-    smuggled into this simple visibility check. *)
+    smuggled into this simple visibility check.  Non-escape is still finite
+    here: a caller supplies the cells whose addresses or locations may be
+    exposed to the surrounding context, and private cells must be disjoint from
+    that exposed set. *)
 
 Fixpoint z_list_strict_eqb (xs ys: list Z) : bool :=
   match xs, ys with
@@ -253,6 +256,27 @@ Proof.
     exact Hpublic.
   - apply mem_cells_disjointb_sound.
     exact Hframe.
+Qed.
+
+Record private_non_escape_obligations
+    (private_cells escaped_cells: list MemCell) : Prop := {
+  pneo_private_not_escaped :
+    mem_cells_disjoint private_cells escaped_cells;
+}.
+
+Definition check_private_non_escapeb
+    (private_cells escaped_cells: list MemCell) : bool :=
+  mem_cells_disjointb private_cells escaped_cells.
+
+Lemma check_private_non_escapeb_sound :
+  forall private_cells escaped_cells,
+    check_private_non_escapeb private_cells escaped_cells = true ->
+    private_non_escape_obligations private_cells escaped_cells.
+Proof.
+  intros private_cells escaped_cells Hcheck.
+  constructor.
+  apply mem_cells_disjointb_sound.
+  exact Hcheck.
 Qed.
 
 Inductive private_event :=

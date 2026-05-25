@@ -15,6 +15,7 @@ Require Import LayoutWitness.
 Require Import PaddingLayoutWitness.
 Require Import LayoutValueWitness.
 Require Import PaddingLayoutValidator.
+Require Import PrivateStorageWitness.
 Require Import PrivateBoundaryWitness.
 Require Import ScalarPromotionWitness.
 Require Import ScalarPromotionValueWitness.
@@ -292,6 +293,12 @@ Definition storage_check_private_boundary_valueb_sound :=
   check_private_boundary_valueb_sound.
 Definition storage_private_boundary_value_obligations :=
   private_boundary_value_obligations.
+Definition storage_check_private_non_escapeb :=
+  check_private_non_escapeb.
+Definition storage_check_private_non_escapeb_sound :=
+  check_private_non_escapeb_sound.
+Definition storage_private_non_escape_obligations :=
+  private_non_escape_obligations.
 Definition same_instance_access_remap :=
   StorageCore.same_instance_access_remap.
 Definition same_instance_identity_remap :=

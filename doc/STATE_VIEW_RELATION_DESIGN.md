@@ -1963,8 +1963,12 @@ private-erasure theorem.
 `checked_boundary_private_unique_compatible_value_expansion_view_correct` adds
 boundary storage compatibility for the same copy-in/copy-out pairs: public and
 private cells must both have finite storage specs, and paired specs must agree
-on size and alignment.  Non-escape, deriving those specs from C types, and full
-instruction-derived value-simulation checkers are future work.
+on size and alignment.
+`checked_boundary_private_unique_compatible_non_escape_value_expansion_view_correct`
+adds finite non-escape evidence on top: private cells must be disjoint from the
+caller-supplied set of cells whose locations may escape to the surrounding
+context.  Deriving the escape set, deriving storage specs from C types, and
+full instruction-derived value-simulation checkers are future work.
 
 `StateObservation.compose_cell_view` now composes these public views when the
 two passes agree on the shared intermediate public cells:
