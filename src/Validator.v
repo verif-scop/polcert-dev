@@ -1,0 +1,1027 @@
+Require Import AffineValidator.
+Require Import ISSValidator.
+Require Import ParallelValidator.
+Require Import TilingValidator.
+Require Import TransformContract.
+Require Import StateView.
+Require Import ViewPipeline.
+Require Import StorageWitness.
+Require Import SourceNoAliasWitness.
+Require Import FramePreservationWitness.
+Require Import FramePreservationValidator.
+Require Import StateObservation.
+Require Import LayoutWitness.
+Require Import PaddingLayoutWitness.
+Require Import LayoutValueWitness.
+Require Import PaddingLayoutValidator.
+Require Import PrivateBoundaryWitness.
+Require Import ScalarPromotionWitness.
+Require Import ScalarPromotionValueWitness.
+Require Import ScalarPromotionValidator.
+Require Import CopyProtocolWitness.
+Require Import CopyCommitWitness.
+Require Import CopyInstanceWitness.
+Require Import CopyMappingWitness.
+Require Import CopyProtocolValueWitness.
+Require Import CopyProtocolValidator.
+Require Import ScratchpadCopyValidator.
+Require Import ReuseConflictWitness.
+Require Import LifetimeConflictWitness.
+Require Import ReuseValueWitness.
+Require Import StorageCompatibilityWitness.
+Require Import InterArrayReuseWitness.
+Require Import InterArrayReuseValidator.
+Require Import ReuseConflictValidator.
+Require Import InstanceProjectionWitness.
+Require Import InstanceProjectionValidator.
+Require Import OverlapClosureWitness.
+Require Import OverlapTilingValidator.
+Require Import VersionCommitWitness.
+Require Import VersionCommitValueWitness.
+Require Import VersionCommitValidator.
+Require Import ReductionMergeWitness.
+Require Import ReductionMergeValueWitness.
+Require Import ReductionAlgebraWitness.
+Require Import ReductionMergeValidator.
+Require Import PhaseSeparationWitness.
+Require Import PhaseValueWitness.
+Require Import PhaseProjectionWitness.
+Require Import PhaseSeparationValidator.
+Require Import PolIRs.
+
+Module Validator (PolIRs: POLIRS).
+
+Module AffineCore := AffineValidator PolIRs.
+Module ISSCore := ISSValidator PolIRs.
+Module ParallelCore := ParallelValidator PolIRs.
+Module TilingCore := TilingValidator PolIRs.
+Module ViewPipelineCore := ViewPipeline PolIRs.
+Module TransformCore := ViewPipelineCore.Transform.
+Module StateViewCore := ViewPipelineCore.View.
+Module StorageCore := StorageWitness PolIRs.
+Module FramePreservationCore := FramePreservationValidator PolIRs.
+Module LayoutCore := LayoutWitness PolIRs.
+Module PaddingLayoutCore := PaddingLayoutValidator PolIRs.
+Module ScalarPromotionCore := ScalarPromotionValidator PolIRs.
+Module CopyProtocolCore := CopyProtocolValidator PolIRs.
+Module ScratchpadCopyCore := ScratchpadCopyValidator PolIRs.
+Module InterArrayReuseCore := InterArrayReuseValidator PolIRs.
+Module ReuseConflictCore := ReuseConflictValidator PolIRs.
+Module InstanceProjectionCore := InstanceProjectionValidator PolIRs.
+Module OverlapTilingCore := OverlapTilingValidator PolIRs.
+Module VersionCommitCore := VersionCommitValidator PolIRs.
+Module ReductionMergeCore := ReductionMergeValidator PolIRs.
+Module PhaseSeparationCore := PhaseSeparationValidator PolIRs.
+
+Module TilingCheck := TilingCore.TilingCheck.
+Module TilingPolIRs := TilingCore.TilingPolIRs.
+Module GeneralValidator := TilingCore.TilingVal.
+Module TPrepare := TilingCore.TPrepare.
+
+(** Affine-only validator API. *)
+Definition observation := TransformCore.observation.
+Definition identity_observation := TransformCore.identity_observation.
+Definition state_relation := TransformCore.state_relation.
+Definition same_state_relation := TransformCore.same_state_relation.
+Definition compose_state_relation := TransformCore.compose_state_relation.
+Definition relation_included := TransformCore.relation_included.
+Definition relation_included_refl :=
+  TransformCore.relation_included_refl.
+Definition relation_included_trans :=
+  TransformCore.relation_included_trans.
+Definition compose_state_relation_monotone :=
+  TransformCore.compose_state_relation_monotone.
+Definition observation_contains_state_eq :=
+  TransformCore.observation_contains_state_eq.
+Definition observation_contract := TransformCore.observation_contract.
+Definition identity_observation_contract :=
+  TransformCore.identity_observation_contract.
+Definition refinement_under := TransformCore.refinement_under.
+Definition relational_refinement := TransformCore.relational_refinement.
+Definition refinement_under_to_relational :=
+  TransformCore.refinement_under_to_relational.
+Definition relational_refinement_compose :=
+  TransformCore.relational_refinement_compose.
+Definition relational_refinement_monotone :=
+  TransformCore.relational_refinement_monotone.
+Definition relation_included_compose_right_same_intro :=
+  TransformCore.relation_included_compose_right_same_intro.
+Definition relation_included_compose_right_same_elim :=
+  TransformCore.relation_included_compose_right_same_elim.
+Definition checked_transform_family :=
+  TransformCore.checked_transform_family.
+Definition checked_relational_transform_family :=
+  TransformCore.checked_relational_transform_family.
+Definition checked_relational_transform_family_pair_compose :=
+  TransformCore.checked_relational_transform_family_pair_compose.
+Definition affine_transform_family :=
+  TransformCore.affine_transform_family.
+Definition general_transform_family :=
+  TransformCore.general_transform_family.
+Definition affine_relational_transform_family :=
+  TransformCore.affine_relational_transform_family.
+Definition general_relational_transform_family :=
+  TransformCore.general_relational_transform_family.
+Definition state_view := StateViewCore.view.
+Definition state_view_rel := StateViewCore.state_view_rel.
+Definition identity_view := StateViewCore.identity_view.
+Definition same_state_view := StateViewCore.same_state_view.
+Definition compose_view := StateViewCore.compose_view.
+Definition view_included := StateViewCore.view_included.
+Definition view_included_refl :=
+  StateViewCore.view_included_refl.
+Definition view_included_trans :=
+  StateViewCore.view_included_trans.
+Definition compose_view_monotone :=
+  StateViewCore.compose_view_monotone.
+Definition view_refinement := StateViewCore.view_refinement.
+Definition identity_view_contains_state_eq :=
+  StateViewCore.identity_view_contains_state_eq.
+Definition same_state_view_included_identity_view :=
+  StateViewCore.same_state_view_included_identity_view.
+Definition view_included_compose_right_same_intro :=
+  StateViewCore.view_included_compose_right_same_intro.
+Definition view_included_compose_right_same_elim :=
+  StateViewCore.view_included_compose_right_same_elim.
+Definition refinement_under_to_view_refinement :=
+  StateViewCore.refinement_under_to_view_refinement.
+Definition view_refinement_compose :=
+  StateViewCore.view_refinement_compose.
+Definition view_refinement_monotone :=
+  StateViewCore.view_refinement_monotone.
+Definition checked_view_transform_family :=
+  StateViewCore.checked_view_transform_family.
+Definition checked_view_transform_family_pair_compose :=
+  StateViewCore.checked_view_transform_family_pair_compose.
+Definition affine_validate_identity_view_sound :=
+  StateViewCore.affine_validate_identity_view_sound.
+Definition affine_identity_view_family :=
+  StateViewCore.affine_identity_view_family.
+Definition general_validate_identity_view_sound :=
+  StateViewCore.general_validate_identity_view_sound.
+Definition general_identity_view_family :=
+  StateViewCore.general_identity_view_family.
+Definition storage_check_source_view :=
+  ViewPipelineCore.check_source_view.
+Definition storage_check_source_view_correct :=
+  ViewPipelineCore.check_source_view_correct.
+Definition storage_source_view_refines_view :=
+  ViewPipelineCore.source_view_refines_view.
+Definition storage_pipeline_final_view :=
+  ViewPipelineCore.pipeline_final_view.
+Definition storage_compose_checked_source_view :=
+  ViewPipelineCore.compose_checked_source_view.
+
+(** Smoke aliases for the shared [generic_state_view] carrier.  These
+    definitions would fail to type-check if storage validators exposed
+    functor-local view record types. *)
+Definition storage_copy_identity_view : state_view :=
+  CopyProtocolCore.View.identity_view.
+Definition storage_padding_identity_view : state_view :=
+  PaddingLayoutCore.View.identity_view.
+Definition storage_scalar_identity_view : state_view :=
+  ScalarPromotionCore.View.identity_view.
+Definition storage_scratchpad_identity_view : state_view :=
+  ScratchpadCopyCore.View.identity_view.
+Definition storage_projection_identity_view : state_view :=
+  InstanceProjectionCore.View.identity_view.
+Definition storage_overlap_identity_view : state_view :=
+  OverlapTilingCore.View.identity_view.
+Definition storage_version_identity_view : state_view :=
+  VersionCommitCore.View.identity_view.
+Definition storage_reuse_identity_view : state_view :=
+  ReuseConflictCore.View.identity_view.
+Definition storage_reduction_identity_view : state_view :=
+  ReductionMergeCore.View.identity_view.
+Definition storage_phase_identity_view : state_view :=
+  PhaseSeparationCore.View.identity_view.
+Definition affine_validate_identity_sound :=
+  TransformCore.affine_validate_identity_sound.
+Definition affine_validate_identity_relational_sound :=
+  TransformCore.affine_validate_identity_relational_sound.
+Definition affine_validate_observation_sound :=
+  TransformCore.affine_validate_observation_sound.
+Definition affine_validate_contract_sound :=
+  TransformCore.affine_validate_contract_sound.
+Definition general_validate_identity_sound :=
+  TransformCore.general_validate_identity_sound.
+Definition general_validate_identity_relational_sound :=
+  TransformCore.general_validate_identity_relational_sound.
+Definition general_validate_observation_sound :=
+  TransformCore.general_validate_observation_sound.
+Definition general_validate_contract_sound :=
+  TransformCore.general_validate_contract_sound.
+Definition transformation_shape := TransformCore.transformation_shape.
+Definition current_affine_shape := TransformCore.current_affine_shape.
+Definition layout_remap_shape := TransformCore.layout_remap_shape.
+Definition padded_layout_remap_shape :=
+  TransformCore.padded_layout_remap_shape.
+Definition private_expansion_shape :=
+  TransformCore.private_expansion_shape.
+Definition scalar_promotion_shape :=
+  TransformCore.scalar_promotion_shape.
+Definition copy_protocol_shape := TransformCore.copy_protocol_shape.
+Definition conflict_reuse_shape := TransformCore.conflict_reuse_shape.
+Definition version_commit_shape := TransformCore.version_commit_shape.
+Definition overlap_no_private_shape :=
+  TransformCore.overlap_no_private_shape.
+Definition overlap_private_shape := TransformCore.overlap_private_shape.
+Definition reduction_merge_shape := TransformCore.reduction_merge_shape.
+Definition phase_separation_shape := TransformCore.phase_separation_shape.
+Definition storage_cell_relation := cell_relation.
+Definition storage_identity_cell_relation := identity_cell_relation.
+Definition storage_compose_cell_relation := compose_cell_relation.
+Definition storage_access_list_relation := access_list_relation.
+Definition storage_source_footprint := source_footprint.
+Definition storage_check_source_no_aliasb :=
+  check_source_no_aliasb.
+Definition storage_check_source_no_aliasb_sound :=
+  check_source_no_aliasb_sound.
+Definition storage_source_no_alias_obligations :=
+  source_no_alias_obligations.
+Definition storage_check_frame_preservationb :=
+  check_frame_preservationb.
+Definition storage_check_frame_preservationb_sound :=
+  check_frame_preservationb_sound.
+Definition storage_frame_preservation_obligations :=
+  frame_preservation_obligations.
+Definition storage_frame_preservation_writes_disjoint :=
+  frame_preservation_writes_disjoint.
+Definition storage_frame_preservation_allowed_not_frame :=
+  frame_preservation_allowed_not_frame.
+Definition storage_frame_preservation_write_not_frame :=
+  frame_preservation_write_not_frame.
+Definition storage_frame_preservation_write_neq_frame_cell :=
+  frame_preservation_write_neq_frame_cell.
+Definition storage_frame_source_view_refines_view :=
+  FramePreservationCore.frame_source_view_refines_view.
+Definition storage_frame_preservation_view_contract :=
+  FramePreservationCore.frame_preservation_view_contract.
+Definition storage_checked_frame_preservation_view_correct :=
+  FramePreservationCore.checked_frame_preservation_view_correct.
+Definition storage_private_boundary_pair :=
+  private_boundary_pair.
+Definition storage_private_boundary_value_entry :=
+  private_boundary_value_entry.
+Definition storage_check_private_boundaryb :=
+  check_private_boundaryb.
+Definition storage_check_private_boundaryb_sound :=
+  check_private_boundaryb_sound.
+Definition storage_private_boundary_obligations :=
+  private_boundary_obligations.
+Definition storage_private_boundary_liveout_unique :=
+  private_boundary_liveout_unique.
+Definition storage_check_private_boundary_private_uniqueb :=
+  check_private_boundary_private_uniqueb.
+Definition storage_check_private_boundary_private_uniqueb_sound :=
+  check_private_boundary_private_uniqueb_sound.
+Definition storage_private_boundary_private_unique_obligations :=
+  private_boundary_private_unique_obligations.
+Definition storage_check_private_boundary_valueb :=
+  @check_private_boundary_valueb.
+Definition storage_check_private_boundary_valueb_sound :=
+  check_private_boundary_valueb_sound.
+Definition storage_private_boundary_value_obligations :=
+  private_boundary_value_obligations.
+Definition same_instance_access_remap :=
+  StorageCore.same_instance_access_remap.
+Definition same_instance_identity_remap :=
+  StorageCore.same_instance_identity_remap.
+Definition same_instance_identity_remap_refl :=
+  StorageCore.same_instance_identity_remap_refl.
+Definition same_instance_access_remap_compose :=
+  StorageCore.same_instance_access_remap_compose.
+Definition same_instance_access_remap_list_compose :=
+  StorageCore.same_instance_access_remap_list_compose.
+Definition pprog_same_instance_access_remap :=
+  StorageCore.pprog_same_instance_access_remap.
+Definition pprog_same_instance_identity_remap :=
+  StorageCore.pprog_same_instance_identity_remap.
+Definition pprog_same_instance_identity_remap_refl :=
+  StorageCore.pprog_same_instance_identity_remap_refl.
+Definition pprog_same_instance_access_remap_compose :=
+  StorageCore.pprog_same_instance_access_remap_compose.
+Definition layout_array_rename_cell_relation :=
+  array_rename_cell_relation.
+Definition layout_array_index_permutation :=
+  array_index_permutation.
+Definition layout_array_index_permutation_cell_relation :=
+  array_index_permutation_cell_relation.
+Definition layout_array_affine_layout :=
+  array_affine_layout.
+Definition layout_array_affine_layout_cell_relation :=
+  array_affine_layout_cell_relation.
+Definition layout_declared_layout_index_map :=
+  declared_layout_index_map.
+Definition layout_declared_array_layout :=
+  declared_array_layout.
+Definition layout_declared_layout_cell_relation :=
+  declared_layout_cell_relation.
+Definition layout_array_rename_access_pairb :=
+  array_rename_access_pairb.
+Definition layout_array_rename_access_pairb_sound :=
+  array_rename_access_pairb_sound.
+Definition layout_array_rename_access_listb :=
+  array_rename_access_listb.
+Definition layout_array_rename_access_listb_sound :=
+  array_rename_access_listb_sound.
+Definition layout_array_index_permutation_access_pairb :=
+  array_index_permutation_access_pairb.
+Definition layout_array_index_permutation_access_pairb_sound :=
+  array_index_permutation_access_pairb_sound.
+Definition layout_array_index_permutation_access_listb :=
+  array_index_permutation_access_listb.
+Definition layout_array_index_permutation_access_listb_sound :=
+  array_index_permutation_access_listb_sound.
+Definition layout_array_affine_layout_access_pairb :=
+  array_affine_layout_access_pairb.
+Definition layout_array_affine_layout_access_pairb_sound :=
+  array_affine_layout_access_pairb_sound.
+Definition layout_array_affine_layout_access_listb :=
+  array_affine_layout_access_listb.
+Definition layout_array_affine_layout_access_listb_sound :=
+  array_affine_layout_access_listb_sound.
+Definition layout_declared_layout_access_pairb :=
+  declared_layout_access_pairb.
+Definition layout_declared_layout_access_pairb_sound :=
+  declared_layout_access_pairb_sound.
+Definition layout_declared_layout_access_listb :=
+  declared_layout_access_listb.
+Definition layout_declared_layout_access_listb_sound :=
+  declared_layout_access_listb_sound.
+Definition layout_check_pinstr_array_rename_access_remapb :=
+  LayoutCore.check_pinstr_array_rename_access_remapb.
+Definition layout_check_pinstr_array_rename_access_remapb_sound :=
+  LayoutCore.check_pinstr_array_rename_access_remapb_sound.
+Definition layout_check_pprog_array_rename_access_remapb :=
+  LayoutCore.check_pprog_array_rename_access_remapb.
+Definition layout_check_pprog_array_rename_access_remapb_sound :=
+  LayoutCore.check_pprog_array_rename_access_remapb_sound.
+Definition layout_check_pinstr_array_index_permutation_access_remapb :=
+  LayoutCore.check_pinstr_array_index_permutation_access_remapb.
+Definition layout_check_pinstr_array_index_permutation_access_remapb_sound :=
+  LayoutCore.check_pinstr_array_index_permutation_access_remapb_sound.
+Definition layout_check_pprog_array_index_permutation_access_remapb :=
+  LayoutCore.check_pprog_array_index_permutation_access_remapb.
+Definition layout_check_pprog_array_index_permutation_access_remapb_sound :=
+  LayoutCore.check_pprog_array_index_permutation_access_remapb_sound.
+Definition layout_check_pinstr_array_affine_layout_access_remapb :=
+  LayoutCore.check_pinstr_array_affine_layout_access_remapb.
+Definition layout_check_pinstr_array_affine_layout_access_remapb_sound :=
+  LayoutCore.check_pinstr_array_affine_layout_access_remapb_sound.
+Definition layout_check_pprog_array_affine_layout_access_remapb :=
+  LayoutCore.check_pprog_array_affine_layout_access_remapb.
+Definition layout_check_pprog_array_affine_layout_access_remapb_sound :=
+  LayoutCore.check_pprog_array_affine_layout_access_remapb_sound.
+Definition layout_check_pinstr_declared_layout_access_remapb :=
+  LayoutCore.check_pinstr_declared_layout_access_remapb.
+Definition layout_check_pinstr_declared_layout_access_remapb_sound :=
+  LayoutCore.check_pinstr_declared_layout_access_remapb_sound.
+Definition layout_check_pprog_declared_layout_access_remapb :=
+  LayoutCore.check_pprog_declared_layout_access_remapb.
+Definition layout_check_pprog_declared_layout_access_remapb_sound :=
+  LayoutCore.check_pprog_declared_layout_access_remapb_sound.
+Definition storage_padding_layout_mapping := padding_layout_mapping.
+Definition storage_check_padding_layoutb :=
+  check_padding_layoutb.
+Definition storage_check_padding_layoutb_sound :=
+  check_padding_layoutb_sound.
+Definition storage_padding_layout_obligations :=
+  padding_layout_obligations.
+Definition storage_layout_value_entry := layout_value_entry.
+Definition storage_check_layout_valueb :=
+  @check_layout_valueb.
+Definition storage_check_layout_valueb_sound :=
+  check_layout_valueb_sound.
+Definition storage_layout_value_obligations :=
+  layout_value_obligations.
+Definition storage_padding_source_view_refines_view :=
+  PaddingLayoutCore.padding_source_view_refines_view.
+Definition storage_padding_layout_view_contract :=
+  PaddingLayoutCore.padding_layout_view_contract.
+Definition storage_padding_layout_value_view_contract :=
+  PaddingLayoutCore.padding_layout_value_view_contract.
+Definition storage_padding_layout_access_view_contract :=
+  PaddingLayoutCore.padding_layout_access_view_contract.
+Definition storage_padding_layout_access_value_view_contract :=
+  PaddingLayoutCore.padding_layout_access_value_view_contract.
+Definition storage_padding_layout_permutation_access_view_contract :=
+  PaddingLayoutCore.padding_layout_permutation_access_view_contract.
+Definition storage_padding_layout_permutation_access_value_view_contract :=
+  PaddingLayoutCore.padding_layout_permutation_access_value_view_contract.
+Definition storage_padding_layout_affine_access_view_contract :=
+  PaddingLayoutCore.padding_layout_affine_access_view_contract.
+Definition storage_padding_layout_affine_access_value_view_contract :=
+  PaddingLayoutCore.padding_layout_affine_access_value_view_contract.
+Definition storage_padding_layout_declared_access_view_contract :=
+  PaddingLayoutCore.padding_layout_declared_access_view_contract.
+Definition storage_padding_layout_declared_access_value_view_contract :=
+  PaddingLayoutCore.padding_layout_declared_access_value_view_contract.
+Definition storage_checked_padding_layout_view_correct :=
+  PaddingLayoutCore.checked_padding_layout_view_correct.
+Definition storage_checked_padding_layout_value_view_correct :=
+  PaddingLayoutCore.checked_padding_layout_value_view_correct.
+Definition storage_checked_padding_layout_access_view_correct :=
+  PaddingLayoutCore.checked_padding_layout_access_view_correct.
+Definition storage_checked_padding_layout_access_value_view_correct :=
+  PaddingLayoutCore.checked_padding_layout_access_value_view_correct.
+Definition storage_checked_padding_layout_permutation_access_view_correct :=
+  PaddingLayoutCore.checked_padding_layout_permutation_access_view_correct.
+Definition storage_checked_padding_layout_permutation_access_value_view_correct :=
+  PaddingLayoutCore.checked_padding_layout_permutation_access_value_view_correct.
+Definition storage_checked_padding_layout_affine_access_view_correct :=
+  PaddingLayoutCore.checked_padding_layout_affine_access_view_correct.
+Definition storage_checked_padding_layout_affine_access_value_view_correct :=
+  PaddingLayoutCore.checked_padding_layout_affine_access_value_view_correct.
+Definition storage_checked_padding_layout_declared_access_view_correct :=
+  PaddingLayoutCore.checked_padding_layout_declared_access_view_correct.
+Definition storage_checked_padding_layout_declared_access_value_view_correct :=
+  PaddingLayoutCore.checked_padding_layout_declared_access_value_view_correct.
+Definition storage_scalar_promotion_event := scalar_promotion_event.
+Definition storage_scalar_promotion_value_event :=
+  scalar_promotion_value_event.
+Definition storage_scalar_promotion_value_trace :=
+  scalar_promotion_value_trace.
+Definition storage_check_scalar_value_traceb :=
+  @check_scalar_value_traceb.
+Definition storage_check_scalar_value_traceb_sound :=
+  check_scalar_value_traceb_sound.
+Definition storage_scalar_value_simulation_obligations :=
+  scalar_value_simulation_obligations.
+Definition storage_check_scalar_promotionb :=
+  check_scalar_promotionb.
+Definition storage_check_scalar_promotionb_sound :=
+  check_scalar_promotionb_sound.
+Definition storage_scalar_promotion_obligations :=
+  scalar_promotion_obligations.
+Definition storage_promotion_source_view_refines_view :=
+  ScalarPromotionCore.promotion_source_view_refines_view.
+Definition storage_scalar_promotion_view_contract :=
+  ScalarPromotionCore.scalar_promotion_view_contract.
+Definition storage_scalar_promotion_value_view_contract :=
+  ScalarPromotionCore.scalar_promotion_value_view_contract.
+Definition storage_scalar_promotion_compatible_view_contract :=
+  ScalarPromotionCore.scalar_promotion_compatible_view_contract.
+Definition storage_scalar_promotion_compatible_value_view_contract :=
+  ScalarPromotionCore.scalar_promotion_compatible_value_view_contract.
+Definition storage_checked_scalar_promotion_view_correct :=
+  ScalarPromotionCore.checked_scalar_promotion_view_correct.
+Definition storage_checked_scalar_promotion_value_view_correct :=
+  ScalarPromotionCore.checked_scalar_promotion_value_view_correct.
+Definition storage_checked_scalar_promotion_compatible_view_correct :=
+  ScalarPromotionCore.checked_scalar_promotion_compatible_view_correct.
+Definition storage_checked_scalar_promotion_compatible_value_view_correct :=
+  ScalarPromotionCore.checked_scalar_promotion_compatible_value_view_correct.
+Definition storage_copy_event := copy_event.
+Definition storage_copy_cell_mapping := copy_cell_mapping.
+Definition storage_check_copy_mappingb :=
+  check_copy_mappingb.
+Definition storage_check_copy_mappingb_sound :=
+  check_copy_mappingb_sound.
+Definition storage_copy_mapping_obligations :=
+  copy_mapping_obligations.
+Definition storage_copy_value_event := copy_value_event.
+Definition storage_copy_value_trace := copy_value_trace.
+Definition storage_check_copy_value_traceb :=
+  @check_copy_value_traceb.
+Definition storage_check_copy_value_traceb_sound :=
+  check_copy_value_traceb_sound.
+Definition storage_copy_value_simulation_obligations :=
+  copy_value_simulation_obligations.
+Definition storage_check_copy_protocol_wfb :=
+  check_copy_protocol_wfb.
+Definition storage_check_copy_protocol_wfb_sound :=
+  check_copy_protocol_wfb_sound.
+Definition storage_check_copy_protocol_wfb_commits_nodup :=
+  check_copy_protocol_wfb_commits_nodup.
+Definition storage_check_copy_commit_coverb :=
+  check_copy_commit_coverb.
+Definition storage_check_copy_commit_coverb_sound :=
+  check_copy_commit_coverb_sound.
+Definition storage_check_copy_commit_coverb_obligations_sound :=
+  check_copy_commit_coverb_obligations_sound.
+Definition storage_copy_commit_obligations :=
+  copy_commit_obligations.
+Definition storage_check_copy_instance_traceb :=
+  check_copy_instance_traceb.
+Definition storage_check_copy_instance_traceb_sound :=
+  check_copy_instance_traceb_sound.
+Definition storage_check_copy_instance_traceb_obligations_sound :=
+  check_copy_instance_traceb_obligations_sound.
+Definition storage_copy_instance_trace_obligations :=
+  copy_instance_trace_obligations.
+Definition storage_copy_source_view_refines_view :=
+  CopyProtocolCore.copy_source_view_refines_view.
+Definition storage_copy_protocol_view_contract :=
+  CopyProtocolCore.copy_protocol_view_contract.
+Definition storage_copy_protocol_value_view_contract :=
+  CopyProtocolCore.copy_protocol_value_view_contract.
+Definition storage_copy_protocol_mapping_view_contract :=
+  CopyProtocolCore.copy_protocol_mapping_view_contract.
+Definition storage_copy_protocol_mapping_value_view_contract :=
+  CopyProtocolCore.copy_protocol_mapping_value_view_contract.
+Definition storage_copy_protocol_commit_mapping_value_view_contract :=
+  CopyProtocolCore.copy_protocol_commit_mapping_value_view_contract.
+Definition storage_checked_copy_protocol_view_correct :=
+  CopyProtocolCore.checked_copy_protocol_view_correct.
+Definition storage_checked_copy_protocol_value_view_correct :=
+  CopyProtocolCore.checked_copy_protocol_value_view_correct.
+Definition storage_checked_copy_protocol_mapping_view_correct :=
+  CopyProtocolCore.checked_copy_protocol_mapping_view_correct.
+Definition storage_checked_copy_protocol_mapping_value_view_correct :=
+  CopyProtocolCore.checked_copy_protocol_mapping_value_view_correct.
+Definition storage_checked_copy_protocol_commit_mapping_value_view_correct :=
+  CopyProtocolCore.checked_copy_protocol_commit_mapping_value_view_correct.
+Definition storage_scratchpad_source_view_refines_view :=
+  ScratchpadCopyCore.scratchpad_source_view_refines_view.
+Definition storage_scratchpad_copy_view_contract :=
+  ScratchpadCopyCore.scratchpad_copy_view_contract.
+Definition storage_scratchpad_copy_commit_view_contract :=
+  ScratchpadCopyCore.scratchpad_copy_commit_view_contract.
+Definition storage_scratchpad_copy_instance_view_contract :=
+  ScratchpadCopyCore.scratchpad_copy_instance_view_contract.
+Definition storage_scratchpad_copy_instance_commit_view_contract :=
+  ScratchpadCopyCore.scratchpad_copy_instance_commit_view_contract.
+Definition storage_scratchpad_copy_full_view_contract :=
+  ScratchpadCopyCore.scratchpad_copy_full_view_contract.
+Definition storage_checked_scratchpad_copy_view_correct :=
+  ScratchpadCopyCore.checked_scratchpad_copy_view_correct.
+Definition storage_checked_scratchpad_copy_commit_view_correct :=
+  ScratchpadCopyCore.checked_scratchpad_copy_commit_view_correct.
+Definition storage_checked_scratchpad_copy_instance_view_correct :=
+  ScratchpadCopyCore.checked_scratchpad_copy_instance_view_correct.
+Definition storage_checked_scratchpad_copy_instance_commit_view_correct :=
+  ScratchpadCopyCore.checked_scratchpad_copy_instance_commit_view_correct.
+Definition storage_checked_scratchpad_copy_full_view_correct :=
+  ScratchpadCopyCore.checked_scratchpad_copy_full_view_correct.
+Definition storage_reuse_mapping := reuse_mapping.
+Definition storage_conflict_pairs := conflict_pairs.
+Definition storage_live_interval := live_interval.
+Definition storage_check_live_conflictb :=
+  check_live_conflictb.
+Definition storage_check_live_conflictb_sound :=
+  check_live_conflictb_sound.
+Definition storage_live_conflict_obligations :=
+  live_conflict_obligations.
+Definition storage_live_overlaps_reuse_separated :=
+  live_overlaps_reuse_separated.
+Definition storage_live_conflict_and_conflict_safe_reuse_sound :=
+  live_conflict_and_conflict_safe_reuse_sound.
+Definition storage_reuse_value_entry := reuse_value_entry.
+Definition storage_check_reuse_valueb :=
+  @check_reuse_valueb.
+Definition storage_check_reuse_valueb_sound :=
+  check_reuse_valueb_sound.
+Definition storage_reuse_value_obligations :=
+  reuse_value_obligations.
+Definition storage_storage_spec := storage_spec.
+Definition storage_check_storage_compatibilityb :=
+  check_storage_compatibilityb.
+Definition storage_check_storage_compatibilityb_sound :=
+  check_storage_compatibilityb_sound.
+Definition storage_compatibility_obligations :=
+  storage_compatibility_obligations.
+Definition storage_mapping_compatible :=
+  storage_mapping_compatible.
+Definition storage_check_inter_array_reuseb :=
+  check_inter_array_reuseb.
+Definition storage_check_inter_array_reuseb_sound :=
+  check_inter_array_reuseb_sound.
+Definition storage_inter_array_reuse_obligations :=
+  inter_array_reuse_obligations.
+Definition storage_inter_array_reuse_sources_nodup :=
+  inter_array_reuse_sources_nodup.
+Definition storage_inter_array_storage_mapping_compatible :=
+  inter_array_storage_mapping_compatible.
+Definition storage_inter_array_live_overlaps_reuse_separated :=
+  inter_array_live_overlaps_reuse_separated.
+Definition storage_inter_array_overlap_mapped_distinct :=
+  inter_array_overlap_mapped_distinct.
+Definition storage_inter_array_same_physical_not_live_overlap :=
+  inter_array_same_physical_not_live_overlap.
+Definition storage_inter_array_source_view_refines_view :=
+  InterArrayReuseCore.inter_array_source_view_refines_view.
+Definition storage_inter_array_reuse_view_contract :=
+  InterArrayReuseCore.inter_array_reuse_view_contract.
+Definition storage_checked_inter_array_reuse_view_correct :=
+  InterArrayReuseCore.checked_inter_array_reuse_view_correct.
+Definition storage_check_conflict_safe_reuseb :=
+  check_conflict_safe_reuseb.
+Definition storage_check_conflict_safe_reuseb_sound :=
+  check_conflict_safe_reuseb_sound.
+Definition storage_conflict_safe_reuse_obligations :=
+  conflict_safe_reuse_obligations.
+Definition storage_reuse_mapping_covers_sources :=
+  reuse_mapping_covers_sources.
+Definition storage_reuse_mapping_covers_sourcesb :=
+  reuse_mapping_covers_sourcesb.
+Definition storage_reuse_mapping_covers_sourcesb_sound :=
+  reuse_mapping_covers_sourcesb_sound.
+Definition storage_reuse_boundary_obligations :=
+  reuse_boundary_obligations.
+Definition storage_check_reuse_boundaryb :=
+  check_reuse_boundaryb.
+Definition storage_check_reuse_boundaryb_sound :=
+  check_reuse_boundaryb_sound.
+Definition storage_reuse_source_view_refines_view :=
+  ReuseConflictCore.reuse_source_view_refines_view.
+Definition storage_conflict_reuse_view_contract :=
+  ReuseConflictCore.conflict_reuse_view_contract.
+Definition storage_conflict_reuse_value_view_contract :=
+  ReuseConflictCore.conflict_reuse_value_view_contract.
+Definition storage_live_conflict_reuse_view_contract :=
+  ReuseConflictCore.live_conflict_reuse_view_contract.
+Definition storage_live_conflict_reuse_value_view_contract :=
+  ReuseConflictCore.live_conflict_reuse_value_view_contract.
+Definition storage_compatible_conflict_reuse_view_contract :=
+  ReuseConflictCore.compatible_conflict_reuse_view_contract.
+Definition storage_compatible_live_conflict_reuse_view_contract :=
+  ReuseConflictCore.compatible_live_conflict_reuse_view_contract.
+Definition storage_compatible_live_conflict_reuse_value_view_contract :=
+  ReuseConflictCore.compatible_live_conflict_reuse_value_view_contract.
+Definition storage_checked_conflict_reuse_view_correct :=
+  ReuseConflictCore.checked_conflict_reuse_view_correct.
+Definition storage_checked_conflict_reuse_value_view_correct :=
+  ReuseConflictCore.checked_conflict_reuse_value_view_correct.
+Definition storage_checked_live_conflict_reuse_view_correct :=
+  ReuseConflictCore.checked_live_conflict_reuse_view_correct.
+Definition storage_checked_live_conflict_reuse_value_view_correct :=
+  ReuseConflictCore.checked_live_conflict_reuse_value_view_correct.
+Definition storage_checked_compatible_conflict_reuse_view_correct :=
+  ReuseConflictCore.checked_compatible_conflict_reuse_view_correct.
+Definition storage_checked_compatible_live_conflict_reuse_view_correct :=
+  ReuseConflictCore.checked_compatible_live_conflict_reuse_view_correct.
+Definition storage_checked_compatible_live_conflict_reuse_value_view_correct :=
+  ReuseConflictCore.checked_compatible_live_conflict_reuse_value_view_correct.
+Definition storage_logical_instance := logical_instance.
+Definition storage_projected_instance := projected_instance.
+Definition storage_check_instance_projectionb :=
+  check_instance_projectionb.
+Definition storage_check_instance_projectionb_sound :=
+  check_instance_projectionb_sound.
+Definition storage_instance_projection_obligations :=
+  instance_projection_obligations.
+Definition storage_commit_sources_projected_sources_subset :=
+  commit_sources_projected_sources_subset.
+Definition storage_instance_projection_commit_sources_nodup :=
+  instance_projection_commit_sources_nodup.
+Definition storage_instance_projection_liveout_committed :=
+  instance_projection_liveout_committed.
+Definition storage_instance_projection_commit_is_liveout :=
+  instance_projection_commit_is_liveout.
+Definition storage_instance_projection_liveout_in_domain :=
+  instance_projection_liveout_in_domain.
+Definition storage_projection_source_view_refines_view :=
+  InstanceProjectionCore.projection_source_view_refines_view.
+Definition storage_instance_projection_view_contract :=
+  InstanceProjectionCore.instance_projection_view_contract.
+Definition storage_checked_instance_projection_view_correct :=
+  InstanceProjectionCore.checked_instance_projection_view_correct.
+Definition storage_overlap_dependency := overlap_dependency.
+Definition storage_overlap_tile := overlap_tile.
+Definition storage_overlap_tiles_targets :=
+  overlap_tiles_targets.
+Definition storage_check_overlap_closureb :=
+  check_overlap_closureb.
+Definition storage_check_overlap_closureb_sound :=
+  check_overlap_closureb_sound.
+Definition storage_overlap_closure_obligations :=
+  overlap_closure_obligations.
+Definition storage_overlap_closure_dependency_available :=
+  overlap_closure_dependency_available.
+Definition storage_check_overlap_ordered_closureb :=
+  check_overlap_ordered_closureb.
+Definition storage_check_overlap_ordered_closureb_sound :=
+  check_overlap_ordered_closureb_sound.
+Definition storage_overlap_ordered_closure_obligations :=
+  overlap_ordered_closure_obligations.
+Definition storage_overlap_ordered_closure_dependency_ordered :=
+  overlap_ordered_closure_dependency_ordered.
+Definition storage_overlap_source_view_refines_view :=
+  OverlapTilingCore.overlap_source_view_refines_view.
+Definition storage_overlap_no_private_view_contract :=
+  OverlapTilingCore.overlap_no_private_view_contract.
+Definition storage_overlap_private_view_contract :=
+  OverlapTilingCore.overlap_private_view_contract.
+Definition storage_overlap_closure_view_contract :=
+  OverlapTilingCore.overlap_closure_view_contract.
+Definition storage_overlap_private_closure_view_contract :=
+  OverlapTilingCore.overlap_private_closure_view_contract.
+Definition storage_overlap_ordered_closure_view_contract :=
+  OverlapTilingCore.overlap_ordered_closure_view_contract.
+Definition storage_overlap_private_ordered_closure_view_contract :=
+  OverlapTilingCore.overlap_private_ordered_closure_view_contract.
+Definition storage_checked_overlap_no_private_view_correct :=
+  OverlapTilingCore.checked_overlap_no_private_view_correct.
+Definition storage_checked_overlap_private_view_correct :=
+  OverlapTilingCore.checked_overlap_private_view_correct.
+Definition storage_checked_overlap_closure_view_correct :=
+  OverlapTilingCore.checked_overlap_closure_view_correct.
+Definition storage_checked_overlap_private_closure_view_correct :=
+  OverlapTilingCore.checked_overlap_private_closure_view_correct.
+Definition storage_checked_overlap_ordered_closure_view_correct :=
+  OverlapTilingCore.checked_overlap_ordered_closure_view_correct.
+Definition storage_checked_overlap_private_ordered_closure_view_correct :=
+  OverlapTilingCore.checked_overlap_private_ordered_closure_view_correct.
+Definition storage_version_commit_mapping :=
+  version_commit_mapping.
+Definition storage_version_value_entry := version_value_entry.
+Definition storage_check_version_valueb :=
+  @check_version_valueb.
+Definition storage_check_version_valueb_sound :=
+  check_version_valueb_sound.
+Definition storage_version_value_obligations :=
+  version_value_obligations.
+Definition storage_check_version_commitb :=
+  check_version_commitb.
+Definition storage_check_version_commitb_sound :=
+  check_version_commitb_sound.
+Definition storage_version_commit_cell_relation :=
+  version_commit_cell_relation.
+Definition storage_version_commit_sources_reuse_mapping_sources :=
+  version_commit_sources_reuse_mapping_sources.
+Definition storage_version_commit_pair_source_in_sources :=
+  version_commit_pair_source_in_sources.
+Definition storage_version_commit_pair_version_in_versions :=
+  version_commit_pair_version_in_versions.
+Definition storage_version_commit_source_in_mapping :=
+  version_commit_source_in_mapping.
+Definition storage_version_commit_version_in_mapping :=
+  version_commit_version_in_mapping.
+Definition storage_version_commit_sources_nodup :=
+  version_commit_sources_nodup.
+Definition storage_version_commit_versions_nodup :=
+  version_commit_versions_nodup.
+Definition storage_version_commit_liveout_selected :=
+  version_commit_liveout_selected.
+Definition storage_version_commit_selected_source_liveout :=
+  version_commit_selected_source_liveout.
+Definition storage_version_commit_selected_version_in_versions :=
+  version_commit_selected_version_in_versions.
+Definition storage_version_source_view_refines_view :=
+  VersionCommitCore.version_source_view_refines_view.
+Definition storage_version_commit_view_contract :=
+  VersionCommitCore.version_commit_view_contract.
+Definition storage_version_commit_value_view_contract :=
+  VersionCommitCore.version_commit_value_view_contract.
+Definition storage_version_commit_compatible_view_contract :=
+  VersionCommitCore.version_commit_compatible_view_contract.
+Definition storage_version_commit_compatible_value_view_contract :=
+  VersionCommitCore.version_commit_compatible_value_view_contract.
+Definition storage_checked_version_commit_view_correct :=
+  VersionCommitCore.checked_version_commit_view_correct.
+Definition storage_checked_version_commit_value_view_correct :=
+  VersionCommitCore.checked_version_commit_value_view_correct.
+Definition storage_checked_version_commit_compatible_view_correct :=
+  VersionCommitCore.checked_version_commit_compatible_view_correct.
+Definition storage_checked_version_commit_compatible_value_view_correct :=
+  VersionCommitCore.checked_version_commit_compatible_value_view_correct.
+Definition storage_reduction_chunks := reduction_chunks.
+Definition storage_reduction_accumulator_value :=
+  reduction_accumulator_value.
+Definition storage_check_reduction_associative_lawb :=
+  @check_reduction_associative_lawb.
+Definition storage_check_reduction_associative_lawb_sound :=
+  check_reduction_associative_lawb_sound.
+Definition storage_reduction_associative_obligations :=
+  reduction_associative_obligations.
+Definition storage_check_reduction_commutative_lawb :=
+  @check_reduction_commutative_lawb.
+Definition storage_check_reduction_commutative_lawb_sound :=
+  check_reduction_commutative_lawb_sound.
+Definition storage_reduction_commutative_obligations :=
+  reduction_commutative_obligations.
+Definition storage_check_reduction_value_mergeb :=
+  @check_reduction_value_mergeb.
+Definition storage_check_reduction_value_mergeb_sound :=
+  check_reduction_value_mergeb_sound.
+Definition storage_reduction_value_merge_obligations :=
+  reduction_value_merge_obligations.
+Definition storage_check_reduction_mergeb :=
+  check_reduction_mergeb.
+Definition storage_check_reduction_mergeb_sound :=
+  check_reduction_mergeb_sound.
+Definition storage_reduction_merge_obligations :=
+  reduction_merge_obligations.
+Definition storage_reduction_chunks_covered_nodup :=
+  reduction_chunks_covered_nodup.
+Definition storage_reduction_source_instance_covered :=
+  reduction_source_instance_covered.
+Definition storage_reduction_covered_instance_in_source :=
+  reduction_covered_instance_in_source.
+Definition storage_reduction_private_accumulators_nodup :=
+  reduction_private_accumulators_nodup.
+Definition storage_reduction_merge_order_nodup :=
+  reduction_merge_order_nodup.
+Definition storage_reduction_private_accumulator_merged :=
+  reduction_private_accumulator_merged.
+Definition storage_reduction_merged_accumulator_private :=
+  reduction_merged_accumulator_private.
+Definition storage_reduction_source_view_refines_view :=
+  ReductionMergeCore.reduction_source_view_refines_view.
+Definition storage_reduction_merge_view_contract :=
+  ReductionMergeCore.reduction_merge_view_contract.
+Definition storage_reduction_merge_value_view_contract :=
+  ReductionMergeCore.reduction_merge_value_view_contract.
+Definition storage_reduction_merge_associative_view_contract :=
+  ReductionMergeCore.reduction_merge_associative_view_contract.
+Definition storage_reduction_merge_commutative_view_contract :=
+  ReductionMergeCore.reduction_merge_commutative_view_contract.
+Definition storage_reduction_merge_associative_value_view_contract :=
+  ReductionMergeCore.reduction_merge_associative_value_view_contract.
+Definition storage_reduction_merge_commutative_value_view_contract :=
+  ReductionMergeCore.reduction_merge_commutative_value_view_contract.
+Definition storage_checked_reduction_merge_view_correct :=
+  ReductionMergeCore.checked_reduction_merge_view_correct.
+Definition storage_checked_reduction_merge_value_view_correct :=
+  ReductionMergeCore.checked_reduction_merge_value_view_correct.
+Definition storage_checked_reduction_merge_associative_view_correct :=
+  ReductionMergeCore.checked_reduction_merge_associative_view_correct.
+Definition storage_checked_reduction_merge_commutative_view_correct :=
+  ReductionMergeCore.checked_reduction_merge_commutative_view_correct.
+Definition storage_checked_reduction_merge_associative_value_view_correct :=
+  ReductionMergeCore.checked_reduction_merge_associative_value_view_correct.
+Definition storage_checked_reduction_merge_commutative_value_view_correct :=
+  ReductionMergeCore.checked_reduction_merge_commutative_value_view_correct.
+Definition storage_phase_step := phase_step.
+Definition storage_phase_cell_value := phase_cell_value.
+Definition storage_phase_value_step := phase_value_step.
+Definition storage_check_phase_value_protocolb :=
+  @check_phase_value_protocolb.
+Definition storage_check_phase_value_protocolb_sound :=
+  check_phase_value_protocolb_sound.
+Definition storage_phase_value_protocol :=
+  phase_value_protocol.
+Definition storage_phase_value_protocol_final_values :=
+  @phase_value_protocol_final_values.
+Definition storage_phase_value_protocol_final_snapshot :=
+  phase_value_protocol_final_snapshot.
+Definition storage_check_phase_value_protocolb_final_snapshot :=
+  check_phase_value_protocolb_final_snapshot.
+Definition storage_check_phase_protocolb :=
+  check_phase_protocolb.
+Definition storage_check_phase_protocolb_sound :=
+  check_phase_protocolb_sound.
+Definition storage_phase_protocol_final_live :=
+  phase_protocol_final_live.
+Definition storage_phase_projection_mapping :=
+  phase_projection_mapping.
+Definition storage_phase_projection_cell_relation :=
+  phase_projection_cell_relation.
+Definition storage_phase_projection_value_entry :=
+  phase_projection_value_entry.
+Definition storage_check_phase_projectionb :=
+  check_phase_projectionb.
+Definition storage_check_phase_projectionb_sound :=
+  check_phase_projectionb_sound.
+Definition storage_phase_projection_obligations :=
+  phase_projection_obligations.
+Definition storage_phase_projection_pair_source_in_sources :=
+  phase_projection_pair_source_in_sources.
+Definition storage_phase_projection_pair_target_in_targets :=
+  phase_projection_pair_target_in_targets.
+Definition storage_phase_projection_source_in_mapping :=
+  phase_projection_source_in_mapping.
+Definition storage_phase_projection_target_in_mapping :=
+  phase_projection_target_in_mapping.
+Definition storage_phase_projection_sources_nodup :=
+  phase_projection_sources_nodup.
+Definition storage_phase_projection_targets_nodup :=
+  phase_projection_targets_nodup.
+Definition storage_phase_projection_liveout_mapped :=
+  phase_projection_liveout_mapped.
+Definition storage_phase_projection_mapped_source_liveout :=
+  phase_projection_mapped_source_liveout.
+Definition storage_phase_projection_mapped_target_final_live :=
+  phase_projection_mapped_target_final_live.
+Definition storage_check_phase_projection_valueb :=
+  @check_phase_projection_valueb.
+Definition storage_check_phase_projection_valueb_sound :=
+  check_phase_projection_valueb_sound.
+Definition storage_phase_projection_value_obligations :=
+  phase_projection_value_obligations.
+Definition storage_phase_source_view_refines_view :=
+  PhaseSeparationCore.phase_source_view_refines_view.
+Definition storage_phase_separation_view_contract :=
+  PhaseSeparationCore.phase_separation_view_contract.
+Definition storage_phase_separation_value_view_contract :=
+  PhaseSeparationCore.phase_separation_value_view_contract.
+Definition storage_phase_projection_view_contract :=
+  PhaseSeparationCore.phase_projection_view_contract.
+Definition storage_phase_projection_value_view_contract :=
+  PhaseSeparationCore.phase_projection_value_view_contract.
+Definition storage_checked_phase_separation_view_correct :=
+  PhaseSeparationCore.checked_phase_separation_view_correct.
+Definition storage_checked_phase_separation_value_view_correct :=
+  PhaseSeparationCore.checked_phase_separation_value_view_correct.
+Definition storage_checked_phase_projection_view_correct :=
+  PhaseSeparationCore.checked_phase_projection_view_correct.
+Definition storage_checked_phase_projection_value_view_correct :=
+  PhaseSeparationCore.checked_phase_projection_value_view_correct.
+
+(** Legacy validator API.  These definitions remain unchanged: the generalized
+    contract above only wraps their existing correctness theorem as the
+    identity-observation instance. *)
+Definition check_wf_polyinstr := AffineCore.check_wf_polyinstr.
+Definition check_wf_polyprog := AffineCore.check_wf_polyprog.
+Definition check_wf_polyinstr_tiling := AffineCore.check_wf_polyinstr_tiling.
+Definition check_wf_polyprog_tiling := AffineCore.check_wf_polyprog_tiling.
+Definition check_wf_polyinstr_general := AffineCore.check_wf_polyinstr_general.
+Definition check_wf_polyprog_general := AffineCore.check_wf_polyprog_general.
+Definition check_wf_polyinstr_correct := AffineCore.check_wf_polyinstr_correct.
+Definition check_wf_polyprog_correct := AffineCore.check_wf_polyprog_correct.
+Definition check_wf_polyinstr_affine_correct :=
+  AffineCore.check_wf_polyinstr_affine_correct.
+Definition check_wf_polyprog_general_correct :=
+  AffineCore.check_wf_polyprog_tiling_correct.
+Definition EqDom := AffineCore.EqDom.
+Definition check_valid_access := AffineCore.check_valid_access.
+Definition validate_instr_list := AffineCore.validate_instr_list.
+Definition validate := AffineCore.validate.
+Definition validate_general := AffineCore.validate_general.
+Definition validate_tiling := AffineCore.validate_tiling.
+Definition validate_correct := AffineCore.validate_correct.
+Definition validate_general_correct := AffineCore.validate_tiling_correct.
+Definition validate_tiling_correct := AffineCore.validate_tiling_correct.
+Definition validate_preserve_wf_pprog := AffineCore.validate_preserve_wf_pprog.
+
+(** ISS structure validator API. *)
+Definition check_domain_partition_shapeb :=
+  ISSCore.check_domain_partition_shapeb.
+Definition checked_iss_shape_validate :=
+  ISSCore.checked_iss_shape_validate.
+Definition check_domain_partition_cut_shapeb :=
+  ISSCore.check_domain_partition_cut_shapeb.
+Definition checked_iss_cut_shape_validate :=
+  ISSCore.checked_iss_cut_shape_validate.
+Definition check_domain_partition_complete_cut_shapeb :=
+  ISSCore.check_domain_partition_complete_cut_shapeb.
+Definition checked_iss_complete_cut_shape_validate :=
+  ISSCore.checked_iss_complete_cut_shape_validate.
+Definition domain_partition_shape :=
+  ISSCore.domain_partition_shape.
+Definition domain_partition_shape_with_witness :=
+  ISSCore.domain_partition_shape_with_witness.
+Definition domain_partition_cut_shape :=
+  ISSCore.domain_partition_cut_shape.
+Definition domain_partition_complete_cut_shape :=
+  ISSCore.domain_partition_complete_cut_shape.
+Definition checked_iss_shape_validate_correct :=
+  ISSCore.checked_iss_shape_validate_correct.
+Definition checked_iss_cut_shape_validate_correct :=
+  ISSCore.checked_iss_cut_shape_validate_correct.
+Definition checked_iss_complete_cut_shape_validate_correct :=
+  ISSCore.checked_iss_complete_cut_shape_validate_correct.
+
+(** Parallel certification API. *)
+Definition parallel_plan := ParallelCore.parallel_plan.
+Definition parallel_cert := ParallelCore.parallel_cert.
+Definition current_coords_of := ParallelCore.current_coords_of.
+Definition same_env_of := ParallelCore.same_env_of.
+Definition same_prefix_before := ParallelCore.same_prefix_before.
+Definition different_dim_at := ParallelCore.different_dim_at.
+Definition same_parallel_slice := ParallelCore.same_parallel_slice.
+Definition parallel_safe_dim := ParallelCore.parallel_safe_dim.
+Definition parallel_cert_sound := ParallelCore.parallel_cert_sound.
+Definition check_pprog_parallel_currentb :=
+  ParallelCore.check_pprog_parallel_currentb.
+Definition checked_parallelize_current :=
+  ParallelCore.checked_parallelize_current.
+Definition check_pprog_parallel_currentb_sound :=
+  ParallelCore.check_pprog_parallel_currentb_sound.
+Definition checked_parallelize_current_sound :=
+  ParallelCore.checked_parallelize_current_sound.
+Definition checked_parallelize_current_implies_dim_in_range :=
+  ParallelCore.checked_parallelize_current_implies_dim_in_range.
+
+(** Checked tiling validator API on the generic outer PolyLang type. *)
+Definition to_tiling_pprog := TilingCore.to_tiling_pprog.
+Definition from_tiling_pprog := TilingCore.from_tiling_pprog.
+Definition outer_to_tiling_pprog := TilingCore.outer_to_tiling_pprog.
+Definition check_pprog_tiling_sourceb :=
+  TilingCheck.check_pprog_tiling_sourceb.
+Definition checked_tiling_validate := TilingCore.checked_tiling_validate.
+Definition checked_tiling_validate_outer := TilingCore.checked_tiling_validate_outer.
+Definition checked_tiling_validate_poly := TilingCore.checked_tiling_validate_outer.
+Definition import_canonical_tiled_after_outer :=
+  TilingCore.import_canonical_tiled_after_outer.
+Definition import_canonical_tiled_after_poly :=
+  TilingCore.import_canonical_tiled_after_outer.
+Definition checked_tiling_prepared_codegen :=
+  TilingCore.checked_tiling_prepared_codegen.
+Definition checked_tiling_validate_correct :=
+  TilingCore.checked_tiling_validate_correct.
+Definition checked_tiling_validate_outer_correct :=
+  TilingCore.checked_tiling_validate_outer_correct.
+Definition checked_tiling_validate_poly_correct :=
+  TilingCore.checked_tiling_validate_outer_correct.
+Definition checked_tiling_validate_implies_wf_after :=
+  TilingCore.checked_tiling_validate_implies_wf_after.
+Definition checked_tiling_validate_outer_implies_wf_after :=
+  TilingCore.checked_tiling_validate_outer_implies_wf_after.
+Definition checked_tiling_validate_poly_implies_wf_after :=
+  TilingCore.checked_tiling_validate_outer_implies_wf_after.
+Definition checked_tiling_prepared_codegen_correct :=
+  TilingCore.checked_tiling_prepared_codegen_correct.
+
+End Validator.

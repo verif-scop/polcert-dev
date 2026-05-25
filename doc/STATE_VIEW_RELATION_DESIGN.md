@@ -17,6 +17,18 @@ commit, reuse, and merge.
 This is a design document.  It is not a claim that the view relation is already
 mechanized.
 
+Current mechanization status: `StateView.v` contains the first-class endpoint
+view relation.  Its carrier is now the top-level `generic_state_view`, not a
+functor-local record, so independently instantiated storage validators can
+share the same view type through the facade.  It also exposes basic inclusion
+algebra for views, so later validators can compose and weaken endpoint
+relations without unfolding them.  `ViewPipeline.v` records the
+common composition theorem used by the storage validators.  The pattern is:
+validate the schedule/control part from `before` to a storage-neutral
+`source_view`, then compose that with a feature-specific semantic
+`view_refinement` from `source_view` to `after` plus finite witness obligations
+for layout, private storage, copy, reuse, commit, reduction, or phase behavior.
+
 ## Problem
 
 The current affine validation route proves a strong fragment-level fact:
@@ -89,14 +101,17 @@ The existing route is the special case:
 
 ```coq
 relational_refinement
-  (state_view_rel identity_view)
+  (state_view_rel same_state_view)
   (state_view_rel identity_view)
   before
   after
 ```
 
-with `state_view_rel identity_view` equivalent to, or at least implied by,
-`State.eq`.
+Here `same_state_view` reflects the current validators' exact same-Coq-state
+input precondition, while `identity_view` reflects the final `State.eq`
+observation.  If the project later proves that the fragment semantics is stable
+under `State.eq` on initial states, the input side can be strengthened to
+`identity_view`.
 
 This keeps the old proof meaningful while giving storage transformations a
 place to state their intended observation.
@@ -166,6 +181,15 @@ target-private allocations are disjoint from frame cells
 
 For the current PolIR fragment theorem, this may be implicit.  For a future C or
 CompCert theorem, it must be explicit.
+
+Current exploration status: `FramePreservationWitness.v` mechanizes the finite
+write-set side of this condition.  It checks that fragment writes are contained
+in an allowed-write set, and that the allowed-write set is disjoint from frame
+cells.  `FramePreservationValidator.v` now packages this finite side condition
+under `checked_frame_preservation_view_correct`, so a storage-specific output
+view can be composed with a context-frame contract without changing the old
+`State.eq` route.  The missing piece is deriving `write_cells` from concrete
+instruction semantics rather than supplying it as a finite witness.
 
 ### Commit Policy
 
@@ -741,6 +765,37 @@ swap or phase update changes the physical-to-logical projection as claimed
 This is more than `t mod 2`: the phase relation must justify visibility and
 overwrite safety.
 
+Current exploration status: `PhaseSeparationWitness.v` mechanizes a finite
+phase protocol:
+
+```text
+check_phase_protocolb entry_live steps = true
+```
+
+implies each phase reads only entry-live cells, writes are disjoint from
+entry-live cells, and next-live cells come from either entry-live cells or phase
+writes.  `PhaseValueWitness.check_phase_value_protocolb_sound` adds the
+snapshot value-flow side: read cells have entry values, and each next-live
+value is either produced by the phase write for that cell or inherited from
+the entry snapshot.  `PhaseProjectionWitness.check_phase_projectionb_sound`
+adds the final-boundary projection side: source live-outs are covered exactly
+once by a finite map into final phase-live cells, and the target cells are
+duplicate-free.  `PhaseProjectionWitness.check_phase_projection_valueb_sound`
+checks the optional boundary values for that map.  The
+same module now exposes the projection map as
+`phase_projection_cell_relation` and names the exact-cover consequences needed
+by a later state-observation proof: live-outs are mapped, mapped sources are
+live-outs, and mapped targets are final-live.
+`PhaseValueWitness.phase_value_protocol_final_snapshot` and
+`check_phase_value_protocolb_final_snapshot` make the intermediate final
+boundary explicit: once the value protocol is checked, the final value snapshot
+matches `phase_protocol_final_live`.  The projection witness can then be read
+as a projection out of that checked final physical snapshot.
+The
+`PhaseSeparationValidator.checked_phase_*` theorem family packages these into
+the common composition theorem, while leaving the derivation of the supplied
+swap/phase projection from concrete code explicit.
+
 ### Overlapped Tiling
 
 Overlap tiling duplicates computation.
@@ -830,6 +885,875 @@ parts of the view.
 | Overlapped tiling with private buffers | identity | erase-private plus commit | yes | tile-private storage |
 | Memory-space movement | transfer view | visibility/commit view | yes | different memory spaces |
 
+## Per-Transformation Support Plan
+
+This section spells out what "support" should mean for each transformation.  A
+transformation is supported only when the proof has all three relevant parts:
+
+```text
+view support:
+  the endpoint relation says what target storage represents
+
+witness support:
+  the checker input describes the needed instance, access, lifetime, copy,
+  conflict, phase, or merge facts
+
+semantic support:
+  the local soundness theorem proves a relational_refinement endpoint that can
+  compose with other passes
+```
+
+Some rows need only identity view support.  Others need new view constructors
+and a trace witness.  The list below is deliberately complete for the current
+taxonomy.
+
+### Source No-Alias Abstraction
+
+Support goal:
+
+```text
+make the source memory abstraction explicit before any transformation proof
+uses logical cells
+```
+
+Required design pieces:
+
+```text
+fragment interface:
+  maps source array names to logical memory objects
+
+no-alias witness:
+  proves distinct logical objects have disjoint concrete footprints, or records
+  explicit aliasing when disjointness is not true
+
+view role:
+  identity_view assumes this abstraction is already sound
+```
+
+Theorem shape:
+
+```coq
+no_alias_sound interface concrete_state ->
+state_view_rel identity_view polir_state polir_state
+```
+
+Current exploration status: `SourceNoAliasWitness.v` mechanizes the finite
+footprint side of this precondition.  `check_source_no_aliasb footprints = true`
+proves duplicate-free logical object ids, duplicate-free per-object footprints,
+and pairwise disjoint footprints.  This is deliberately not a transformation
+validator; it is the finite assumption that makes later logical-cell reasoning
+sound.
+
+This is a precondition, not an optimizer.  It should be discharged by the
+front-end or boundary layer.
+
+### Affine Scheduling, Interchange, Fusion, and Fission
+
+Support goal:
+
+```text
+preserve current theorem shape while expressing it as identity-view refinement
+```
+
+Required design pieces:
+
+```text
+instance witness:
+  bijection or exact cover of source instances
+
+storage witness:
+  identity access relation
+
+view:
+  same_state_view at entry for the current theorem
+  identity_view at exit
+```
+
+Theorem shape:
+
+```coq
+validate_affine before after = true ->
+view_refinement same_state_view identity_view before after
+```
+
+This should be a wrapper around the existing validator, not a rewrite of the
+existing affine proof.  A stronger `identity_view -> identity_view` theorem
+requires a separate proof that the fragment semantics is stable under
+`State.eq`-related initial states.
+
+### Index-Set Splitting
+
+Support goal:
+
+```text
+validate source-domain partitioning without changing storage observation
+```
+
+Required design pieces:
+
+```text
+partition witness:
+  target subdomains are disjoint
+  target subdomains exactly cover source domain
+  every target statement projects to the intended source statement
+
+view:
+  same_state_view at entry for the current theorem
+  identity_view at exit
+```
+
+Theorem shape:
+
+```coq
+validate_iss_split witness before after = true ->
+view_refinement same_state_view identity_view before after
+```
+
+No new state relation is needed.  The proof pressure is on exact cover and
+guard/domain reasoning.
+
+### Ordinary Tiling and Diamond Tiling without Recompute
+
+Support goal:
+
+```text
+validate tiling as grouped scheduling when each source instance executes once
+```
+
+Required design pieces:
+
+```text
+tile witness:
+  tile loops project to source iteration points
+  every source point is covered exactly once
+  dependences are preserved by the tile schedule
+
+view:
+  same_state_view at entry for the current theorem
+  identity_view at exit
+```
+
+Theorem shape:
+
+```coq
+validate_tiling witness before after = true ->
+view_refinement same_state_view identity_view before after
+```
+
+Diamond tiling enters here only when it does not introduce recomputation or
+target-private storage.  Overlapped or redundant diamond-style execution belongs
+to the overlap plan below.
+
+### Layout Remapping
+
+Support goal:
+
+```text
+prove that target physical accesses represent source logical accesses
+```
+
+Required design pieces:
+
+```text
+layout view:
+  layout_view cell_repr
+
+access witness:
+  target access functions are related to source access functions by cell_repr
+
+instruction witness:
+  target instruction semantics actually read and write the rewritten target
+  cells, not merely matching access-list annotations
+
+boundary facts:
+  physical addresses are in bounds
+  element types are compatible
+```
+
+Theorem shape:
+
+```coq
+validate_layout_access witness source_view after = true ->
+instr_layout_refines witness source_view after ->
+view_refinement
+  layout_input_view
+  (layout_view cell_repr)
+  source_view
+  after
+```
+
+The current branch sketches the access-witness side.  Full support requires the
+instruction-level simulation theorem.
+
+### Padding and Alignment
+
+Support goal:
+
+```text
+support layout maps into a larger physical domain
+```
+
+Required design pieces:
+
+```text
+padding view:
+  padding_view cell_repr padding_cells
+
+address witness:
+  cell_repr is injective over source-observable cells
+  padding cells are outside the source image
+  all represented cells are within allocation bounds
+
+observation:
+  padding cells are ignored because they represent no source value
+```
+
+Theorem shape:
+
+```coq
+validate_padding witness before after = true ->
+view_refinement input_view (padding_view cell_repr padding_cells) before after
+```
+
+Current exploration status: `PaddingLayoutWitness.v` mechanizes the finite
+boundary obligations for padded layouts: the source side of the map is
+functional, the target image is injective and allocated, and padding cells are
+duplicate-free, allocated, and disjoint from that target image.
+`LayoutValueWitness.check_layout_valueb_sound` adds boundary value evidence:
+entries must align with the source-to-target layout map, and each represented
+source value must equal the corresponding target physical value.
+`PaddingLayoutValidator.checked_padding_layout_view_correct` packages those
+facts as another `view_refinement` wrapper.
+`checked_padding_layout_access_view_correct` additionally returns the
+`LayoutWitness` access-function remap fact for array-renaming layouts, and
+`checked_padding_layout_access_value_view_correct` combines that with the
+boundary value obligations.  The corresponding permutation variants
+`checked_padding_layout_permutation_access_view_correct` and
+`checked_padding_layout_permutation_access_value_view_correct` prove the same
+access-remap shape for finite index permutations, covering transpose-style
+rewrites such as `A[i][j] -> A_t[j][i]`.  The affine variants
+`checked_padding_layout_affine_access_view_correct` and
+`checked_padding_layout_affine_access_value_view_correct` prove the same shape
+when the target access function is the affine composition of a declared layout
+map with the source access function, covering linearized layouts such as
+`A[i][j] -> A_lin[i * stride + j]`.  The unified
+`checked_padding_layout_declared_access_view_correct` and
+`checked_padding_layout_declared_access_value_view_correct` wrappers expose
+the same proof shape through one declared-layout relation whose cases are
+same-index, finite permutation, and affine composition.  The proof that
+concrete target instruction semantics realizes those rewritten accesses
+remains explicit.
+
+Padding support is a special case of layout support plus a proof that extra
+cells are unobservable.
+
+### Scratchpad or Local-Buffer Tiling
+
+Support goal:
+
+```text
+validate explicit local buffers used inside a tile
+```
+
+Required design pieces:
+
+```text
+private-buffer view:
+  private_buffer_view local_cells cell_repr
+
+commit view:
+  commit_view copy_out_policy, when local writes update source-observable values
+
+trace witness:
+  copy-in, compute, and copy-out roles
+
+copy witness:
+  every local read is covered by a prior copy-in or local write
+  every source-observable local update is copied out exactly once
+
+separation witness:
+  local buffer is fresh for the tile lifetime
+```
+
+Theorem shape:
+
+```coq
+validate_scratchpad witness before after = true ->
+view_refinement input_view output_commit_or_erase_view before after
+```
+
+Current exploration status: `CopyProtocolWitness.v` mechanizes the finite
+copy bookkeeping part:
+
+```text
+check_copy_protocol_wfb trace = true
+```
+
+implies local reads are covered and committed target cells are duplicate-free.
+`CopyCommitWitness.check_copy_commit_coverb_sound` adds exact commit coverage:
+the copy-out targets in the trace must cover the expected observable target
+cells and no others.
+`CopyInstanceWitness.check_copy_instance_traceb_sound` connects this copy trace
+to projected helper instances: copy-in/local events must be internal
+instances, and copy-out events must be commit-role instances.  This is the
+finite witness that lets instance projection and copy protocol speak about the
+same helper trace.
+`CopyMappingWitness.check_copy_mappingb_sound` adds the local remapping layer:
+a finite public-to-local map is injective on both sides, and copy-in, local
+read/write, and copy-out events must use that declared map consistently.
+`CopyProtocolValueWitness.v` adds a value-flow layer for copy protocols:
+copy-in transfers source value to local value, local reads observe the current
+local value, local writes update it, and copy-out commits it to the target.
+`CopyProtocolValidator.checked_copy_protocol_value_view_correct`,
+`checked_copy_protocol_mapping_view_correct`, and
+`checked_copy_protocol_mapping_value_view_correct` package these facts into the
+common composition theorem under an explicit copy-specific semantic refinement.
+`checked_copy_protocol_commit_mapping_value_view_correct` additionally packages
+copy-out exact cover with remapping and value-flow evidence, giving a generic
+copy-mediated update theorem that does not require the scratchpad-specific
+instance/private-storage wrapper.
+`ScratchpadCopyValidator.checked_scratchpad_copy_view_correct`
+combines this copy witness with instance projection and local-buffer
+separation, which is closer to a scratchpad/packing transformation.  It still
+does not derive the event trace, value trace, or helper-instance ordering from
+concrete target instruction semantics; that remains the semantic refinement
+obligation.
+`checked_scratchpad_copy_commit_view_correct` additionally packages the
+copy-out exact-cover obligation needed for update-style scratchpad passes.
+`checked_scratchpad_copy_instance_view_correct` and
+`checked_scratchpad_copy_instance_commit_view_correct` additionally package the
+copy-instance role-alignment obligation.
+`checked_scratchpad_copy_full_view_correct` packages the larger scratchpad
+contract: exact copy-out cover, helper-instance roles, remapping consistency,
+value-flow simulation, and local-buffer separation are returned together under
+the common view theorem.
+
+This support cannot be reduced to schedule legality.  The copy protocol is part
+of correctness.
+
+### Packing and Copy Tiling
+
+Support goal:
+
+```text
+validate packed buffers that represent a source region for faster access
+```
+
+Required design pieces:
+
+```text
+packed-buffer view:
+  packed_buffer_view packed_cells pack_map
+
+trace witness:
+  pack helper instances and unpack/copy-out helper instances, if present
+
+copy witness:
+  pack_map is filled before each packed use
+  packed cells are read consistently with pack_map
+  unpack/copy-out, if present, commits the intended source cells
+
+separation witness:
+  packed buffer is fresh and non-escaping
+```
+
+Theorem shape:
+
+```coq
+validate_packing witness before after = true ->
+view_refinement input_view output_view before after
+```
+
+Read-only packing usually ends with erase-private.  Packing that updates values
+needs commit view.
+
+### Scalar Promotion
+
+Support goal:
+
+```text
+validate replacing repeated memory access to one cell by a scalar temporary
+inside a region
+```
+
+Required design pieces:
+
+```text
+scalar simulation witness:
+  entry load
+  scalar operations that simulate reads and writes
+  exit store when promoted cell is live-out
+
+interference witness:
+  no write to the promoted cell bypasses the scalar
+
+view:
+  identity_view if exit store restores the observable cell
+  erase-private view if the scalar is modeled as target-local state
+```
+
+Theorem shape:
+
+```coq
+validate_scalar_promotion witness before after = true ->
+view_refinement identity_view output_view before after
+```
+
+Current exploration status: `ScalarPromotionWitness.v` mechanizes the finite
+local protocol for one promoted source cell and one scalar cell.  It checks
+load-before-use, rejects ordinary writes that bypass the scalar and target the
+promoted source cell, and requires a final store when the promoted cell is
+live-out.  `ScalarPromotionValueWitness.v` adds a value-flow witness over the
+same event stream: load/source values must match, reads observe the current
+scalar, writes update it, and store-back commits the current scalar value.
+`ScalarPromotionValidator.checked_scalar_promotion_value_view_correct` combines
+the storage protocol, value-flow witness, and private separation for the scalar
+cell, while the derivation of that value trace from concrete expression
+semantics remains explicit.
+`checked_scalar_promotion_compatible_value_view_correct` adds the finite
+storage-compatibility side condition for the source/scalar pair, matching the
+same size/alignment witness used by reuse and version-selection wrappers.
+
+This is local storage refinement, not a global layout transformation.
+
+### Scalar Privatization and Scalar Expansion
+
+Support goal:
+
+```text
+validate replacing one shared scalar cell by private or per-instance cells
+```
+
+Required design pieces:
+
+```text
+private expansion view:
+  private_expansion_view private_class rho_private
+
+use-def witness:
+  every private read has a reaching same-class definition
+
+freshness witness:
+  simultaneously live private classes map to disjoint physical cells
+
+boundary witness:
+  live-in requires copy-in
+  live-out requires commit/copy-out
+  uncommitted private cells are erased
+```
+
+Theorem shape:
+
+```coq
+validate_scalar_private witness before after = true ->
+view_refinement input_view private_output_view before after
+```
+
+This support should be semantic.  OpenMP `private` is only one possible
+backend notation for the same idea.
+
+### Reduction Privatization
+
+Support goal:
+
+```text
+validate private partial accumulators and final merge
+```
+
+Required design pieces:
+
+```text
+merge view:
+  reduction_merge_view private_accumulators merge_op
+
+partition witness:
+  iteration chunks are disjoint and exactly cover the source reduction domain
+
+private witness:
+  private accumulators are fresh and initialized correctly
+
+algebra witness:
+  merge_op implements the source reduction semantics
+```
+
+Theorem shape:
+
+```coq
+validate_reduction_private witness before after = true ->
+view_refinement identity_view (reduction_merge_view accs merge_op) before after
+```
+
+Current exploration status: `ReductionMergeWitness.v` mechanizes the finite
+bookkeeping part:
+
+```text
+check_reduction_mergeb source_domain chunks partial_accumulators merge_order = true
+```
+
+implies chunks exactly cover the source reduction domain, private accumulators
+are duplicate-free, and the merge order covers exactly those private
+accumulators.  The same module now names the derived exact-cover facts used by
+later semantic proofs: source instances are covered iff they are in the chunk
+domain, merge-order cells are private iff they are private accumulators, and
+both covered instances and merge order are duplicate-free.
+`ReductionMergeValueWitness.v` adds the fold-value side: it
+looks up supplied values for merge-order accumulators and checks that folding
+them with a supplied merge operator yields the claimed final value.
+`ReductionAlgebraWitness.v` adds a finite-carrier law checker: the associative
+variant checks closure, associativity, and two-sided identity on the carrier;
+the commutative variant additionally checks commutativity.
+`ReductionMergeValidator.checked_reduction_merge_value_view_correct` packages
+these facts into the common composition theorem.
+`checked_reduction_merge_associative_view_correct` and
+`checked_reduction_merge_commutative_view_correct` package the finite-carrier
+law witnesses.  The newer
+`checked_reduction_merge_associative_value_view_correct` and
+`checked_reduction_merge_commutative_value_view_correct` wrappers package the
+bookkeeping witness, accumulator-value fold witness, and finite-carrier law in
+one view theorem.  The remaining semantic question is how those finite-carrier
+facts connect to the concrete source language semantics.
+
+For floating point, the view must say whether it preserves bit-exact results or
+uses relaxed reduction semantics.
+
+### Array Expansion and Versioning
+
+Support goal:
+
+```text
+validate more physical versions than source logical cells
+```
+
+Required design pieces:
+
+```text
+version view:
+  version_view version_selector commit_policy
+
+version witness:
+  each target read selects the version produced by the intended source write
+
+commit witness:
+  the source-observable version is committed exactly once
+
+erasure witness:
+  unselected versions are private or dead at the boundary
+```
+
+Theorem shape:
+
+```coq
+validate_array_expansion witness before after = true ->
+view_refinement input_view (version_view selector commit) before after
+```
+
+Current exploration status: `VersionCommitWitness.v` mechanizes the finite
+commit-selection part:
+
+```text
+check_version_commitb source_liveouts mapping = true
+```
+
+implies every source live-out is selected exactly once and selected target
+versions are duplicate-free.  The current witness exposes the derived facts
+needed by a later semantic proof: every live-out has a selected version,
+every selected source is a live-out, every selected version belongs to the
+version image, and both source and version images are duplicate-free.
+`VersionCommitValueWitness.v` adds selected source/version value evidence
+aligned with the mapping and proves that selected version values equal
+represented source values.
+`VersionCommitValidator.checked_version_commit_value_view_correct` packages
+both witnesses into the common composition theorem under the remaining
+semantic obligation that concrete target writes produce the supplied value
+evidence.
+`checked_version_commit_compatible_value_view_correct` additionally packages
+storage compatibility for selected source/version pairs, so array expansion can
+state in one theorem that selected versions cover live-outs, are unique,
+contain the represented boundary values, and have compatible size/alignment
+specs.
+
+This is useful as a counterpart to contraction and as a generalization of scalar
+expansion.
+
+### Array Contraction and Rolling Buffers
+
+Support goal:
+
+```text
+validate non-injective reuse of physical cells
+```
+
+Required design pieces:
+
+```text
+reuse view:
+  reuse_view rho live_selector conflict
+
+conflict witness:
+  if conflict(v1, v2), then rho(v1) != rho(v2)
+
+lifetime witness:
+  conflict over-approximates values that may be live together
+
+boundary selector:
+  maps each source-observable logical value to the physical cell containing it
+  at exit
+```
+
+Theorem shape:
+
+```coq
+validate_contraction witness before after = true ->
+view_refinement input_view (reuse_view rho selector conflict) before after
+```
+
+Current exploration status: `ReuseConflictWitness.v` mechanizes the finite
+conflict check:
+
+```text
+check_conflict_safe_reuseb mapping conflicts = true
+```
+
+implies the reuse map has duplicate-free logical keys and every supplied
+conflict pair maps to distinct physical cells.  This is the core
+non-injective-storage safety condition.  `LifetimeConflictWitness.v` now checks
+one finite live-range layer above that: explicit live intervals must be
+well-formed, logical cells must be unique in the witness, and every overlapping
+pair must appear in the conflict relation modulo pair order.  Combining the
+live-range cover checker with conflict-safe reuse proves that all live-overlap
+pairs are physically separated.  This still does not derive the intervals from
+the schedule and access semantics.  `ReuseValueWitness.check_reuse_valueb_sound`
+adds the boundary equality witness: finite value entries must be aligned with
+the logical-to-physical selector and each physical boundary value must equal
+the logical value it represents.  `ReuseStateView.reuse_view` now defines the
+boundary projection view from a logical-to-physical selector.  The more precise
+`ReuseStateView.reuse_boundary_cell_view` restricts that relation to declared
+source live-outs and uses their image as the target-public footprint.  Its
+finite premise is `ReuseConflictWitness.check_reuse_boundaryb_sound`: every
+source-observable live-out is covered by the reuse map.
+`ReuseConflictValidator.checked_*reuse*_view_correct` composes the finite
+checkers under the remaining semantic refinement.
+The contraction-facing wrappers
+`checked_compatible_live_conflict_reuse_view_correct` and
+`checked_compatible_live_conflict_reuse_value_view_correct` now package the
+full finite side condition expected by a rolling-buffer proof: live-overlap
+cover, conflict-safe physical separation, storage compatibility, and optional
+boundary value equality.  They still do not derive the live intervals or
+boundary observations from concrete code.
+
+This view must not require injectivity.  Safety comes from conflict/lifetime
+separation.
+
+### Inter-Array Reuse
+
+Support goal:
+
+```text
+validate sharing one physical buffer across different logical arrays over time
+```
+
+Required design pieces:
+
+```text
+cross-array reuse view:
+  cross_array_reuse_view rho lifetime_intervals
+
+lifetime witness:
+  arrays mapped to the same physical cells are not live at the same time
+
+compatibility witness:
+  type, size, and alignment are compatible
+
+access witness:
+  each lifetime interval interprets the shared buffer as the intended source
+  logical array
+```
+
+Theorem shape:
+
+```coq
+validate_inter_array_reuse witness before after = true ->
+view_refinement input_view (cross_array_reuse_view rho live) before after
+```
+
+Current exploration status: `InterArrayReuseWitness.v` treats this as a
+composed reuse obligation rather than a new primitive.  It packages explicit
+live intervals, conflict-safe logical-to-physical reuse, and storage
+compatibility.  The derived facts expose the property the view needs at the
+boundary of a shared buffer: mapped live-overlapping logical cells have
+distinct physical cells, and two distinct logical cells sharing one physical
+cell therefore cannot live-overlap.  `InterArrayReuseValidator.v` now packages
+that witness under `checked_inter_array_reuse_view_correct`, so the composed
+reuse facts can participate in the same source-view pipeline theorem as layout,
+version commit, and conflict-safe reuse.  This is still a reuse view with array
+names included in the lifetime relation; deriving the live intervals and
+rewritten accesses from concrete code remains outside this finite witness.
+
+### Double Buffering and Ping-Pong Buffers
+
+Support goal:
+
+```text
+validate phase-structured reuse of two or more buffers
+```
+
+Required design pieces:
+
+```text
+phase view:
+  phase_view phase_selector rho
+
+phase witness:
+  reads occur only after the relevant buffer is filled
+  live buffers are not overwritten
+  swap or phase update changes the projection as claimed
+
+reuse witness:
+  physical cells reused across phases are not simultaneously live
+```
+
+Theorem shape:
+
+```coq
+validate_double_buffer witness before after = true ->
+view_refinement input_phase_view output_phase_view before after
+```
+
+The input and output views may differ because the phase selector changes.
+
+### Overlapped Tiling
+
+Support goal:
+
+```text
+validate duplicate halo/internal computation with unique source-visible commit
+```
+
+Required design pieces:
+
+```text
+instance witness:
+  target computations project to source instances
+  roles classify internal and commit instances
+  commit instances exactly cover source live-out instances
+
+closure witness:
+  each committed computation has required inputs through local recomputation or
+  legal external reads
+
+view:
+  identity_view if no target-private storage remains observable
+  private_buffer_view plus commit_view if tile-local buffers are materialized
+```
+
+Theorem shapes:
+
+```coq
+validate_overlap_no_private witness before after = true ->
+view_refinement same_state_view identity_view before after
+
+validate_overlap_private witness before after = true ->
+view_refinement same_state_view erase_private_commit_view before after
+```
+
+Current exploration status: `InstanceProjectionWitness.v` mechanizes the finite
+role/projection part:
+
+```text
+check_instance_projectionb source_domain source_liveouts targets = true
+```
+
+implies every target projection is in the source domain and commit-role target
+instances form an exact, duplicate-free cover of source live-outs.
+The same module now names the derived facts needed by later semantic proofs:
+live-outs are committed, commits are live-outs, commits are duplicate-free,
+commits project to source-domain instances, and therefore live-outs are in the
+source domain.
+`OverlapClosureWitness.v` mechanizes the next finite obligation:
+
+```text
+check_overlap_closureb tiles = true
+check_overlap_ordered_closureb tiles = true
+```
+
+implies that each listed tile dependency has a consumer computed in the same
+tile and a producer supplied either by a tile live-in or by a computation in
+the same tile.  The ordered variant additionally implies that a tile-produced
+dependency appears before its consumer in the tile trace.  This is a closure
+witness over finite, already-derived dependencies and trace order; it does not
+yet derive the dependency set from schedule/access semantics.
+`InstanceProjectionValidator.checked_instance_projection_view_correct` packages
+the witness into the shared `view_refinement` composition shape.
+`OverlapTilingValidator.checked_overlap_no_private_view_correct` specializes
+the route to duplicated/internal computation with unique source-visible commit.
+`OverlapTilingValidator.checked_overlap_private_view_correct` adds the
+tile-private separation witness for materialized halo/local buffers.
+`OverlapTilingValidator.checked_overlap_closure_view_correct` and
+`checked_overlap_private_closure_view_correct` additionally package the finite
+tile-local closure witness.  `checked_overlap_ordered_closure_view_correct` and
+`checked_overlap_private_ordered_closure_view_correct` package the stronger
+producer-order variant.  Value equivalence of recomputed halo/internal
+instances is still a separate semantic refinement obligation.
+
+Overlap support requires keeping instance duplication separate from state
+projection.
+
+### Memory-Space Movement
+
+Support goal:
+
+```text
+validate moving values across global, local, shared, register, or distributed
+memory spaces
+```
+
+Required design pieces:
+
+```text
+memory-space view:
+  memory_space_view transfer_map visibility_policy
+
+transfer witness:
+  copied region contains the required source values
+  reads occur after visibility is established
+  writes are committed back when source-observable
+
+ownership witness:
+  local/shared/register storage is separated from public memory
+
+synchronization witness:
+  barriers or communication protocol justify visibility and race freedom
+```
+
+Theorem shape:
+
+```coq
+validate_memory_space_move witness before after = true ->
+view_refinement input_transfer_view output_visibility_view before after
+```
+
+This is not an immediate CPU PolIR target, but the view framework should not
+rule it out.
+
+## Support Coverage Checklist
+
+Before calling a transformation supported, answer these questions.
+
+```text
+1. What is the input view?
+2. What is the output view?
+3. Does State.eq suffice, or is projection/erasure/commit/merge/reuse needed?
+4. Does the target add, duplicate, or merge instances?
+5. Which witness proves that target accesses represent source values?
+6. Which witness proves freshness, separation, lifetime, or no-alias facts?
+7. Which theorem proves view_refinement?
+8. Does the theorem compose with earlier and later passes?
+9. Which C/CompCert boundary obligations remain outside this fragment proof?
+```
+
+The answer should be written before implementing the checker.  This prevents
+feature-specific relations from accumulating without a common semantic endpoint.
+
 ## Composition
 
 Views must compose because end-to-end validation composes transformations:
@@ -859,8 +1783,24 @@ For views, the corresponding design obligation is:
 compose_view view_target_mid view_mid_source
 ```
 
-or, initially, a theorem that expands to `compose_state_relation` over
-`state_view_rel`.
+`StateView.view_refinement_compose` expands this to
+`compose_state_relation` over `state_view_rel`.  The packaged theorem
+`StateView.checked_view_transform_family_pair_compose` is the current
+end-to-end hook for two checked pass families: once each pass returns a
+`view_refinement`, the composed theorem uses only `compose_view`, not any
+feature-specific relation.
+
+The access-witness layer now has the matching storage-side theorem.  A
+target-to-mid access remap and a mid-to-source access remap compose via:
+
+```coq
+StorageWitness.pprog_same_instance_access_remap_compose
+```
+
+The resulting relation is `compose_cell_relation target_mid mid_source`, whose
+witness is the intermediate `MemCell`.  This is important for multi-pass
+storage pipelines: the final state-view relation and the instruction-level
+access relation can be composed along the same intermediate program boundary.
 
 View composition should also support simplification:
 
@@ -886,14 +1826,19 @@ Introduce a module that treats views abstractly:
 Parameter view : Type.
 Parameter state_view_rel : view -> State.t -> State.t -> Prop.
 Parameter identity_view : view.
+Parameter same_state_view : view.
 Parameter identity_view_contains_state_eq :
   forall st_t st_s,
     State.eq st_t st_s ->
     state_view_rel identity_view st_t st_s.
+Parameter same_state_view_included_identity_view :
+  forall st_t st_s,
+    state_view_rel same_state_view st_t st_s ->
+    state_view_rel identity_view st_t st_s.
 ```
 
-This is enough to restate the current affine validators as identity-view
-validators.
+This is enough to restate the current affine validators as
+`same_state_view -> identity_view` validators.
 
 ### Step 2: View Relation Packaging
 
@@ -912,8 +1857,9 @@ This keeps the theorem endpoint uniform.
 
 ### Step 3: Concrete Identity View
 
-Prove that the current state equality route is the identity view instance.  Do
-not change existing validator proofs.  Add wrappers.
+Prove that the current final-state equality route is the identity view instance,
+and that the current same-Coq-state input precondition is represented by
+`same_state_view`.  Do not change existing validator proofs.  Add wrappers.
 
 ### Step 4: Layout View
 
@@ -926,6 +1872,24 @@ layout_view cell_repr
 This should reuse the existing observer idea, but it must be framed as one
 instance of state views rather than a separate `layout_state_rel`.
 
+Current exploration status: `StateObservation.related_cells_view` provides the
+observer-backed cell relation view, and `LayoutRemapValidator.layout_view`
+exposes the layout case through `view_refinement`.  The view is now
+compositional at the observation level:
+
+```coq
+related_cells_view target_mid ;
+related_cells_view mid_source
+  <= related_cells_view (compose_cell_relation target_mid mid_source)
+```
+
+The inclusion direction is deliberate.  If there exists an intermediate state
+that satisfies both cell observations, then every target cell can be observed
+as the source cell reached through the intermediate cell.  The reverse
+direction would require constructing an intermediate state from only the
+composed endpoint observation, which is not justified by the current state
+interface.
+
 ### Step 5: Private-Erasure View
 
 Mechanize:
@@ -935,6 +1899,78 @@ private_view public_repr private_cells separation
 ```
 
 This is the first view that forces separation obligations.
+
+Current exploration status: `StateObservation.cell_view` records the public
+source/target footprint of a cell relation, and
+`PrivateStorageValidator.private_erasure_view` uses it to state the theorem
+shape for target-private storage.  `PrivateStorageWitness.hidden_identity_cell_view`
+and `mem_cells_subsetb` provide the first checked sub-obligation: finite
+private cells are contained in the hidden set, hence outside the public
+identity relation.  `mem_cells_nodupb` and
+`check_private_use_def_traceb` additionally cover two local witness facts:
+distinct private cells and concrete-cell read-after-write coverage.
+`check_private_access_use_def_traceb` lifts the same idea to access functions
+and proves that every dynamic point instantiates to a valid private cell trace.
+`check_private_separationb` captures the reusable separation side condition:
+private cells are duplicate-free and disjoint from public/frame cells.
+`PrivateBoundaryWitness.check_private_boundaryb_sound` adds the boundary-copy
+side condition: required public live-ins are covered by copy-in pairs, required
+public live-outs are covered by copy-out pairs, boundary pairs use declared
+private cells, and public copy-out destinations are unique.
+`check_private_boundary_private_uniqueb_sound` adds the optional private-side
+uniqueness condition: copy-in and copy-out boundary pairs cannot reuse the same
+private cell on their private side.  This intentionally does not require public
+live-ins to be unique, because broadcasting one public live-in to many private
+cells is a normal privatization pattern.
+`check_private_boundary_valueb_sound` adds aligned boundary value evidence:
+copy-in and copy-out entries must match their boundary pairs, and public/private
+values must be equal at those boundary points.
+The current contract still needs an abstract semantic refinement obligation,
+but `PrivateStorageValidator.checked_access_local_private_expansion_view_correct`
+now returns these local facts and composes the view theorem under that
+remaining semantic assumption.  `checked_boundary_private_expansion_view_correct`
+also returns the boundary-copy facts, and
+`checked_boundary_private_unique_expansion_view_correct` returns the private
+boundary uniqueness facts.
+`checked_boundary_private_value_expansion_view_correct` returns the boundary
+value facts.
+`checked_boundary_private_unique_value_expansion_view_correct` combines the
+unique-private-boundary and boundary-value layers in one observer-backed
+private-erasure theorem.  Non-escape and full instruction-derived
+value-simulation checkers are future work.
+
+`StateObservation.compose_cell_view` now composes these public views when the
+two passes agree on the shared intermediate public cells:
+
+```text
+target_mid.cv_source_observable mid
+  <-> mid_source.cv_target_observable mid
+```
+
+This is important for keeping the design principled.  Private-erasure,
+layout-remapping, reuse-boundary, and copy-protocol views all become instances
+of one endpoint relation discipline, while pass-specific validators only
+justify their own witness obligations.  The composed public view is meaningful
+only when the intermediate cells hidden by the first pass are not required as
+public target cells by the second pass, and vice versa.
+
+The next mechanized layer is `cell_view_transform_contract`.  It packages the
+common pass shape:
+
+```text
+public cell_view
+same-instance access remap under cv_cell_relation
+semantic view_refinement under cell_view_state_view
+```
+
+`cell_view_transform_contract_compose` composes two such passes.  The access
+witness is composed with `StorageWitness.pprog_same_instance_access_remap_compose`;
+the semantic theorem is composed with `StateView.view_refinement_compose`; and
+the final relation is weakened with
+`cell_view_state_view_compose_included`.  The input relation is left as the
+explicit `compose_view` rather than collapsed to `compose_cell_view`, because
+the collapsed endpoint relation only says corresponding endpoint cells agree;
+it does not synthesize an intermediate initial state.
 
 ### Step 6: Commit and Version Views
 
