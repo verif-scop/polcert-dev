@@ -1,0 +1,26 @@
+before: evidence/toy_scratchpad_packing_source.scop
+after:  evidence/toy_scratchpad_packing_target.scop
+
+Access arity by array:
+  A: 2D x1 -> 2D x1
+  B: 2D x1 -> 2D x1
+  Bp: - -> 2D x2 changed
+  C: 2D x1 -> 2D x1
+
+Dependence count:
+  before: unknown
+  after:  unknown
+
+Index relation rows by array:
+  A: changed
+    before: ['0    0   -1    1    0    0    ## [1] == i']
+    after:  ['0    0   -1    1    1    0    ## [1] == kk + k']
+  B: changed
+    before: ['0    0   -1    1    0    0    ## [1] == i']
+    after:  ['0    0   -1    1    1    0    ## [1] == kk + k']
+  Bp: changed
+    before: -
+    after:  ['0    0   -1    0    1    0    ## [1] == k', '0    0   -1    0    1    0    ## [1] == k']
+  C: changed
+    before: ['0    0   -1    1    0    0    ## [1] == i']
+    after:  ['0    0   -1    1    1    0    ## [1] == kk + k']

@@ -1,0 +1,34 @@
+# Toy OpenScop storage view composition target skeleton
+# A_pad represents logical A; tmp is private and erased from public view.
+<arrays>
+1 A_pad
+2 tmp
+</arrays>
+<body>
+# Statement S_load_private(i)
+READ
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == A_pad
+   0    0   -1    2    0    0    ## [1] == 2*i
+
+WRITE
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == tmp
+   0    0   -1    1    0    0    ## [1] == i
+
+# Statement S_store_layout(i)
+READ
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == tmp
+   0    0   -1    1    0    0    ## [1] == i
+
+WRITE
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == A_pad
+   0    0   -1    2    0    0    ## [1] == 2*i
+
+</body>

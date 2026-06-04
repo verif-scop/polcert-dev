@@ -1,0 +1,50 @@
+# Toy OpenScop scratchpad copy-out target skeleton
+# Target program:
+#   Al[k] = A[kk + k]
+#   Al[k] = Al[k] + 1
+#   A[kk + k] = Al[k]
+<arrays>
+1 A
+2 Al
+</arrays>
+<body>
+# Statement S_copy_in(kk,k)
+READ
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == A
+   0    0   -1    1    1    0    ## [1] == kk + k
+
+WRITE
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == Al
+   0    0   -1    0    1    0    ## [1] == k
+
+# Statement S_update_local(kk,k)
+READ
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == Al
+   0    0   -1    0    1    0    ## [1] == k
+
+WRITE
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == Al
+   0    0   -1    0    1    0    ## [1] == k
+
+# Statement S_copy_out(kk,k)
+READ
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == Al
+   0    0   -1    0    1    0    ## [1] == k
+
+WRITE
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == A
+   0    0   -1    1    1    0    ## [1] == kk + k
+
+</body>

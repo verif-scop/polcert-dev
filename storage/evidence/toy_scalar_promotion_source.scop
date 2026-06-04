@@ -1,0 +1,34 @@
+# Toy OpenScop scalar promotion source skeleton
+# A[i] = A[i] + 1; B[i] = A[i] * 2
+<arrays>
+1 A
+2 B
+</arrays>
+<body>
+# Statement S_update(i)
+READ
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == A
+   0    0   -1    1    0    0    ## [1] == i
+
+WRITE
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == A
+   0    0   -1    1    0    0    ## [1] == i
+
+# Statement S_use(i)
+READ
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == A
+   0    0   -1    1    0    0    ## [1] == i
+
+WRITE
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == B
+   0    0   -1    1    0    0    ## [1] == i
+
+</body>

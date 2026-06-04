@@ -1,0 +1,62 @@
+# Toy OpenScop inter-array reuse source skeleton
+# T1 and T2 are separate logical temporaries.
+<arrays>
+1 A
+2 B
+3 C
+4 D
+5 T1
+6 T2
+</arrays>
+<body>
+# Phase P1
+READ
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == A
+   0    0   -1    1    0    0    ## [1] == i
+
+WRITE
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == T1
+   0    0   -1    1    0    0    ## [1] == i
+
+READ
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == T1
+   0    0   -1    1    0    0    ## [1] == i
+
+WRITE
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == C
+   0    0   -1    1    0    0    ## [1] == i
+
+# Phase P2
+READ
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == B
+   0    0   -1    1    0    0    ## [1] == i
+
+WRITE
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == T2
+   0    0   -1    1    0    0    ## [1] == i
+
+READ
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == T2
+   0    0   -1    1    0    0    ## [1] == i
+
+WRITE
+2 6 2 1 0 1
+# e/i| Arr [1]| iterator | 1
+   0   -1    0    0    0    0    ## Arr == D
+   0    0   -1    1    0    0    ## [1] == i
+
+</body>

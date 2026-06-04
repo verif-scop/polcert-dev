@@ -1,0 +1,22 @@
+before: evidence/toy_private_access_source.scop
+after:  evidence/toy_private_access_target.scop
+
+Access arity by array:
+  A: 2D x1 -> 2D x1
+  B: 2D x1 -> 2D x1
+  local: - -> 2D x2 changed
+
+Dependence count:
+  before: unknown
+  after:  unknown
+
+Index relation rows by array:
+  A:
+    before: ['0    0   -1    1    0    0    ## [1] == i']
+    after:  ['0    0   -1    1    0    0    ## [1] == i']
+  B:
+    before: ['0    0   -1    1    0    0    ## [1] == i']
+    after:  ['0    0   -1    1    0    0    ## [1] == i']
+  local: changed
+    before: -
+    after:  ['0    0   -1    2    0    1    ## [1] == f(i)', '0    0   -1    2    0    1    ## [1] == f(i)']

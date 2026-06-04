@@ -1,0 +1,323 @@
+{
+  "cases": {
+    "private_access_local_instantiation": {
+      "alias_clobber_exclusion": "instantiated local cells cannot alias public A or B cells",
+      "checked_obligations": [
+        "symbolic private access trace is use-def well formed",
+        "finite domain points instantiate to declared private cells",
+        "instantiation map is deterministic and supported by the validator",
+        "instantiated private cells are in bounds",
+        "instantiated private cells are hidden from public view",
+        "if two private accesses instantiate to the same cell, their live intervals are compatible"
+      ],
+      "endpoint": "public_output_view_eq observes B; local[f(i)] is internal evidence only",
+      "negative_cases": [
+        "private read before matching private write",
+        "instantiated private cell undeclared",
+        "instantiated private cell out of bounds",
+        "two live symbolic accesses alias when freshness is required",
+        "partial-tile domain guard missing",
+        "symbolic map is unsupported or non-affine for the validator fragment"
+      ],
+      "private_target_storage": [
+        "local"
+      ],
+      "public_logical_interface": {
+        "inputs": [
+          "A"
+        ],
+        "outputs": [
+          "B"
+        ]
+      },
+      "representation_witness": {
+        "hidden_cells": "all local[f(i)] cells are excluded from public_output_view_eq",
+        "kind": "PrivateAccessInstantiation",
+        "private_cell_declarations": [
+          {
+            "bounds": "0 <= k < M",
+            "element_type": "int",
+            "var": "local"
+          }
+        ],
+        "private_storage_spec": {
+          "bounds": "0 <= 2*i+1 < M",
+          "element_type": "same as B",
+          "target_var": "local"
+        },
+        "symbolic_private_accesses": [
+          {
+            "access_id": "local_tmp(i)",
+            "domain": "0 <= i < N and 0 <= 2*i+1 < M",
+            "instantiation": "f(i) = 2*i + 1",
+            "roles": [
+              "write",
+              "read"
+            ],
+            "symbolic_cell": "local[f(i)]",
+            "target_cell": "local[2*i+1]"
+          }
+        ],
+        "use_def": "S_private_read(i) reads the cell written by S_private_write(i)"
+      },
+      "source_scop": "toy_private_access_source.scop",
+      "statement_roles": [
+        {
+          "role": "private_access_write",
+          "statement": "S_private_write"
+        },
+        {
+          "role": "private_access_read",
+          "statement": "S_private_read"
+        }
+      ],
+      "storage_declarations": [
+        {
+          "element_type": "int",
+          "shape": "array[N]",
+          "var": "A"
+        },
+        {
+          "element_type": "int",
+          "shape": "array[N]",
+          "var": "B"
+        },
+        {
+          "element_type": "int",
+          "shape": "array[M]",
+          "var": "local",
+          "visibility": "private"
+        }
+      ],
+      "target_scop": "toy_private_access_target.scop"
+    },
+    "private_copy_boundary": {
+      "boundary_protocol": {
+        "commit_uniqueness": "S_copy_out(i) commits B[i] exactly once",
+        "copy_in_coverage": "required public live-ins are exactly covered by copy_in_pairs",
+        "copy_out_coverage": "required public live-outs are exactly covered by copy_out_pairs",
+        "private_use_order": "S_copy_in(i) dominates S_private_compute(i)"
+      },
+      "checked_obligations": [
+        "copy-in initializes every private read that depends on public input",
+        "copy-out covers every public live-out exactly once",
+        "private trace accesses only declared private cells",
+        "private cells are in bounds and hidden from final public view",
+        "boundary values and storage specs are compatible"
+      ],
+      "endpoint": "public_output_view_eq observes B; local is hidden after copy-out",
+      "negative_cases": [
+        "missing copy-in before private read",
+        "missing live-out copy-out",
+        "duplicate copy-out for one public cell",
+        "copy-in aliases two public values into one private cell",
+        "private trace uses undeclared cell",
+        "private cell out of bounds",
+        "private/public type or extent mismatch",
+        "copy-out value mismatch",
+        "copy-out uses stale private value"
+      ],
+      "private_target_storage": [
+        "local"
+      ],
+      "public_logical_interface": {
+        "inputs": [
+          "A"
+        ],
+        "outputs": [
+          "B"
+        ]
+      },
+      "representation_witness": {
+        "compatibility": "A[i], local[i], and B[i] have compatible element representation",
+        "copy_in_pairs": [
+          {
+            "copy_event": "S_copy_in(i)",
+            "phase": "before private use",
+            "private_cell": "local[i]",
+            "public_cell": "A[i]",
+            "value_relation": "local[i] == A[i]"
+          }
+        ],
+        "copy_out_pairs": [
+          {
+            "copy_event": "S_copy_out(i)",
+            "phase": "after private update",
+            "private_cell": "local[i]",
+            "public_cell": "B[i]",
+            "value_relation": "B[i] == local[i]"
+          }
+        ],
+        "kind": "CopyBoundary",
+        "private_compute": "local[i] carries the value A[i] + 1",
+        "private_storage_spec": {
+          "bounds": "0 <= i < N",
+          "element_type": "same as B",
+          "target_var": "local"
+        }
+      },
+      "source_scop": "toy_private_copy_boundary_source.scop",
+      "statement_roles": [
+        {
+          "role": "source_compute",
+          "statement": "S_compute"
+        },
+        {
+          "role": "copy_in",
+          "statement": "S_copy_in"
+        },
+        {
+          "role": "private_compute",
+          "statement": "S_private_compute"
+        },
+        {
+          "role": "copy_out",
+          "statement": "S_copy_out"
+        }
+      ],
+      "storage_declarations": [
+        {
+          "element_type": "int",
+          "shape": "array[N]",
+          "var": "A"
+        },
+        {
+          "element_type": "int",
+          "shape": "array[N]",
+          "var": "B"
+        },
+        {
+          "element_type": "int",
+          "shape": "array[N]",
+          "var": "local",
+          "visibility": "private"
+        }
+      ],
+      "target_scop": "toy_private_copy_boundary_target.scop"
+    },
+    "scalar_promotion": {
+      "alias_clobber_exclusion": [
+        {
+          "calls": "no unknown side effect on A[i]",
+          "forbidden_writes": [
+            "A[i]",
+            "may_alias(A[i])"
+          ],
+          "interval": "between S_load(i) and S_store_back(i)"
+        }
+      ],
+      "boundary_protocol": {
+        "load": "S_load(i) initializes s from A[i]",
+        "per_iteration": "s is a per-iteration private scalar, not loop-carried state",
+        "store_back": "S_store_back(i) commits s to A[i] before final public observation",
+        "updates": "S_update_scalar(i) follows the source update expression"
+      },
+      "checked_obligations": [
+        "load initializes the scalar before scalar reads",
+        "scalar update simulates the source public-cell update",
+        "store-back commits the updated scalar before public observation of A[i]",
+        "store-back targets the same public cell that was promoted",
+        "public uses after promotion read the current scalar value",
+        "alias/clobber exclusion protects the cached value",
+        "scalar storage is hidden from final public view"
+      ],
+      "endpoint": "public_output_view_eq observes final A and B; scalar s is hidden",
+      "negative_cases": [
+        "missing load",
+        "scalar read before load",
+        "missing store-back",
+        "intervening alias write clobbers A[i]",
+        "unknown call may clobber A[i]",
+        "public use reads stale A[i] instead of promoted scalar",
+        "store-back targets the wrong public index",
+        "two logical cells share one scalar over overlapping intervals",
+        "promoted scalar escapes as public output",
+        "scalar storage incompatible with promoted cell"
+      ],
+      "private_target_storage": [
+        "s"
+      ],
+      "public_logical_interface": {
+        "inputs": [
+          "A"
+        ],
+        "outputs": [
+          "A",
+          "B"
+        ]
+      },
+      "representation_witness": {
+        "alias_clobber_exclusion": "no write to A[i] or alias of A[i] occurs between load and store-back except the checked store-back",
+        "kind": "ScalarPromotion",
+        "promotion_protocols": [
+          {
+            "load_event": "S_load(i)",
+            "logical_cell": "A[i]",
+            "private_scalar": "s",
+            "public_live_out": true,
+            "store_back_event": "S_store_back(i)",
+            "update_events": [
+              "S_update_scalar(i)"
+            ],
+            "valid_interval": [
+              "after S_load(i)",
+              "before S_store_back(i)"
+            ]
+          }
+        ],
+        "public_uses": [
+          "S_use_scalar(i) uses s for B[i] after S_update_scalar(i)"
+        ],
+        "storage_compatibility": "s has same element type/representation as A[i]"
+      },
+      "source_scop": "toy_scalar_promotion_source.scop",
+      "statement_roles": [
+        {
+          "role": "source_update",
+          "statement": "S_update"
+        },
+        {
+          "role": "source_use",
+          "statement": "S_use"
+        },
+        {
+          "role": "load",
+          "statement": "S_load"
+        },
+        {
+          "role": "scalar_update",
+          "statement": "S_update_scalar"
+        },
+        {
+          "role": "store_back",
+          "statement": "S_store_back"
+        },
+        {
+          "role": "scalar_use",
+          "statement": "S_use_scalar"
+        }
+      ],
+      "storage_declarations": [
+        {
+          "element_type": "int",
+          "shape": "array[N]",
+          "var": "A"
+        },
+        {
+          "element_type": "int",
+          "shape": "array[N]",
+          "var": "B"
+        },
+        {
+          "element_type": "int",
+          "shape": "scalar",
+          "var": "s",
+          "visibility": "private"
+        }
+      ],
+      "target_scop": "toy_scalar_promotion_target.scop"
+    }
+  },
+  "caveat": "The .scop skeleton shows protocol access shape; JSON sidecar supplies roles and validator obligations.",
+  "schema_version": 1
+}

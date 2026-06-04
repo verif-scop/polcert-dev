@@ -1,0 +1,15 @@
+before: evidence/candl_scalpriv0.scop
+after:  evidence/candl_scalpriv1.scop
+
+Access arity by array:
+  a: 1D x2 -> 1D x2
+  b: 2D x1 -> 2D x1
+
+Dependence count:
+  before: 3
+  after:  3
+
+Index relation rows by array:
+  b:
+    before: ['0    0   -1    1    0    0    ## [1] == i']
+    after:  ['0    0   -1    1    0    0    ## [1] == i']

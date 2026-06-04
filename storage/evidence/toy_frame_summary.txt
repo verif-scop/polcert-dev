@@ -1,0 +1,22 @@
+before: evidence/toy_frame_source.scop
+after:  evidence/toy_frame_target.scop
+
+Access arity by array:
+  A: 2D x1 -> 2D x1
+  B: 2D x1 -> 2D x1
+  tmp: - -> 2D x2 changed
+
+Dependence count:
+  before: unknown
+  after:  unknown
+
+Index relation rows by array:
+  A:
+    before: ['0    0   -1    1    0    0    ## [1] == i']
+    after:  ['0    0   -1    1    0    0    ## [1] == i']
+  B:
+    before: ['0    0   -1    1    0    0    ## [1] == i']
+    after:  ['0    0   -1    1    0    0    ## [1] == i']
+  tmp: changed
+    before: -
+    after:  ['0    0   -1    1    0    0    ## [1] == i', '0    0   -1    1    0    0    ## [1] == i']

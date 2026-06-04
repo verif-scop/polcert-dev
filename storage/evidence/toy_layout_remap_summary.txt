@@ -1,0 +1,19 @@
+before: evidence/candl_scalexp0.scop
+after:  evidence/toy_layout_remap_a_scale2.scop
+
+Access arity by array:
+  a: 2D x1 -> 2D x1
+  b: 2D x1 -> 2D x1
+  t: 1D x4 -> 1D x4
+
+Dependence count:
+  before: 9
+  after:  9
+
+Index relation rows by array:
+  a: changed
+    before: ['0    0   -1    1    0    0    ## [1] == i']
+    after:  ['0    0   -1    2    0    0    ## [1] == i']
+  b:
+    before: ['0    0   -1    1    0    0    ## [1] == i']
+    after:  ['0    0   -1    1    0    0    ## [1] == i']

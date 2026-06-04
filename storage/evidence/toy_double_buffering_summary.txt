@@ -1,0 +1,18 @@
+before: evidence/toy_double_buffering_source.scop
+after:  evidence/toy_double_buffering_target.scop
+
+Access arity by array:
+  A: 3D x2 -> - changed
+  Buf: - -> 3D x2 changed
+
+Dependence count:
+  before: unknown
+  after:  unknown
+
+Index relation rows by array:
+  A: changed
+    before: ['0    0   -1    0    1    0    0    0    ## [1] == t - 1', '0    0    0   -1    0    1    0    0    ## [2] == i', '0    0   -1    1    0    0    0    0    ## [1] == t', '0    0    0   -1    0    1    0    0    ## [2] == i']
+    after:  -
+  Buf: changed
+    before: -
+    after:  ['0    0   -1    0    1    0    0    0    ## [1] == cur(t)', '0    0    0   -1    0    1    0    0    ## [2] == i', '0    0   -1    1    0    0    0    0    ## [1] == next(t)', '0    0    0   -1    0    1    0    0    ## [2] == i']

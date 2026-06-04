@@ -1,0 +1,18 @@
+before: evidence/toy_array_contraction_source.scop
+after:  evidence/toy_array_contraction_target.scop
+
+Access arity by array:
+  A: 3D x2 -> - changed
+  A2: - -> 3D x2 changed
+
+Dependence count:
+  before: unknown
+  after:  unknown
+
+Index relation rows by array:
+  A: changed
+    before: ['0    0   -1    0    1    0    0    0    ## [1] == t - 1', '0    0    0   -1    0    1    0    0    ## [2] == i', '0    0   -1    1    0    0    0    0    ## [1] == t', '0    0    0   -1    0    1    0    0    ## [2] == i']
+    after:  -
+  A2: changed
+    before: -
+    after:  ['0    0   -1    0    1    0    0    0    ## [1] == (t - 1) mod 2', '0    0    0   -1    0    1    0    0    ## [2] == i', '0    0   -1    1    0    0    0    0    ## [1] == t mod 2', '0    0    0   -1    0    1    0    0    ## [2] == i']

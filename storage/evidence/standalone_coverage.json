@@ -1,0 +1,617 @@
+{
+  "negative": [
+    {
+      "case": "scalar_privatization_expansion",
+      "name": "missing_private_fill",
+      "reason": "tmp_exp[0] read before write"
+    },
+    {
+      "case": "scalar_privatization_expansion",
+      "name": "scalar_expansion_duplicate_private",
+      "reason": "expanded private cells are not fresh"
+    },
+    {
+      "case": "scalar_privatization_expansion",
+      "name": "scalar_expansion_event_mismatch",
+      "reason": "scalar expansion event uses the wrong private cell"
+    },
+    {
+      "case": "scalar_privatization_expansion",
+      "name": "scalar_expansion_read_before_fill",
+      "reason": "scalar expansion read occurs before its private fill"
+    },
+    {
+      "case": "private_copy_boundary",
+      "name": "private_missing_liveout_copy",
+      "reason": "private live-out has no copy-out"
+    },
+    {
+      "case": "private_copy_boundary",
+      "name": "private_duplicate_liveout_copy",
+      "reason": "private live-out copy-out is not unique"
+    },
+    {
+      "case": "private_copy_boundary",
+      "name": "private_aliasing_copyin_private",
+      "reason": "private copy-in target is not unique"
+    },
+    {
+      "case": "private_copy_boundary",
+      "name": "private_trace_undeclared_cell",
+      "reason": "private trace uses undeclared private cell"
+    },
+    {
+      "case": "private_copy_boundary",
+      "name": "private_out_of_declared_bounds",
+      "reason": "private cell falls outside declared bounds"
+    },
+    {
+      "case": "private_copy_boundary",
+      "name": "private_bad_copyout_value",
+      "reason": "copy-out boundary value mismatch"
+    },
+    {
+      "case": "private_copy_boundary",
+      "name": "private_incompatible_boundary_storage",
+      "reason": "private boundary storage spec mismatch"
+    },
+    {
+      "case": "private_access_local_instantiation",
+      "name": "private_access_symbolic_read_before_write",
+      "reason": "private access read occurs before matching access write"
+    },
+    {
+      "case": "private_access_local_instantiation",
+      "name": "private_access_instance_undeclared_cell",
+      "reason": "instantiated private access cell is undeclared"
+    },
+    {
+      "case": "private_access_local_instantiation",
+      "name": "private_access_instance_out_of_bounds",
+      "reason": "instantiated private access cell falls outside declared bounds"
+    },
+    {
+      "case": "scalar_promotion",
+      "name": "scalar_promotion_incompatible_storage",
+      "reason": "promoted scalar storage spec mismatch"
+    },
+    {
+      "case": "source_no_alias_abstraction",
+      "name": "source_alias_violation",
+      "reason": "A and B may alias"
+    },
+    {
+      "case": "source_no_alias_abstraction",
+      "name": "source_access_unknown_object",
+      "reason": "source access object has no declared footprint"
+    },
+    {
+      "case": "source_no_alias_abstraction",
+      "name": "source_access_outside_footprint",
+      "reason": "source access falls outside declared object footprint"
+    },
+    {
+      "case": "layout_remap_padding",
+      "name": "aliased_layout_map",
+      "reason": "layout map aliases logical cells"
+    },
+    {
+      "case": "layout_remap_padding",
+      "name": "layout_bad_boundary_value",
+      "reason": "layout boundary value mismatch"
+    },
+    {
+      "case": "layout_remap_padding",
+      "name": "layout_incompatible_storage",
+      "reason": "layout storage spec mismatch"
+    },
+    {
+      "case": "layout_remap_padding",
+      "name": "layout_out_of_declared_bounds",
+      "reason": "allocated layout cell falls outside declared array bounds"
+    },
+    {
+      "case": "layout_remap_padding",
+      "name": "layout_bad_access_remap",
+      "reason": "layout access remap changes affine index"
+    },
+    {
+      "case": "layout_remap_padding",
+      "name": "layout_bad_permutation_access_remap",
+      "reason": "target access does not use declared index permutation"
+    },
+    {
+      "case": "layout_remap_padding",
+      "name": "layout_bad_affine_access_remap",
+      "reason": "target access does not use declared affine layout"
+    },
+    {
+      "case": "scratchpad_packing",
+      "name": "missing_copy_in",
+      "reason": "Bp[3] used before copy-in"
+    },
+    {
+      "case": "scratchpad_packing",
+      "name": "scratchpad_bad_local_remap",
+      "reason": "public cells mapped to local buffer are not injective"
+    },
+    {
+      "case": "scratchpad_packing",
+      "name": "scratchpad_incompatible_local_storage",
+      "reason": "scratchpad local storage spec mismatch"
+    },
+    {
+      "case": "scratchpad_packing",
+      "name": "scratchpad_local_out_of_bounds",
+      "reason": "scratchpad local cell falls outside declared bounds"
+    },
+    {
+      "case": "scratchpad_packing",
+      "name": "scratchpad_public_undeclared",
+      "reason": "copy mapping public cell is not declared"
+    },
+    {
+      "case": "scratchpad_packing",
+      "name": "scratchpad_public_out_of_bounds",
+      "reason": "scratchpad public cell falls outside declared bounds"
+    },
+    {
+      "case": "scratchpad_copy_out",
+      "name": "missing_copy_out",
+      "reason": "copy-out does not commit every logical output"
+    },
+    {
+      "case": "scratchpad_copy_out",
+      "name": "scratchpad_bad_copy_instance_role",
+      "reason": "copy helper instance role does not match copy event"
+    },
+    {
+      "case": "array_contraction",
+      "name": "missing_contraction_conflict_pair",
+      "reason": "live-overlap conflict missing for (0, 0) and (1, 0)"
+    },
+    {
+      "case": "array_contraction",
+      "name": "mod_one_contraction_conflict",
+      "reason": "conflicting values (0, 0) and (1, 0) share (0, 0)"
+    },
+    {
+      "case": "array_contraction",
+      "name": "contraction_missing_boundary_liveout",
+      "reason": "reuse boundary mapping does not cover every source live-out"
+    },
+    {
+      "case": "array_contraction",
+      "name": "contraction_incompatible_storage",
+      "reason": "reuse boundary storage spec mismatch"
+    },
+    {
+      "case": "array_contraction",
+      "name": "contraction_target_out_of_bounds",
+      "reason": "reuse target physical cell falls outside declared bounds"
+    },
+    {
+      "case": "inter_array_reuse",
+      "name": "inter_array_live_overlap",
+      "reason": "T1 and T2 live ranges overlap"
+    },
+    {
+      "case": "inter_array_reuse",
+      "name": "inter_array_same_buffer_live_overlap",
+      "reason": "shared buffer cells have overlapping live ranges"
+    },
+    {
+      "case": "inter_array_reuse",
+      "name": "inter_array_incompatible_storage",
+      "reason": "T2 is not storage-compatible with Buf"
+    },
+    {
+      "case": "inter_array_reuse",
+      "name": "inter_array_shared_buffer_out_of_bounds",
+      "reason": "shared buffer cell falls outside declared bounds"
+    },
+    {
+      "case": "array_expansion_versioning",
+      "name": "missing_expansion_copy_out",
+      "reason": "final X differs without copy-out: {0: 0, 1: 0} != {0: 2, 1: 3}"
+    },
+    {
+      "case": "array_expansion_versioning",
+      "name": "duplicate_selected_version",
+      "reason": "selected target versions are not unique"
+    },
+    {
+      "case": "array_expansion_versioning",
+      "name": "expansion_incompatible_version_storage",
+      "reason": "selected version storage spec mismatch"
+    },
+    {
+      "case": "array_expansion_versioning",
+      "name": "expansion_version_out_of_bounds",
+      "reason": "selected target version falls outside declared bounds"
+    },
+    {
+      "case": "array_expansion_versioning",
+      "name": "expansion_read_selects_unproduced_version",
+      "reason": "read-selected version was not produced by the expected write"
+    },
+    {
+      "case": "array_expansion_versioning",
+      "name": "expansion_read_version_out_of_bounds",
+      "reason": "read-selected produced version falls outside declared bounds"
+    },
+    {
+      "case": "overlapped_tiling",
+      "name": "duplicate_overlap_commit",
+      "reason": "more than one tile commits a source output"
+    },
+    {
+      "case": "overlapped_tiling",
+      "name": "overlap_missing_halo_closure",
+      "reason": "tile does not locally close B dependences"
+    },
+    {
+      "case": "overlapped_tiling",
+      "name": "overlap_bad_producer_order",
+      "reason": "tile producer does not precede consumer"
+    },
+    {
+      "case": "overlapped_tiling",
+      "name": "overlap_internal_write_public_cell",
+      "reason": "overlap write role does not match private/commit storage"
+    },
+    {
+      "case": "overlapped_tiling",
+      "name": "overlap_duplicate_commit_write_cell",
+      "reason": "overlap commit write cells are not unique"
+    },
+    {
+      "case": "overlapped_tiling",
+      "name": "overlap_private_write_out_of_bounds",
+      "reason": "overlap private write cell falls outside declared bounds"
+    },
+    {
+      "case": "overlapped_tiling",
+      "name": "overlap_commit_write_out_of_bounds",
+      "reason": "overlap commit write cell falls outside declared bounds"
+    },
+    {
+      "case": "reduction_privatization",
+      "name": "overlapping_reduction_chunks",
+      "reason": "reduction chunks overlap"
+    },
+    {
+      "case": "reduction_privatization",
+      "name": "reduction_missing_merge_accumulator",
+      "reason": "reduction merge order does not cover private accumulators exactly"
+    },
+    {
+      "case": "reduction_privatization",
+      "name": "reduction_incompatible_accumulator_storage",
+      "reason": "reduction accumulator storage spec mismatch"
+    },
+    {
+      "case": "reduction_privatization",
+      "name": "reduction_accumulator_out_of_bounds",
+      "reason": "reduction accumulator falls outside declared bounds"
+    },
+    {
+      "case": "reduction_privatization",
+      "name": "reduction_accumulator_escape",
+      "reason": "reduction private accumulator escapes fragment"
+    },
+    {
+      "case": "reduction_privatization",
+      "name": "reduction_non_associative_law",
+      "reason": "reduction merge operator is not associative on carrier"
+    },
+    {
+      "case": "reduction_privatization",
+      "name": "reduction_wrong_final_value",
+      "reason": "reduction merge gives different result"
+    },
+    {
+      "case": "double_buffering",
+      "name": "double_buffer_without_swap",
+      "reason": "swap does not expose the current time row"
+    },
+    {
+      "case": "double_buffering",
+      "name": "double_buffer_bad_next_value",
+      "reason": "next-live value 0 does not come from phase write or entry-live value"
+    },
+    {
+      "case": "double_buffering",
+      "name": "double_buffer_bad_projection",
+      "reason": "phase projection does not cover logical live-outs"
+    },
+    {
+      "case": "double_buffering",
+      "name": "double_buffer_bad_final_snapshot",
+      "reason": "final phase snapshot does not match final-live cells"
+    },
+    {
+      "case": "double_buffering",
+      "name": "double_buffer_bad_projection_value",
+      "reason": "phase projection value mismatch"
+    },
+    {
+      "case": "double_buffering",
+      "name": "double_buffer_incompatible_projection_storage",
+      "reason": "phase projection storage spec mismatch"
+    },
+    {
+      "case": "double_buffering",
+      "name": "double_buffer_projection_out_of_bounds",
+      "reason": "phase projection target falls outside declared bounds"
+    },
+    {
+      "case": "double_buffering",
+      "name": "double_buffer_phase_write_out_of_bounds",
+      "reason": "phase protocol cell falls outside declared bounds"
+    },
+    {
+      "case": "contextual_frame_preservation",
+      "name": "frame_write_not_allowed",
+      "reason": "fragment write is not allowed"
+    },
+    {
+      "case": "contextual_frame_preservation",
+      "name": "frame_allowed_overlaps_context",
+      "reason": "allowed writes overlap frame"
+    },
+    {
+      "case": "contextual_frame_preservation",
+      "name": "frame_value_changed",
+      "reason": "frame value changed across fragment"
+    },
+    {
+      "case": "storage_view_composition",
+      "name": "composition_bad_intermediate_public",
+      "reason": "private-erasure view cannot relate target to intermediate state"
+    },
+    {
+      "case": "storage_view_composition",
+      "name": "composition_bad_access_midpoint",
+      "reason": "composed access remap is invalid"
+    },
+    {
+      "case": "storage_view_composition",
+      "name": "composition_bad_mid_observables",
+      "reason": "cell-view composition should reject incompatible intermediate observables"
+    }
+  ],
+  "positive": [
+    {
+      "classification": "precondition / logical blocks distinct",
+      "name": "source_no_alias_abstraction",
+      "obligations": [
+        "distinct source names are interpreted as distinct logical blocks",
+        "logical read/write footprints are computed under the no-alias abstraction",
+        "finite source accesses are covered by their declared object footprints",
+        "validator assumptions would be unsound if A and B had the same physical base"
+      ]
+    },
+    {
+      "classification": "contextual frame / allowed writes plus preserved frame snapshot",
+      "name": "contextual_frame_preservation",
+      "obligations": [
+        "fragment writes are included in a declared allowed-write set",
+        "allowed writes are disjoint from context-owned frame cells",
+        "every context-frame cell has aligned before/after snapshot evidence",
+        "frame snapshot values are preserved across the fragment",
+        "observable transformed output matches the source output on non-frame cells"
+      ]
+    },
+    {
+      "classification": "instance-preserving / storage-preserving",
+      "name": "affine_interchange",
+      "obligations": [
+        "bijection on statement instances",
+        "read/write access functions are identical",
+        "no loop-carried dependences are introduced or reordered"
+      ]
+    },
+    {
+      "classification": "instance-preserving / domain partition",
+      "name": "index_set_splitting",
+      "obligations": [
+        "target subdomains are disjoint",
+        "target subdomains exactly cover the source domain",
+        "each target substatement projects to exactly one source instance"
+      ]
+    },
+    {
+      "classification": "instance-preserving / grouped schedule",
+      "name": "ordinary_tiling",
+      "obligations": [
+        "tile projection covers every source instance",
+        "tile projection is injective for ordinary non-overlapped tiling",
+        "access functions are unchanged"
+      ]
+    },
+    {
+      "classification": "same instances / scalar storage expansion",
+      "name": "scalar_privatization_expansion",
+      "obligations": [
+        "each (source instance, source scalar cell) selects one expanded private cell",
+        "private storage map rho(i) = tmp_exp[i] is injective over live private classes",
+        "all scalar expansion events use the declared private cell for their key",
+        "each private read is dominated by its same-class write",
+        "expanded storage is not live-out or observable except through B"
+      ]
+    },
+    {
+      "classification": "same instances / private live-in and live-out boundary copies",
+      "name": "private_copy_boundary",
+      "obligations": [
+        "every required public live-in has a copy-in boundary pair",
+        "every required public live-out has a unique copy-out boundary pair",
+        "boundary pairs use declared private storage cells",
+        "private trace read/write cells are declared private cells",
+        "declared private cells are within private array bounds",
+        "boundary copy private cells are unique on the private side",
+        "copy-in/copy-out boundary values match across public and private cells",
+        "boundary public/private cells are storage-compatible for copy-in and copy-out"
+      ]
+    },
+    {
+      "classification": "same instances / access-level private storage instantiation",
+      "name": "private_access_local_instantiation",
+      "obligations": [
+        "symbolic private access trace is use-def well formed",
+        "each finite domain point instantiates private accesses to declared cells",
+        "instantiated private access cells are hidden from the public view",
+        "instantiated private access cells are within declared private bounds"
+      ]
+    },
+    {
+      "classification": "same instances / injective physical address remap",
+      "name": "layout_remap_padding",
+      "obligations": [
+        "logical-to-physical address map is injective over the logical domain",
+        "all rewritten addresses are within allocated physical storage",
+        "padding cells are outside the observable logical image",
+        "target accesses use the declared layout rename at the access-function level",
+        "transpose-style accesses use a declared index-permutation layout witness",
+        "linearized accesses use a declared affine layout witness",
+        "one declared-layout checker covers same-index, permutation, and affine cases",
+        "allocated physical layout cells are within declared array extents",
+        "layout boundary values match the represented logical cells",
+        "mapped physical layout cells are storage-compatible with represented logical cells"
+      ]
+    },
+    {
+      "classification": "same instances / copy-mediated local storage",
+      "name": "scratchpad_packing",
+      "obligations": [
+        "copy-in covers every later local read",
+        "local buffer address k consistently maps to source B[kk+k]",
+        "public-to-local copy mapping is injective during each tile",
+        "copy mapping public cells belong to the declared public-cell set",
+        "copy mapping local cells belong to the declared local-buffer set",
+        "declared public cells are within public array bounds",
+        "declared local-buffer cells are within local array bounds",
+        "local buffer cells are storage-compatible with represented public cells",
+        "local buffer lifetime is tile-scoped and fresh between tiles"
+      ]
+    },
+    {
+      "classification": "same instances / copy-mediated local update plus commit",
+      "name": "scratchpad_copy_out",
+      "obligations": [
+        "copy-in initializes each local cell before local compute",
+        "copy-out commits every updated logical cell exactly once",
+        "copy helper instance roles align with copy protocol events",
+        "local writes are unobservable until committed"
+      ]
+    },
+    {
+      "classification": "same instances / array cell simulated by scalar",
+      "name": "scalar_promotion",
+      "obligations": [
+        "entry load initializes the scalar from the promoted cell",
+        "all reads and writes in the promoted region are simulated by the scalar",
+        "promoted scalar storage is compatible with the source cell",
+        "exit store commits the scalar back before the cell is observed"
+      ]
+    },
+    {
+      "classification": "same logical values / non-injective conflict-safe storage reuse",
+      "name": "array_contraction",
+      "obligations": [
+        "non-injective map rho(t,i) = (t mod 2,i) is allowed only for non-conflicting values",
+        "explicit live intervals cover every overlap conflict under the schedule",
+        "every reused physical buffer cell is within declared rolling-buffer bounds",
+        "reuse boundary mapping covers every observable source live-out",
+        "reused physical boundary cells are storage-compatible with represented logical cells",
+        "reuse boundary values match the projected physical cells",
+        "final observable row projects from the correct parity buffer"
+      ]
+    },
+    {
+      "classification": "same instances / cross-array lifetime-based storage reuse",
+      "name": "inter_array_reuse",
+      "obligations": [
+        "logical arrays mapped to one buffer have non-overlapping live ranges",
+        "shared physical buffer cells are used only by non-overlapping lifetimes",
+        "shared physical buffer cells are within declared Buf bounds",
+        "reused cells are size/alignment compatible with the shared buffer",
+        "all accesses in each lifetime interval are rewritten consistently"
+      ]
+    },
+    {
+      "classification": "same instances / more physical versions plus copy-out",
+      "name": "array_expansion_versioning",
+      "obligations": [
+        "each read selects the version produced by the same logical iteration",
+        "read-selected produced versions are within declared version-array bounds",
+        "read-selected produced values match target reads",
+        "extra versions project back to one source logical array",
+        "selected committed versions cover source live-outs exactly once",
+        "selected target versions are storage-compatible with source live-outs",
+        "selected target versions are within declared version-array bounds",
+        "selected version values match represented source live-outs",
+        "copy-out commits exactly the final source-observable version"
+      ]
+    },
+    {
+      "classification": "instance-count-changing / private recomputation plus unique commit",
+      "name": "overlapped_tiling",
+      "obligations": [
+        "projection maps every target computation to a valid source instance",
+        "commit instances form an exact cover of source live-out instances",
+        "tile-local dependence closure covers every committed B computation",
+        "tile-local producers precede their consumers in the target trace",
+        "internal target writes go to tile-private cells",
+        "commit target writes go to public commit cells exactly once",
+        "tile-private overlap write cells are within declared private-buffer bounds",
+        "commit overlap write cells are within declared public-output bounds",
+        "duplicated halo/internal writes are tile-local and invisible"
+      ]
+    },
+    {
+      "classification": "parallel/storage privatization plus merge",
+      "name": "reduction_privatization",
+      "obligations": [
+        "iteration chunks are disjoint and exactly cover the source reduction domain",
+        "private accumulators are fresh per chunk",
+        "private accumulators are storage-compatible with the public reduction cell",
+        "private accumulators are within declared accumulator-array bounds",
+        "private accumulators are disjoint from the context escape set",
+        "merge order consumes every private accumulator exactly once",
+        "merge-order accumulator values fold to the final reduction value",
+        "merge operator is closed, associative, commutative, and has an identity on the finite carrier"
+      ]
+    },
+    {
+      "classification": "same logical values / phase-separated ping-pong storage",
+      "name": "double_buffering",
+      "obligations": [
+        "next buffer is written before it is read in the following phase",
+        "cur buffer remains live until the phase's computation completes",
+        "next-live values come from the phase write snapshot",
+        "all phase entry/read/write/next-live cells are within declared buffer bounds",
+        "swap implements the projection from physical buffer to logical time",
+        "final phase value snapshot matches the final-live physical cells",
+        "final phase projection covers every logical live-out",
+        "phase projection values match final physical buffer cells",
+        "final phase physical cells are storage-compatible with logical live-outs",
+        "final phase physical cells are within declared buffer bounds"
+      ]
+    },
+    {
+      "classification": "composition / layout projection followed by private erasure",
+      "name": "storage_view_composition",
+      "obligations": [
+        "target-to-mid private-erasure view ignores only fresh private cells",
+        "mid-to-source layout view projects padded physical cells to logical cells",
+        "the two views agree on the observable intermediate cells",
+        "the composed cell view covers exactly the public source and target cells",
+        "there exists an intermediate state satisfying both view relations",
+        "the composed observation relates target physical cells to source logical cells",
+        "access remap witnesses compose through the same intermediate cells"
+      ]
+    }
+  ]
+}
