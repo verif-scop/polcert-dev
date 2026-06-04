@@ -1,0 +1,339 @@
+# Generated storage validation registry.
+# The OCaml validator treats each required item uniformly.
+
+case: source_no_alias_abstraction
+group: precondition
+witness_kind: SourceNoAliasAbstraction
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=SourceNoAliasAbstraction
+required: witness_field=source variable footprints
+required: witness_field=non-overlap proof for distinct variables
+required: witness_field=in-bounds source accesses
+required: role=source_footprint
+required: role=no_alias
+required: role=in_bounds
+---
+
+case: contextual_frame_preservation
+group: context
+witness_kind: ContextualFramePreservation
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=ContextualFramePreservation
+required: witness_field=allowed write set
+required: witness_field=protected frame variables
+required: witness_field=pre/post frame snapshots
+required: role=allowed_write_set
+required: role=protected_frame
+required: role=frame_snapshot
+---
+
+case: affine_interchange
+group: schedule_only
+witness_kind: AffineInterchange
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=AffineInterchange
+required: witness_field=instance bijection
+required: witness_field=legal schedule order
+required: witness_field=unchanged storage accesses
+required: role=instance_bijection
+required: role=schedule_legality
+required: role=storage_access_identity
+---
+
+case: index_set_splitting
+group: schedule_domain
+witness_kind: IndexSetSplitting
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=IndexSetSplitting
+required: witness_field=source domain
+required: witness_field=target subdomains
+required: witness_field=disjoint exact-cover proof
+required: role=domain_cover
+required: role=domain_disjointness
+required: role=storage_access_identity
+---
+
+case: ordinary_tiling
+group: schedule_domain
+witness_kind: OrdinaryTiling
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=OrdinaryTiling
+required: witness_field=tile projection
+required: witness_field=exact domain cover
+required: witness_field=unchanged storage accesses
+required: role=domain_cover
+required: role=domain_disjointness
+required: role=storage_access_identity
+---
+
+case: scalar_privatization_expansion
+group: storage_expansion
+witness_kind: ScalarPrivatizationExpansion
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=ScalarPrivatizationExpansion
+required: witness_field=logical temporary live range
+required: witness_field=fresh private cell per instance
+required: witness_field=write-before-read evidence
+required: witness_field=optional live-out copy
+required: role=fresh_private_cell
+required: role=live_range
+required: role=def_use_dominance
+---
+
+case: private_copy_boundary
+group: private_boundary
+witness_kind: PrivateCopyBoundary
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=PrivateCopyBoundary
+required: witness_field=copy-in map
+required: witness_field=copy-out map
+required: witness_field=private live-in/live-out sets
+required: witness_field=unique public commits
+required: role=copy_in
+required: role=private_live_set
+required: role=copy_out
+required: role=unique_public_commit
+---
+
+case: private_access_local_instantiation
+group: private_access
+witness_kind: PrivateAccessLocalInstantiation
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=PrivateAccessLocalInstantiation
+required: witness_field=symbolic private access
+required: witness_field=instantiated target private cell
+required: witness_field=hidden/private declaration
+required: witness_field=in-bounds proof
+required: role=symbolic_private_access
+required: role=private_cell_instantiation
+required: role=hidden_storage
+required: role=bounds_check
+---
+
+case: layout_remap_padding
+group: layout
+witness_kind: LayoutRemapPadding
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=LayoutRemapPadding
+required: witness_field=logical public index
+required: witness_field=physical layout map
+required: witness_field=injectivity over live logical cells
+required: witness_field=padding exclusion from public view
+required: role=logical_to_physical_map
+required: role=injective_live_cells
+required: role=padding_erasure
+required: role=public_view_projection
+---
+
+case: scratchpad_packing
+group: scratchpad
+witness_kind: ScratchpadPacking
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=ScratchpadPacking
+required: witness_field=tile footprint
+required: witness_field=public-to-local copy map
+required: witness_field=local buffer shape
+required: witness_field=local read coverage
+required: role=tile_footprint
+required: role=copy_boundary
+required: role=local_buffer_shape
+required: role=public_commit_or_read_cover
+---
+
+case: scratchpad_copy_out
+group: scratchpad
+witness_kind: ScratchpadCopyOut
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=ScratchpadCopyOut
+required: witness_field=updated local cells
+required: witness_field=copy-out commit map
+required: witness_field=public live-out set
+required: witness_field=unique commit proof
+required: role=tile_footprint
+required: role=copy_boundary
+required: role=local_buffer_shape
+required: role=public_commit_or_read_cover
+---
+
+case: scalar_promotion
+group: promotion
+witness_kind: ScalarPromotion
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=ScalarPromotion
+required: witness_field=entry load event
+required: witness_field=private scalar interval
+required: witness_field=alias/clobber exclusion
+required: witness_field=exit store-back event
+required: role=entry_load
+required: role=private_scalar_interval
+required: role=alias_clobber_exclusion
+required: role=exit_store_back
+---
+
+case: array_contraction
+group: reuse_folding
+witness_kind: ArrayContraction
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=ArrayContraction
+required: witness_field=logical value ids
+required: witness_field=physical reuse map
+required: witness_field=valid intervals
+required: witness_field=producer/consumer events
+required: witness_field=kill or reuse events
+required: witness_field=boundary projection
+required: role=logical_value_id
+required: role=physical_reuse_map
+required: role=live_interval
+required: role=producer_consumer
+required: role=boundary_projection
+---
+
+case: inter_array_reuse
+group: reuse_folding
+witness_kind: InterArrayReuse
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=InterArrayReuse
+required: witness_field=logical arrays sharing one region
+required: witness_field=disjoint lifetime intervals
+required: witness_field=physical region compatibility
+required: witness_field=copy-out before reuse
+required: role=logical_value_id
+required: role=physical_reuse_map
+required: role=live_interval
+required: role=producer_consumer
+required: role=boundary_projection
+---
+
+case: array_expansion_versioning
+group: versioning
+witness_kind: ArrayExpansionVersioning
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=ArrayExpansionVersioning
+required: witness_field=definition-to-version map
+required: witness_field=read version selectors
+required: witness_field=produced-version proof
+required: witness_field=final version selector
+required: role=version_selector
+required: role=phase_projection
+required: role=buffer_role
+required: role=final_projection
+---
+
+case: overlapped_tiling
+group: overlap_halo
+witness_kind: OverlappedTiling
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=OverlappedTiling
+required: witness_field=source-to-target duplicate projection
+required: witness_field=halo closure
+required: witness_field=commit set
+required: witness_field=exact cover of public live-outs
+required: role=duplicate_projection
+required: role=halo_closure
+required: role=commit_set
+required: role=exact_public_cover
+---
+
+case: reduction_privatization
+group: reduction
+witness_kind: ReductionPrivatization
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=ReductionPrivatization
+required: witness_field=chunk partition
+required: witness_field=private accumulator initialization
+required: witness_field=contribution coverage
+required: witness_field=merge tree
+required: witness_field=operator laws
+required: role=chunk_partition
+required: role=accumulator_init
+required: role=contribution_cover
+required: role=merge_tree
+required: role=operator_laws
+---
+
+case: double_buffering
+group: versioning
+witness_kind: DoubleBuffering
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=DoubleBuffering
+required: witness_field=phase projection
+required: witness_field=current/next buffer map
+required: witness_field=swap transition proof
+required: witness_field=final boundary projection
+required: role=version_selector
+required: role=phase_projection
+required: role=buffer_role
+required: role=final_projection
+---
+
+case: storage_view_composition
+group: composition
+witness_kind: StorageViewComposition
+required: view_relation=public_output_view_eq
+required: source_public_var
+required: target_public_var
+required: public_output_var
+required: witness_kind=StorageViewComposition
+required: witness_field=source-to-mid public view
+required: witness_field=mid-to-target public view
+required: witness_field=compatible intermediate interface
+required: witness_field=composed output view equality
+required: role=source_mid_view
+required: role=mid_target_view
+required: role=interface_compatibility
+required: role=composed_public_view
+---

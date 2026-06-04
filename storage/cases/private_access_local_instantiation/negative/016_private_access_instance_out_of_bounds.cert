@@ -1,0 +1,35 @@
+# Generated storage transformation certificate.
+# Directory: cases/private_access_local_instantiation
+expect: fail
+case: private_access_local_instantiation
+survey_group: private_access
+classification: same instances / access-level private storage instantiation
+witness_kind: PrivateAccessLocalInstantiation
+view_relation: public_output_view_eq
+source_example: examples/standalone/private_access_local_instantiation.source.c
+target_example: examples/standalone/private_access_local_instantiation.target.c
+evidence: toy OpenScop symbolic-private-access witness; no current Pluto/OpenScop pass observed
+correctness_reason: symbolic private accesses instantiate to declared, in-bounds, hidden private cells
+example: source_target_core
+source_shape: canonical source file
+target_shape: canonical target file
+purpose: baseline source/target witness for this transformation
+source_public_var: B
+target_public_var: B
+public_output_var: B
+source_public_var: A
+target_public_var: A
+public_output_var: A
+witness_field: symbolic private access
+witness_field: instantiated target private cell
+witness_field: hidden/private declaration
+witness_field: in-bounds proof
+role: private_cell_instantiation
+role: hidden_storage
+role: bounds_check
+obligation: symbolic private access trace is use-def well formed
+obligation: each finite domain point instantiates private accesses to declared cells
+obligation: instantiated private access cells are hidden from the public view
+obligation: instantiated private access cells are within declared private bounds
+negative_case: private_access_instance_out_of_bounds
+negative_reason: instantiated private access cell falls outside declared bounds

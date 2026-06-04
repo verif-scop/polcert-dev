@@ -1,0 +1,32 @@
+# Generated storage transformation certificate.
+# Directory: cases/ordinary_tiling
+expect: fail
+case: ordinary_tiling
+survey_group: schedule_domain
+classification: instance-preserving / grouped schedule
+witness_kind: OrdinaryTiling
+view_relation: public_output_view_eq
+source_example: examples/standalone/ordinary_tiling.source.c
+target_example: examples/standalone/ordinary_tiling.target.c
+evidence: real schedule/tiling tooling; storage-preserving
+correctness_reason: tile projection covers source instances and storage accesses are unchanged
+example: source_target_core
+source_shape: canonical source file
+target_shape: canonical target file
+purpose: baseline source/target witness for this transformation
+source_public_var: B
+target_public_var: B
+public_output_var: B
+source_public_var: A
+target_public_var: A
+public_output_var: A
+witness_field: exact domain cover
+witness_field: unchanged storage accesses
+role: domain_cover
+role: domain_disjointness
+role: storage_access_identity
+obligation: tile projection covers every source instance
+obligation: tile projection is injective for ordinary non-overlapped tiling
+obligation: access functions are unchanged
+negative_case: missing_witness_tile_projection
+negative_reason: required witness field is absent: tile projection

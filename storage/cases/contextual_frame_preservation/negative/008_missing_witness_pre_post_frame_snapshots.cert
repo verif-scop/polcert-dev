@@ -1,0 +1,40 @@
+# Generated storage transformation certificate.
+# Directory: cases/contextual_frame_preservation
+expect: fail
+case: contextual_frame_preservation
+survey_group: context
+classification: contextual frame / allowed writes plus preserved frame snapshot
+witness_kind: ContextualFramePreservation
+view_relation: public_output_view_eq
+source_example: examples/standalone/contextual_frame_preservation.source.c
+target_example: examples/standalone/contextual_frame_preservation.target.c
+evidence: toy OpenScop contextual-frame witness; boundary condition rather than storage rewrite
+correctness_reason: writes stay inside the allowed fragment footprint and protected frame variables keep their values
+example: source_target_core
+source_shape: canonical source file
+target_shape: canonical target file
+purpose: baseline source/target witness for this transformation
+source_public_var: B
+target_public_var: B
+public_output_var: B
+source_public_var: A
+target_public_var: A
+public_output_var: A
+source_public_var: Frame
+target_public_var: Frame
+public_output_var: Frame
+source_public_var: C
+target_public_var: C
+public_output_var: C
+witness_field: allowed write set
+witness_field: protected frame variables
+role: allowed_write_set
+role: protected_frame
+role: frame_snapshot
+obligation: fragment writes are included in a declared allowed-write set
+obligation: allowed writes are disjoint from context-owned frame cells
+obligation: every context-frame cell has aligned before/after snapshot evidence
+obligation: frame snapshot values are preserved across the fragment
+obligation: observable transformed output matches the source output on non-frame cells
+negative_case: missing_witness_pre_post_frame_snapshots
+negative_reason: required witness field is absent: pre/post frame snapshots

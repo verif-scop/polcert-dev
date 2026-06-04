@@ -1,0 +1,50 @@
+# Generated storage transformation certificate.
+# Directory: cases/inter_array_reuse
+expect: fail
+case: inter_array_reuse
+survey_group: reuse_folding
+classification: same instances / cross-array lifetime-based storage reuse
+witness_kind: InterArrayReuse
+view_relation: public_output_view_eq
+source_example: examples/standalone/inter_array_reuse.source.c
+target_example: examples/standalone/inter_array_reuse.target.c
+evidence: toy OpenScop shared-buffer witness; no current Pluto/OpenScop inter-array reuse pass observed
+correctness_reason: arrays share a buffer only across disjoint lifetime intervals with compatible storage
+example: source_target_core
+source_shape: canonical source file
+target_shape: canonical target file
+purpose: baseline source/target witness for this transformation
+source_public_var: T1
+target_public_var: T1
+public_output_var: T1
+source_public_var: A
+target_public_var: A
+public_output_var: A
+source_public_var: C
+target_public_var: C
+public_output_var: C
+source_public_var: T2
+target_public_var: T2
+public_output_var: T2
+source_public_var: B
+target_public_var: B
+public_output_var: B
+source_public_var: D
+target_public_var: D
+public_output_var: D
+target_representation_var: Buf
+witness_field: disjoint lifetime intervals
+witness_field: physical region compatibility
+witness_field: copy-out before reuse
+role: logical_value_id
+role: physical_reuse_map
+role: live_interval
+role: producer_consumer
+role: boundary_projection
+obligation: logical arrays mapped to one buffer have non-overlapping live ranges
+obligation: shared physical buffer cells are used only by non-overlapping lifetimes
+obligation: shared physical buffer cells are within declared Buf bounds
+obligation: reused cells are size/alignment compatible with the shared buffer
+obligation: all accesses in each lifetime interval are rewritten consistently
+negative_case: missing_witness_logical_arrays_sharing_one_region
+negative_reason: required witness field is absent: logical arrays sharing one region

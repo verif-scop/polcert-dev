@@ -1,0 +1,32 @@
+# Generated storage transformation certificate.
+# Directory: cases/source_no_alias_abstraction
+expect: fail
+case: source_no_alias_abstraction
+survey_group: precondition
+classification: precondition / logical blocks distinct
+witness_kind: SourceNoAliasAbstraction
+view_relation: public_output_view_eq
+source_example: examples/standalone/source_no_alias_abstraction.source.c
+target_example: examples/standalone/source_no_alias_abstraction.target.c
+evidence: toy OpenScop source-footprint/no-alias witness; precondition rather than storage rewrite
+correctness_reason: logical source variables have distinct footprints, so storage reasoning over variables is sound
+example: source_target_core
+source_shape: canonical source file
+target_shape: canonical target file
+purpose: baseline source/target witness for this transformation
+source_public_var: A
+target_public_var: A
+source_public_var: B
+target_public_var: B
+witness_field: source variable footprints
+witness_field: non-overlap proof for distinct variables
+witness_field: in-bounds source accesses
+role: source_footprint
+role: no_alias
+role: in_bounds
+obligation: distinct source names are interpreted as distinct logical blocks
+obligation: logical read/write footprints are computed under the no-alias abstraction
+obligation: finite source accesses are covered by their declared object footprints
+obligation: validator assumptions would be unsound if A and B had the same physical base
+negative_case: missing_public_output_var
+negative_reason: final public outputs are absent

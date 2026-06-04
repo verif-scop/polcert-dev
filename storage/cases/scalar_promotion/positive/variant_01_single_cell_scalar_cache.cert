@@ -1,0 +1,34 @@
+# Generated storage transformation certificate.
+# Directory: cases/scalar_promotion
+expect: pass
+case: scalar_promotion
+survey_group: promotion
+classification: same instances / array cell simulated by scalar
+witness_kind: ScalarPromotion
+view_relation: public_output_view_eq
+source_example: examples/standalone/scalar_promotion.source.c
+target_example: examples/standalone/scalar_promotion.target.c
+evidence: toy OpenScop scalar-promotion protocol witness; standalone negatives still thin
+correctness_reason: entry load, scalar updates, and exit store implement the same public cell value
+example: single_cell_scalar_cache
+source_shape: A[i] = A[i] + 1
+target_shape: s = A[i]; s = s + 1; A[i] = s
+purpose: load/update/store-back protocol
+source_public_var: A
+target_public_var: A
+public_output_var: A
+source_public_var: B
+target_public_var: B
+public_output_var: B
+witness_field: entry load event
+witness_field: private scalar interval
+witness_field: alias/clobber exclusion
+witness_field: exit store-back event
+role: entry_load
+role: private_scalar_interval
+role: alias_clobber_exclusion
+role: exit_store_back
+obligation: entry load initializes the scalar from the promoted cell
+obligation: all reads and writes in the promoted region are simulated by the scalar
+obligation: promoted scalar storage is compatible with the source cell
+obligation: exit store commits the scalar back before the cell is observed

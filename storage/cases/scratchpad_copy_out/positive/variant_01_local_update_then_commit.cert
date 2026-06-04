@@ -1,0 +1,32 @@
+# Generated storage transformation certificate.
+# Directory: cases/scratchpad_copy_out
+expect: pass
+case: scratchpad_copy_out
+survey_group: scratchpad
+classification: same instances / copy-mediated local update plus commit
+witness_kind: ScratchpadCopyOut
+view_relation: public_output_view_eq
+source_example: examples/standalone/scratchpad_copy_out.source.c
+target_example: examples/standalone/scratchpad_copy_out.target.c
+evidence: toy OpenScop copy-out witness; no current Pluto/OpenScop scratchpad copy-out pass observed
+correctness_reason: local updates are private until every updated public cell is committed exactly once
+example: local_update_then_commit
+source_shape: A[i] = A[i] + 1
+target_shape: Al[k] = A[kk+k]; Al[k]++; A[kk+k] = Al[k]
+purpose: copy-out is the public commit
+source_public_var: A
+target_public_var: A
+public_output_var: A
+target_representation_var: Al
+witness_field: updated local cells
+witness_field: copy-out commit map
+witness_field: public live-out set
+witness_field: unique commit proof
+role: tile_footprint
+role: copy_boundary
+role: local_buffer_shape
+role: public_commit_or_read_cover
+obligation: copy-in initializes each local cell before local compute
+obligation: copy-out commits every updated logical cell exactly once
+obligation: copy helper instance roles align with copy protocol events
+obligation: local writes are unobservable until committed

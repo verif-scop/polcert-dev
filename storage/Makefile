@@ -1,6 +1,6 @@
-.PHONY: all check coverage openscop clean
+.PHONY: all check coverage openscop cases validator clean
 
-all: coverage openscop
+all: coverage openscop cases validator
 
 check:
 	python3 -m py_compile \
@@ -13,7 +13,8 @@ check:
 		tools/toy_openscop_boundary_domain.py \
 		tools/summarize_standalone.py \
 		tools/build_manifest.py \
-		tools/build_example_catalog.py
+		tools/build_example_catalog.py \
+		tools/build_case_folders.py
 	rm -rf tools/__pycache__
 
 coverage: check
@@ -139,5 +140,18 @@ openscop: check
 		evidence/toy_index_split_target.scop \
 		> evidence/toy_index_split_summary.txt
 
+cases: coverage
+	python3 tools/build_case_folders.py \
+		--catalog EXAMPLE_CATALOG.json \
+		--manifest MANIFEST.json \
+		--out-dir cases
+
+validator: cases
+	mkdir -p validator/_build
+	ocamlc -o validator/_build/storage_validator validator/storage_validator.ml
+	./validator/_build/storage_validator cases
+
 clean:
 	rm -rf tools/__pycache__
+	rm -rf validator/_build
+	rm -f validator/*.cmi validator/*.cmo

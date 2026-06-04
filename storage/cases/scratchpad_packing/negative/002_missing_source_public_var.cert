@@ -1,0 +1,42 @@
+# Generated storage transformation certificate.
+# Directory: cases/scratchpad_packing
+expect: fail
+case: scratchpad_packing
+survey_group: scratchpad
+classification: same instances / copy-mediated local storage
+witness_kind: ScratchpadPacking
+view_relation: public_output_view_eq
+source_example: examples/standalone/scratchpad_packing.source.c
+target_example: examples/standalone/scratchpad_packing.target.c
+evidence: toy OpenScop copy-in/local-buffer witness; no current Pluto/OpenScop scratchpad pass observed
+correctness_reason: copy-in covers local reads and local buffer cells consistently represent a public tile
+example: source_target_core
+source_shape: canonical source file
+target_shape: canonical target file
+purpose: baseline source/target witness for this transformation
+target_public_var: C
+public_output_var: C
+target_public_var: A
+public_output_var: A
+target_public_var: B
+public_output_var: B
+target_representation_var: Bp
+witness_field: tile footprint
+witness_field: public-to-local copy map
+witness_field: local buffer shape
+witness_field: local read coverage
+role: tile_footprint
+role: copy_boundary
+role: local_buffer_shape
+role: public_commit_or_read_cover
+obligation: copy-in covers every later local read
+obligation: local buffer address k consistently maps to source B[kk+k]
+obligation: public-to-local copy mapping is injective during each tile
+obligation: copy mapping public cells belong to the declared public-cell set
+obligation: copy mapping local cells belong to the declared local-buffer set
+obligation: declared public cells are within public array bounds
+obligation: declared local-buffer cells are within local array bounds
+obligation: local buffer cells are storage-compatible with represented public cells
+obligation: local buffer lifetime is tile-scoped and fresh between tiles
+negative_case: missing_source_public_var
+negative_reason: source public variables are absent

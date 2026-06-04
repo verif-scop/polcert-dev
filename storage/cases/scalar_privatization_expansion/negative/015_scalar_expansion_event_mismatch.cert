@@ -1,0 +1,35 @@
+# Generated storage transformation certificate.
+# Directory: cases/scalar_privatization_expansion
+expect: fail
+case: scalar_privatization_expansion
+survey_group: storage_expansion
+classification: same instances / scalar storage expansion
+witness_kind: ScalarPrivatizationExpansion
+view_relation: public_output_view_eq
+source_example: examples/standalone/scalar_privatization_expansion.source.c
+target_example: examples/standalone/scalar_privatization_expansion.target.c
+evidence: real Candl OpenScop storage access rewrite
+correctness_reason: each source temporary live range is represented by a fresh per-instance private cell before public use
+example: source_target_core
+source_shape: canonical source file
+target_shape: canonical target file
+purpose: baseline source/target witness for this transformation
+source_public_var: A
+target_public_var: A
+public_output_var: A
+source_public_var: B
+target_public_var: B
+public_output_var: B
+witness_field: logical temporary live range
+witness_field: fresh private cell per instance
+witness_field: write-before-read evidence
+witness_field: optional live-out copy
+role: live_range
+role: def_use_dominance
+obligation: each (source instance, source scalar cell) selects one expanded private cell
+obligation: private storage map rho(i) = tmp_exp[i] is injective over live private classes
+obligation: all scalar expansion events use the declared private cell for their key
+obligation: each private read is dominated by its same-class write
+obligation: expanded storage is not live-out or observable except through B
+negative_case: scalar_expansion_event_mismatch
+negative_reason: scalar expansion event uses the wrong private cell
