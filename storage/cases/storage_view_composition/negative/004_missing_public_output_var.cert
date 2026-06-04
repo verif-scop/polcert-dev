@@ -34,5 +34,20 @@ obligation: the composed cell view covers exactly the public source and target c
 obligation: there exists an intermediate state satisfying both view relations
 obligation: the composed observation relates target physical cells to source logical cells
 obligation: access remap witnesses compose through the same intermediate cells
+public_cell: B[0]
+source_final: B[0]=v0
+representation: Apad[0]->B[0]
+target_repr_final: Apad[0]=v0
+public_cell: A[0]
+source_final: A[0]=v1
+target_final: A[0]=v1
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: B[0]
+target_access: B[0]
+source_mid_final: B[0]=v0
+mid_target_final: B[0]=v0
 negative_case: missing_public_output_var
 negative_reason: final public outputs are absent

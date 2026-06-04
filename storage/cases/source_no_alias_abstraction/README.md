@@ -21,7 +21,7 @@ The validator target for this case is not raw `State.eq`.  It is agreement on th
 ## Examples
 
 - positive certificates: 3
-- negative certificates: 14
+- negative certificates: 15
 - source file: `examples/standalone/source_no_alias_abstraction.source.c`
 - target file: `examples/standalone/source_no_alias_abstraction.target.c`
 

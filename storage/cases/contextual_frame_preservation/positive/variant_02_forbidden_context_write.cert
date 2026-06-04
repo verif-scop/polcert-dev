@@ -37,3 +37,23 @@ obligation: allowed writes are disjoint from context-owned frame cells
 obligation: every context-frame cell has aligned before/after snapshot evidence
 obligation: frame snapshot values are preserved across the fragment
 obligation: observable transformed output matches the source output on non-frame cells
+public_cell: B[0]
+source_final: B[0]=v0
+target_final: B[0]=v0
+public_cell: A[0]
+source_final: A[0]=v1
+target_final: A[0]=v1
+public_cell: Frame[0]
+source_final: Frame[0]=v2
+target_final: Frame[0]=v2
+public_cell: C[0]
+source_final: C[0]=v3
+target_final: C[0]=v3
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: B[0]
+target_access: B[0]
+frame_before: F[0]=vframe
+frame_after: F[0]=vframe

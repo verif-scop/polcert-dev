@@ -35,5 +35,18 @@ obligation: declared private cells are within private array bounds
 obligation: boundary copy private cells are unique on the private side
 obligation: copy-in/copy-out boundary values match across public and private cells
 obligation: boundary public/private cells are storage-compatible for copy-in and copy-out
+public_cell: B[0]
+source_final: B[0]=v0
+target_final: B[0]=v0
+public_cell: A[0]
+source_final: A[0]=v1
+target_final: A[0]=v1
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: B[0]
+target_access: B[0]
+commit: B[0]
 negative_case: missing_witness_copy_in_map
 negative_reason: required witness field is absent: copy-in map

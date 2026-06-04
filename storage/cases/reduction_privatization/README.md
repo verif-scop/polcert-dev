@@ -25,7 +25,7 @@ The validator target for this case is not raw `State.eq`.  It is agreement on th
 ## Examples
 
 - positive certificates: 3
-- negative certificates: 22
+- negative certificates: 25
 - source file: `examples/standalone/reduction_privatization.source.c`
 - target file: `examples/standalone/reduction_privatization.target.c`
 

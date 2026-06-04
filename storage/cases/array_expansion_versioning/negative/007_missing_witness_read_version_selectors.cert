@@ -37,5 +37,20 @@ obligation: selected target versions are storage-compatible with source live-out
 obligation: selected target versions are within declared version-array bounds
 obligation: selected version values match represented source live-outs
 obligation: copy-out commits exactly the final source-observable version
+public_cell: X[0]
+source_final: X[0]=v0
+representation: X_exp[0]->X[0]
+target_repr_final: X_exp[0]=v0
+public_cell: Y[0]
+source_final: Y[0]=v1
+target_final: Y[0]=v1
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: X[0]
+target_access: X[0]
+live_interval: logical0@Buf[0]:0..1
+live_interval: logical1@Buf[0]:2..3
 negative_case: missing_witness_read_version_selectors
 negative_reason: required witness field is absent: read version selectors

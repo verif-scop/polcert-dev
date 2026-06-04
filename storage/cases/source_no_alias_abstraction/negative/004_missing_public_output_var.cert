@@ -28,5 +28,17 @@ obligation: distinct source names are interpreted as distinct logical blocks
 obligation: logical read/write footprints are computed under the no-alias abstraction
 obligation: finite source accesses are covered by their declared object footprints
 obligation: validator assumptions would be unsound if A and B had the same physical base
+public_cell: A[0]
+source_final: A[0]=v0
+target_final: A[0]=v0
+public_cell: B[0]
+source_final: B[0]=v1
+target_final: B[0]=v1
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: A[0]
+target_access: A[0]
 negative_case: missing_public_output_var
 negative_reason: final public outputs are absent

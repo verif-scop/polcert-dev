@@ -1,0 +1,56 @@
+# Generated storage transformation certificate.
+# Directory: cases/overlapped_tiling
+expect: fail
+case: overlapped_tiling
+survey_group: overlap_halo
+classification: instance-count-changing / private recomputation plus unique commit
+witness_kind: OverlappedTiling
+view_relation: public_output_view_eq
+source_example: examples/standalone/overlapped_tiling.source.c
+target_example: examples/standalone/overlapped_tiling.target.c
+evidence: toy OpenScop duplicate/commit witness; related to overlapped/diamond tiling but not Pluto-backed here
+correctness_reason: extra computations are private; commit instances exactly cover public live-outs
+example: source_target_core
+source_shape: canonical source file
+target_shape: canonical target file
+purpose: baseline source/target witness for this transformation
+source_public_var: B
+target_public_var: B
+public_output_var: B
+source_public_var: A
+target_public_var: A
+public_output_var: A
+target_representation_var: H
+target_representation_var: Local
+witness_field: source-to-target duplicate projection
+witness_field: halo closure
+witness_field: commit set
+witness_field: exact cover of public live-outs
+role: duplicate_projection
+role: halo_closure
+role: commit_set
+role: exact_public_cover
+obligation: projection maps every target computation to a valid source instance
+obligation: commit instances form an exact cover of source live-out instances
+obligation: tile-local dependence closure covers every committed B computation
+obligation: tile-local producers precede their consumers in the target trace
+obligation: internal target writes go to tile-private cells
+obligation: commit target writes go to public commit cells exactly once
+obligation: tile-private overlap write cells are within declared private-buffer bounds
+obligation: commit overlap write cells are within declared public-output bounds
+obligation: duplicated halo/internal writes are tile-local and invisible
+public_cell: B[0]
+source_final: B[0]=v0
+representation: H[0]->B[0]
+target_repr_final: H[0]=v0
+public_cell: A[0]
+source_final: A[0]=v1
+target_final: A[0]=v1
+source_instance: S0
+source_instance: S1
+target_instance: S0
+source_access: B[0]
+target_access: B[0]
+commit: B[0]
+negative_case: semantic_domain_miss
+negative_reason: target instances do not exactly cover source instances

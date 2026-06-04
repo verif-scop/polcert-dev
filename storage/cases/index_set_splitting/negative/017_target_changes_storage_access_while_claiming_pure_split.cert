@@ -1,0 +1,44 @@
+# Generated storage transformation certificate.
+# Directory: cases/index_set_splitting
+expect: fail
+case: index_set_splitting
+survey_group: schedule_domain
+classification: instance-preserving / domain partition
+witness_kind: IndexSetSplitting
+view_relation: public_output_view_eq
+source_example: examples/standalone/index_set_splitting.source.c
+target_example: examples/standalone/index_set_splitting.target.c
+evidence: toy OpenScop domain-partition witness; storage-preserving
+correctness_reason: target subdomains disjointly and exactly cover the source domain
+example: source_target_core
+source_shape: canonical source file
+target_shape: canonical target file
+purpose: baseline source/target witness for this transformation
+source_public_var: B
+target_public_var: B
+public_output_var: B
+source_public_var: A
+target_public_var: A
+public_output_var: A
+witness_field: source domain
+witness_field: target subdomains
+witness_field: disjoint exact-cover proof
+role: domain_cover
+role: domain_disjointness
+obligation: target subdomains are disjoint
+obligation: target subdomains exactly cover the source domain
+obligation: each target substatement projects to exactly one source instance
+public_cell: B[0]
+source_final: B[0]=v0
+target_final: B[0]=v0
+public_cell: A[0]
+source_final: A[0]=v1
+target_final: A[0]=v1
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: B[0]
+target_access: B[0]
+negative_case: target_changes_storage_access_while_claiming_pure_split
+negative_reason: target changes storage access while claiming pure split

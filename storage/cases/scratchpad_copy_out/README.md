@@ -23,7 +23,7 @@ The validator target for this case is not raw `State.eq`.  It is agreement on th
 ## Examples
 
 - positive certificates: 3
-- negative certificates: 15
+- negative certificates: 17
 - source file: `examples/standalone/scratchpad_copy_out.source.c`
 - target file: `examples/standalone/scratchpad_copy_out.target.c`
 

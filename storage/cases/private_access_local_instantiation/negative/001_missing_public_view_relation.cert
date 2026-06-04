@@ -31,5 +31,17 @@ obligation: symbolic private access trace is use-def well formed
 obligation: each finite domain point instantiates private accesses to declared cells
 obligation: instantiated private access cells are hidden from the public view
 obligation: instantiated private access cells are within declared private bounds
+public_cell: B[0]
+source_final: B[0]=v0
+target_final: B[0]=v0
+public_cell: A[0]
+source_final: A[0]=v1
+target_final: A[0]=v1
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: B[0]
+target_access: B[0]
 negative_case: missing_public_view_relation
 negative_reason: public output view relation is absent

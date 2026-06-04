@@ -26,7 +26,7 @@ The validator target for this case is not raw `State.eq`.  It is agreement on th
 ## Examples
 
 - positive certificates: 3
-- negative certificates: 21
+- negative certificates: 23
 - source file: `examples/standalone/array_contraction.source.c`
 - target file: `examples/standalone/array_contraction.target.c`
 

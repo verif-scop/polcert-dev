@@ -35,5 +35,17 @@ obligation: final phase projection covers every logical live-out
 obligation: phase projection values match final physical buffer cells
 obligation: final phase physical cells are storage-compatible with logical live-outs
 obligation: final phase physical cells are within declared buffer bounds
+public_cell: A[0]
+source_final: A[0]=v0
+representation: A0[0]->A[0]
+target_repr_final: A0[0]=v0
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: A[0]
+target_access: A[0]
+live_interval: logical0@Buf[0]:0..1
+live_interval: logical1@Buf[0]:2..3
 negative_case: missing_role_version_selector
 negative_reason: required protocol role is absent: version_selector

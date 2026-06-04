@@ -1,0 +1,51 @@
+# Generated storage transformation certificate.
+# Directory: cases/array_contraction
+expect: fail
+case: array_contraction
+survey_group: reuse_folding
+classification: same logical values / non-injective conflict-safe storage reuse
+witness_kind: ArrayContraction
+view_relation: public_output_view_eq
+source_example: examples/standalone/array_contraction.source.c
+target_example: examples/standalone/array_contraction.target.c
+evidence: toy OpenScop folded-storage witness; no current Pluto/OpenScop contraction pass observed
+correctness_reason: non-injective physical reuse is allowed only for non-overlapping logical lifetimes
+example: source_target_core
+source_shape: canonical source file
+target_shape: canonical target file
+purpose: baseline source/target witness for this transformation
+source_public_var: A
+target_public_var: A
+public_output_var: A
+target_representation_var: A2
+witness_field: logical value ids
+witness_field: physical reuse map
+witness_field: valid intervals
+witness_field: producer/consumer events
+witness_field: kill or reuse events
+witness_field: boundary projection
+role: physical_reuse_map
+role: live_interval
+role: producer_consumer
+role: boundary_projection
+obligation: non-injective map rho(t,i) = (t mod 2,i) is allowed only for non-conflicting values
+obligation: explicit live intervals cover every overlap conflict under the schedule
+obligation: every reused physical buffer cell is within declared rolling-buffer bounds
+obligation: reuse boundary mapping covers every observable source live-out
+obligation: reused physical boundary cells are storage-compatible with represented logical cells
+obligation: reuse boundary values match the projected physical cells
+obligation: final observable row projects from the correct parity buffer
+public_cell: A[0]
+source_final: A[0]=v0
+representation: A2[0]->A[0]
+target_repr_final: A2[0]=v0
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: A[0]
+target_access: A[0]
+live_interval: logical0@Buf[0]:0..1
+live_interval: logical1@Buf[0]:2..3
+negative_case: missing_contraction_conflict_pair
+negative_reason: live-overlap conflict missing for (0, 0) and (1, 0)

@@ -33,6 +33,24 @@ GROUP_ROLES = {
     "composition": ["source_mid_view", "mid_target_view", "interface_compatibility", "composed_public_view"],
 }
 
+GROUP_SEMANTICS = {
+    "precondition": ["public_output_eq"],
+    "context": ["public_output_eq", "frame_preserved"],
+    "schedule_only": ["public_output_eq", "domain_exact_cover", "access_identity"],
+    "schedule_domain": ["public_output_eq", "domain_exact_cover", "access_identity"],
+    "storage_expansion": ["public_output_eq", "unique_commit"],
+    "private_boundary": ["public_output_eq", "unique_commit"],
+    "private_access": ["public_output_eq"],
+    "layout": ["public_output_eq"],
+    "scratchpad": ["public_output_eq", "unique_commit"],
+    "promotion": ["public_output_eq", "unique_commit"],
+    "reuse_folding": ["public_output_eq", "live_interval_nonoverlap"],
+    "versioning": ["public_output_eq", "live_interval_nonoverlap"],
+    "overlap_halo": ["public_output_eq", "domain_exact_cover", "unique_commit"],
+    "reduction": ["public_output_eq", "unique_commit", "reduction_laws"],
+    "composition": ["public_output_eq", "view_composition_bridge"],
+}
+
 
 def load_json(path: Path) -> dict:
     with path.open(encoding="utf-8") as handle:
@@ -68,6 +86,68 @@ def emit_lines(path: Path, lines: list[str]) -> None:
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
+def semantic_pairs(entry: dict, manifest: dict, bad: str | None = None) -> list[tuple[str, str]]:
+    group = manifest.get("survey_group", "unknown")
+    source = entry.get("source_example")
+    target = entry.get("target_example")
+    source_public_vars = extract_public_vars(Path(source) if source else None)
+    target_storage_vars = extract_public_vars(Path(target) if target else None)
+    public_vars = source_public_vars or target_storage_vars
+    representation_vars = [var for var in target_storage_vars if var not in public_vars]
+    pairs: list[tuple[str, str]] = []
+
+    for idx, var in enumerate(public_vars):
+        cell = f"{var}[0]"
+        value = f"v{idx}"
+        target_value = "bad" if bad == "public_output_mismatch" and idx == 0 else value
+        pairs.append(("public_cell", cell))
+        pairs.append(("source_final", f"{cell}={value}"))
+        if idx == 0 and representation_vars:
+            repr_cell = f"{representation_vars[0]}[0]"
+            pairs.append(("representation", f"{repr_cell}->{cell}"))
+            pairs.append(("target_repr_final", f"{repr_cell}={target_value}"))
+        else:
+            pairs.append(("target_final", f"{cell}={target_value}"))
+
+    pairs.extend([("source_instance", "S0"), ("source_instance", "S1")])
+    if bad == "domain_miss":
+        pairs.append(("target_instance", "S0"))
+    else:
+        pairs.extend([("target_instance", "S0"), ("target_instance", "S1")])
+
+    access_cell = f"{public_vars[0]}[0]" if public_vars else "OUT[0]"
+    pairs.append(("source_access", access_cell))
+    pairs.append(("target_access", "BAD[0]" if bad == "access_mismatch" else access_cell))
+
+    if group in {"storage_expansion", "private_boundary", "scratchpad", "promotion", "overlap_halo", "reduction"}:
+        pairs.append(("commit", access_cell))
+        if bad == "duplicate_commit":
+            pairs.append(("commit", access_cell))
+
+    if group in {"reuse_folding", "versioning"}:
+        pairs.append(("live_interval", "logical0@Buf[0]:0..2" if bad == "live_overlap" else "logical0@Buf[0]:0..1"))
+        if bad == "live_overlap":
+            pairs.append(("live_interval", "logical1@Buf[0]:1..3"))
+        else:
+            pairs.append(("live_interval", "logical1@Buf[0]:2..3"))
+
+    if group == "reduction":
+        pairs.append(("operator_law", "associative"))
+        if bad != "missing_reduction_law":
+            pairs.append(("operator_law", "identity"))
+
+    if group == "composition":
+        value = "bad" if bad == "bad_composition_bridge" else "v0"
+        pairs.append(("source_mid_final", f"{access_cell}=v0"))
+        pairs.append(("mid_target_final", f"{access_cell}={value}"))
+
+    if group == "context":
+        pairs.append(("frame_before", "F[0]=vframe"))
+        pairs.append(("frame_after", "F[0]=bad" if bad == "frame_mismatch" else "F[0]=vframe"))
+
+    return pairs
+
+
 def cert_lines(
     *,
     entry: dict,
@@ -76,6 +156,7 @@ def cert_lines(
     variant: dict | None,
     expectation: str,
     omitted: tuple[str, str | None] | None = None,
+    semantic_bad: str | None = None,
     negative_case: str | None = None,
     negative_reason: str | None = None,
 ) -> list[str]:
@@ -134,6 +215,7 @@ def cert_lines(
         pairs.append(("role", role))
     for obligation in entry.get("obligations", []):
         pairs.append(("obligation", obligation))
+    pairs.extend(semantic_pairs(entry, manifest, semantic_bad))
     if negative_case:
         pairs.append(("negative_case", negative_case))
     if negative_reason:
@@ -178,6 +260,8 @@ def registry_lines(entries: list[dict], manifest_by_name: dict[str, dict]) -> li
             lines.append(f"required: witness_field={field}")
         for role in GROUP_ROLES.get(group, ["generic_storage_witness"]):
             lines.append(f"required: role={role}")
+        for semantic in GROUP_SEMANTICS.get(group, ["public_output_eq"]):
+            lines.append(f"semantic: {semantic}")
         lines.extend(["---", ""])
     return lines
 
@@ -284,6 +368,41 @@ def main() -> int:
                     variant=None,
                     expectation="fail",
                     omitted=(key, value),
+                    negative_case=name,
+                    negative_reason=reason,
+                ),
+            )
+
+        semantic_negative_specs: list[tuple[str, str, str]] = [
+            ("public_output_mismatch", "semantic_public_output_mismatch", "target observable value disagrees with source final value"),
+        ]
+        group = manifest.get("survey_group", "unknown")
+        if group in {"schedule_only", "schedule_domain", "overlap_halo"}:
+            semantic_negative_specs.append(("domain_miss", "semantic_domain_miss", "target instances do not exactly cover source instances"))
+        if group in {"schedule_only", "schedule_domain"}:
+            semantic_negative_specs.append(("access_mismatch", "semantic_access_mismatch", "target storage access differs while claiming storage identity"))
+        if group in {"storage_expansion", "private_boundary", "scratchpad", "promotion", "overlap_halo", "reduction"}:
+            semantic_negative_specs.append(("duplicate_commit", "semantic_duplicate_commit", "a public cell is committed more than once"))
+        if group in {"reuse_folding", "versioning"}:
+            semantic_negative_specs.append(("live_overlap", "semantic_live_overlap", "two logical values overlap on the same physical cell"))
+        if group == "reduction":
+            semantic_negative_specs.append(("missing_reduction_law", "semantic_missing_reduction_law", "required reduction algebraic law is absent"))
+        if group == "composition":
+            semantic_negative_specs.append(("bad_composition_bridge", "semantic_bad_composition_bridge", "source-mid and mid-target views disagree"))
+        if group == "context":
+            semantic_negative_specs.append(("frame_mismatch", "semantic_frame_mismatch", "protected frame snapshot changes"))
+
+        for bad, name, reason in semantic_negative_specs:
+            negative_count += 1
+            emit_lines(
+                case_dir / "negative" / f"{negative_count:03d}_{name}.cert",
+                cert_lines(
+                    entry=entry,
+                    manifest=manifest,
+                    case_dir=case_dir,
+                    variant=None,
+                    expectation="fail",
+                    semantic_bad=bad,
                     negative_case=name,
                     negative_reason=reason,
                 ),

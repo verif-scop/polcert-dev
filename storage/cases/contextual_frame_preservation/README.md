@@ -21,7 +21,7 @@ The validator target for this case is not raw `State.eq`.  It is agreement on th
 ## Examples
 
 - positive certificates: 3
-- negative certificates: 14
+- negative certificates: 16
 - source file: `examples/standalone/contextual_frame_preservation.source.c`
 - target file: `examples/standalone/contextual_frame_preservation.target.c`
 

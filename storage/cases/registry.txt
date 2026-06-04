@@ -15,6 +15,7 @@ required: witness_field=in-bounds source accesses
 required: role=source_footprint
 required: role=no_alias
 required: role=in_bounds
+semantic: public_output_eq
 ---
 
 case: contextual_frame_preservation
@@ -31,6 +32,8 @@ required: witness_field=pre/post frame snapshots
 required: role=allowed_write_set
 required: role=protected_frame
 required: role=frame_snapshot
+semantic: public_output_eq
+semantic: frame_preserved
 ---
 
 case: affine_interchange
@@ -47,6 +50,9 @@ required: witness_field=unchanged storage accesses
 required: role=instance_bijection
 required: role=schedule_legality
 required: role=storage_access_identity
+semantic: public_output_eq
+semantic: domain_exact_cover
+semantic: access_identity
 ---
 
 case: index_set_splitting
@@ -63,6 +69,9 @@ required: witness_field=disjoint exact-cover proof
 required: role=domain_cover
 required: role=domain_disjointness
 required: role=storage_access_identity
+semantic: public_output_eq
+semantic: domain_exact_cover
+semantic: access_identity
 ---
 
 case: ordinary_tiling
@@ -79,6 +88,9 @@ required: witness_field=unchanged storage accesses
 required: role=domain_cover
 required: role=domain_disjointness
 required: role=storage_access_identity
+semantic: public_output_eq
+semantic: domain_exact_cover
+semantic: access_identity
 ---
 
 case: scalar_privatization_expansion
@@ -96,6 +108,8 @@ required: witness_field=optional live-out copy
 required: role=fresh_private_cell
 required: role=live_range
 required: role=def_use_dominance
+semantic: public_output_eq
+semantic: unique_commit
 ---
 
 case: private_copy_boundary
@@ -114,6 +128,8 @@ required: role=copy_in
 required: role=private_live_set
 required: role=copy_out
 required: role=unique_public_commit
+semantic: public_output_eq
+semantic: unique_commit
 ---
 
 case: private_access_local_instantiation
@@ -132,6 +148,7 @@ required: role=symbolic_private_access
 required: role=private_cell_instantiation
 required: role=hidden_storage
 required: role=bounds_check
+semantic: public_output_eq
 ---
 
 case: layout_remap_padding
@@ -150,6 +167,7 @@ required: role=logical_to_physical_map
 required: role=injective_live_cells
 required: role=padding_erasure
 required: role=public_view_projection
+semantic: public_output_eq
 ---
 
 case: scratchpad_packing
@@ -168,6 +186,8 @@ required: role=tile_footprint
 required: role=copy_boundary
 required: role=local_buffer_shape
 required: role=public_commit_or_read_cover
+semantic: public_output_eq
+semantic: unique_commit
 ---
 
 case: scratchpad_copy_out
@@ -186,6 +206,8 @@ required: role=tile_footprint
 required: role=copy_boundary
 required: role=local_buffer_shape
 required: role=public_commit_or_read_cover
+semantic: public_output_eq
+semantic: unique_commit
 ---
 
 case: scalar_promotion
@@ -204,6 +226,8 @@ required: role=entry_load
 required: role=private_scalar_interval
 required: role=alias_clobber_exclusion
 required: role=exit_store_back
+semantic: public_output_eq
+semantic: unique_commit
 ---
 
 case: array_contraction
@@ -225,6 +249,8 @@ required: role=physical_reuse_map
 required: role=live_interval
 required: role=producer_consumer
 required: role=boundary_projection
+semantic: public_output_eq
+semantic: live_interval_nonoverlap
 ---
 
 case: inter_array_reuse
@@ -244,6 +270,8 @@ required: role=physical_reuse_map
 required: role=live_interval
 required: role=producer_consumer
 required: role=boundary_projection
+semantic: public_output_eq
+semantic: live_interval_nonoverlap
 ---
 
 case: array_expansion_versioning
@@ -262,6 +290,8 @@ required: role=version_selector
 required: role=phase_projection
 required: role=buffer_role
 required: role=final_projection
+semantic: public_output_eq
+semantic: live_interval_nonoverlap
 ---
 
 case: overlapped_tiling
@@ -280,6 +310,9 @@ required: role=duplicate_projection
 required: role=halo_closure
 required: role=commit_set
 required: role=exact_public_cover
+semantic: public_output_eq
+semantic: domain_exact_cover
+semantic: unique_commit
 ---
 
 case: reduction_privatization
@@ -300,6 +333,9 @@ required: role=accumulator_init
 required: role=contribution_cover
 required: role=merge_tree
 required: role=operator_laws
+semantic: public_output_eq
+semantic: unique_commit
+semantic: reduction_laws
 ---
 
 case: double_buffering
@@ -318,6 +354,8 @@ required: role=version_selector
 required: role=phase_projection
 required: role=buffer_role
 required: role=final_projection
+semantic: public_output_eq
+semantic: live_interval_nonoverlap
 ---
 
 case: storage_view_composition
@@ -336,4 +374,6 @@ required: role=source_mid_view
 required: role=mid_target_view
 required: role=interface_compatibility
 required: role=composed_public_view
+semantic: public_output_eq
+semantic: view_composition_bridge
 ---

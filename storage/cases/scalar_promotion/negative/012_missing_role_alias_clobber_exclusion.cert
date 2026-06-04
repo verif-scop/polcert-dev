@@ -31,5 +31,18 @@ obligation: entry load initializes the scalar from the promoted cell
 obligation: all reads and writes in the promoted region are simulated by the scalar
 obligation: promoted scalar storage is compatible with the source cell
 obligation: exit store commits the scalar back before the cell is observed
+public_cell: A[0]
+source_final: A[0]=v0
+target_final: A[0]=v0
+public_cell: B[0]
+source_final: B[0]=v1
+target_final: B[0]=v1
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: A[0]
+target_access: A[0]
+commit: A[0]
 negative_case: missing_role_alias_clobber_exclusion
 negative_reason: required protocol role is absent: alias_clobber_exclusion

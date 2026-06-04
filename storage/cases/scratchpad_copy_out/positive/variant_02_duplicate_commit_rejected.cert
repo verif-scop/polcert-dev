@@ -30,3 +30,14 @@ obligation: copy-in initializes each local cell before local compute
 obligation: copy-out commits every updated logical cell exactly once
 obligation: copy helper instance roles align with copy protocol events
 obligation: local writes are unobservable until committed
+public_cell: A[0]
+source_final: A[0]=v0
+representation: Al[0]->A[0]
+target_repr_final: Al[0]=v0
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: A[0]
+target_access: A[0]
+commit: A[0]

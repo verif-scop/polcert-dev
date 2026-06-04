@@ -21,7 +21,7 @@ The validator target for this case is not raw `State.eq`.  It is agreement on th
 ## Examples
 
 - positive certificates: 3
-- negative certificates: 14
+- negative certificates: 17
 - source file: `examples/standalone/index_set_splitting.source.c`
 - target file: `examples/standalone/index_set_splitting.target.c`
 

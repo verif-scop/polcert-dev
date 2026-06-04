@@ -38,5 +38,18 @@ obligation: one declared-layout checker covers same-index, permutation, and affi
 obligation: allocated physical layout cells are within declared array extents
 obligation: layout boundary values match the represented logical cells
 obligation: mapped physical layout cells are storage-compatible with represented logical cells
+public_cell: B[0]
+source_final: B[0]=v0
+representation: A_pad[0]->B[0]
+target_repr_final: A_pad[0]=v0
+public_cell: A[0]
+source_final: A[0]=v1
+target_final: A[0]=v1
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: B[0]
+target_access: B[0]
 negative_case: missing_source_public_var
 negative_reason: source public variables are absent

@@ -35,5 +35,17 @@ obligation: reuse boundary mapping covers every observable source live-out
 obligation: reused physical boundary cells are storage-compatible with represented logical cells
 obligation: reuse boundary values match the projected physical cells
 obligation: final observable row projects from the correct parity buffer
+public_cell: A[0]
+source_final: A[0]=v0
+representation: A2[0]->A[0]
+target_repr_final: A2[0]=v0
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: A[0]
+target_access: A[0]
+live_interval: logical0@Buf[0]:0..1
+live_interval: logical1@Buf[0]:2..3
 negative_case: missing_witness_logical_value_ids
 negative_reason: required witness field is absent: logical value ids

@@ -37,5 +37,19 @@ obligation: commit target writes go to public commit cells exactly once
 obligation: tile-private overlap write cells are within declared private-buffer bounds
 obligation: commit overlap write cells are within declared public-output bounds
 obligation: duplicated halo/internal writes are tile-local and invisible
+public_cell: B[0]
+source_final: B[0]=v0
+representation: H[0]->B[0]
+target_repr_final: H[0]=v0
+public_cell: A[0]
+source_final: A[0]=v1
+target_final: A[0]=v1
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: B[0]
+target_access: B[0]
+commit: B[0]
 negative_case: missing_source_public_var
 negative_reason: source public variables are absent

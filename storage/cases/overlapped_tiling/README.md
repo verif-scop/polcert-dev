@@ -23,7 +23,7 @@ The validator target for this case is not raw `State.eq`.  It is agreement on th
 ## Examples
 
 - positive certificates: 3
-- negative certificates: 20
+- negative certificates: 23
 - source file: `examples/standalone/overlapped_tiling.source.c`
 - target file: `examples/standalone/overlapped_tiling.target.c`
 

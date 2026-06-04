@@ -35,5 +35,18 @@ obligation: private accumulators are disjoint from the context escape set
 obligation: merge order consumes every private accumulator exactly once
 obligation: merge-order accumulator values fold to the final reduction value
 obligation: merge operator is closed, associative, commutative, and has an identity on the finite carrier
+public_cell: A[0]
+source_final: A[0]=v0
+representation: P[0]->A[0]
+target_repr_final: P[0]=v0
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: A[0]
+target_access: A[0]
+commit: A[0]
+operator_law: associative
+operator_law: identity
 negative_case: missing_role_contribution_cover
 negative_reason: required protocol role is absent: contribution_cover

@@ -23,7 +23,7 @@ The validator target for this case is not raw `State.eq`.  It is agreement on th
 ## Examples
 
 - positive certificates: 3
-- negative certificates: 16
+- negative certificates: 17
 - source file: `examples/standalone/private_access_local_instantiation.source.c`
 - target file: `examples/standalone/private_access_local_instantiation.target.c`
 

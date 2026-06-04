@@ -28,5 +28,17 @@ role: storage_access_identity
 obligation: bijection on statement instances
 obligation: read/write access functions are identical
 obligation: no loop-carried dependences are introduced or reordered
+public_cell: B[0]
+source_final: B[0]=v0
+target_final: B[0]=v0
+public_cell: A[0]
+source_final: A[0]=v1
+target_final: A[0]=v1
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: B[0]
+target_access: B[0]
 negative_case: missing_public_view_relation
 negative_reason: public output view relation is absent

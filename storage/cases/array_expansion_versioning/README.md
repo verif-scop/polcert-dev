@@ -23,7 +23,7 @@ The validator target for this case is not raw `State.eq`.  It is agreement on th
 ## Examples
 
 - positive certificates: 3
-- negative certificates: 19
+- negative certificates: 21
 - source file: `examples/standalone/array_expansion_versioning.source.c`
 - target file: `examples/standalone/array_expansion_versioning.target.c`
 

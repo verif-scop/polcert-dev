@@ -38,5 +38,22 @@ obligation: declared public cells are within public array bounds
 obligation: declared local-buffer cells are within local array bounds
 obligation: local buffer cells are storage-compatible with represented public cells
 obligation: local buffer lifetime is tile-scoped and fresh between tiles
+public_cell: C[0]
+source_final: C[0]=v0
+representation: Bp[0]->C[0]
+target_repr_final: Bp[0]=v0
+public_cell: A[0]
+source_final: A[0]=v1
+target_final: A[0]=v1
+public_cell: B[0]
+source_final: B[0]=v2
+target_final: B[0]=v2
+source_instance: S0
+source_instance: S1
+target_instance: S0
+target_instance: S1
+source_access: C[0]
+target_access: C[0]
+commit: C[0]
 negative_case: missing_target_public_var
 negative_reason: target public variables are absent

@@ -24,7 +24,7 @@ The validator target for this case is not raw `State.eq`.  It is agreement on th
 ## Examples
 
 - positive certificates: 3
-- negative certificates: 18
+- negative certificates: 20
 - source file: `examples/standalone/inter_array_reuse.source.c`
 - target file: `examples/standalone/inter_array_reuse.target.c`
 
