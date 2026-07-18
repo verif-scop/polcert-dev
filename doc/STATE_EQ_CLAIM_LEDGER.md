@@ -16,10 +16,11 @@ proofs present in the tagged source from checks reproduced on that exact tag.
 - Exact-tag source reproduction: passed on 2026-07-18; see
   `doc/STATE_EQ_BASELINE_REPRODUCTION.md` and
   `doc/evidence/state-eq-baseline-2026-07-18/`
-- New Docker image review: passed offline with Docker networking disabled;
-  local content ID
-  `sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f`;
-  see `artifact/state-eq/evidence/2026-07-18-full-review.json`
+- Lock-v1 Docker image review: passed offline with Docker networking disabled;
+  all 13 top-level gates and 18 nested checks passed; local content ID
+  `sha256:fa4bcb4a6cc0b2694483fb8241238f900bb90f50577a5b2a6cdab3e917dea0c3`;
+  see `artifact/state-eq/evidence/lock-v1-full-review.json`. The earlier
+  `2026-07-18-full-review.json` remains the dependency-lock origin record.
 - Earlier full artifact evidence: commit `72deba1`; useful historical evidence,
   but not sufficient evidence for the final tag because multipar code changed
   after that run
