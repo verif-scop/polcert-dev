@@ -1,7 +1,7 @@
 # Affine Scheduling Proof Cleanup Audit
 
 - Date: 2026-07-18
-- Status: read-only audit; no Coq source was changed
+- Status: audit complete; batches 1--5 executed on a separate proof-only branch
 - Baseline tag: `state-eq-polyhedral-verification-complete-2026-05-25-v2`
 - Baseline commit: `13295e741ad62173411882c6d900dd9dc57337a8`
 
@@ -19,6 +19,24 @@ capable of reproducing the pre-cleanup result.
 The first cleanup pass should change proof bodies only. It should not change
 validator definitions, theorem statements, extraction roots, accepted inputs,
 or generated code.
+
+## Execution Status
+
+Five bounded cleanup batches are committed on
+`proof-cleanup-affine-batch1`, which starts from the frozen baseline:
+
+- `50aefe5`: remove duplicate affine list proof;
+- `7a62341`: factor affine access noncollision;
+- `711d10d`: share affine access shape facts;
+- `b5b2c32`: share affine permutation semantics core;
+- `c166170`: share affine checker soundness decoding.
+
+Batch 5 factors the common Boolean checker decoder and program-level
+`forallb` lift used by affine and tiling soundness. Its final checks passed the
+full proof, `check-admitted`, extraction, the second-level suite, and artifact
+smoke. A byte-level audit found no change to public theorem statements,
+computational definitions, imports, axioms, parameters, hints, or extraction
+roots. The frozen tag and reviewed image remain unchanged.
 
 ## Audit Method
 
