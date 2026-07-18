@@ -2,6 +2,103 @@
 
 Date: 2026-03-05
 
+Current priority updated: 2026-07-18
+
+## Current Priority (State.eq Milestone)
+
+The completed `State.eq` result must first be frozen as a reproducible research
+milestone. Proof cleanup should happen only after that baseline is archived, on
+a separate branch, so it cannot blur which source version supports the current
+claims.
+
+### 1. Freeze and document the completed milestone
+
+- [ ] Treat annotated tag
+  `state-eq-polyhedral-verification-complete-2026-05-25-v2` (commit
+  `13295e741ad62173411882c6d900dd9dc57337a8`) as the current implementation
+  baseline; do not move or overwrite it.
+- [ ] Check out that exact commit in a clean worktree and run the complete
+  proof, extraction, regression, and `artifact-check` workflow.
+- [ ] Archive the proof report, admitted/axiom checks, capability matrix,
+  regression results, command log, and toolchain manifest produced by that
+  exact run.
+- [ ] Add a durable milestone document that maps every paper-facing claim to a
+  theorem, executable route, test family, and known boundary.
+- [ ] Record the exact PolCert and Pluto commits together. The currently pinned
+  Pluto baseline is `6f43860`; verify it again while constructing the artifact.
+- [ ] If archival metadata or scripts require a new commit, create a new
+  annotated archival tag rather than changing the completed-result tag.
+
+### 2. Build a new reproducible Docker artifact
+
+- [ ] Build an immutable Docker image from the frozen source baseline, with the
+  base image, Coq/OCaml/opam dependencies, and Pluto revision pinned.
+- [ ] Include source, proofs, extracted executables, benchmarks, test inputs,
+  artifact scripts, claim matrix, and reviewer documentation in the image.
+- [ ] Provide one reviewer-facing command that rebuilds or checks the proofs,
+  checks for admitted obligations, regenerates proof/capability reports, and
+  runs all claimed transformation families.
+- [ ] Cover the full supported route surface in the artifact: affine
+  scheduling, ordinary/identity/second-level/diamond tiling, ISS, parallel and
+  multipar, checked vector routes, the supported unroll/jam subset, stride
+  lowering, cleanup, and their documented supported compositions.
+- [ ] Re-run the Pluto flag-compatibility suites, including the comprehensive
+  compatibility suite and strict regression corpus, and preserve both positive
+  and expected-rejection results.
+- [ ] Label the image with source revisions and dependency versions; publish
+  and record an immutable image digest rather than relying only on a mutable
+  image name.
+- [ ] Test the documented commands from a fresh Docker environment and archive
+  the resulting logs. After the image has been pulled, the core reproduction
+  path should not require network access.
+- [ ] Keep the artifact guide claim-oriented: each claim should name the exact
+  command and expected output that demonstrates it.
+
+### 3. Simplify the affine-scheduling proofs
+
+This is proof-maintenance work, not a missing-correctness obligation. Begin it
+only after the completed baseline and its artifact evidence are recoverable.
+
+- [ ] Create a dedicated proof-cleanup branch from the frozen milestone.
+- [ ] Inventory copy-pasted and structurally repeated proof blocks in the
+  original affine-scheduling validator and its helper lemmas.
+- [ ] Record a pre-refactor baseline: public theorem statements, assumptions,
+  extraction output, build result, and relevant regression results.
+- [ ] Factor repeated reasoning into narrowly scoped lemmas or local tactics;
+  improve theorem/variable names and comments where the invariants are hard to
+  recover from the proof script.
+- [ ] Preserve theorem statements, accepted schedules, extracted behavior, and
+  trust assumptions unless a deliberate semantic change is separately
+  justified.
+- [ ] Refactor in small reviewable commits, rebuilding the dependent proof
+  chain and rerunning assumption and regression checks after each slice.
+- [ ] Avoid a wholesale rewrite. Stabilize the paper-facing theorem interface
+  first, then clean the portions readers are most likely to inspect.
+- [ ] Refresh the Docker artifact after cleanup only if the cleaned revision is
+  chosen as the paper artifact; retain the original milestone image and digest.
+
+### 4. Write the paper
+
+- [ ] Freeze a contribution ledger against the archived artifact before making
+  headline claims.
+- [ ] Rewrite the abstract, introduction, and contribution list relative to the
+  inherited affine-scheduling validator: the new contribution is the completed
+  end-to-end, multi-family verified compiler path, not affine scheduling itself.
+- [ ] State the exact correctness boundary around `State.eq`, including why
+  storage-changing transformations remain outside this theorem family.
+- [ ] Make tiling and its supported variants the central technical extension;
+  present ISS and parallel/multipar as substantial semantic extensions, with
+  vector, unroll/jam, stride lowering, and cleanup as supporting checked routes.
+- [ ] Derive all capability tables and evaluation numbers from the frozen
+  artifact outputs.
+- [ ] Audit theorem names, implementation paths, capability counts, references,
+  and limitations consistently across the abstract, introduction, technical
+  sections, evaluation, and conclusion.
+
+Paper drafting can begin once the claim ledger is frozen; it need not wait for
+every cosmetic proof cleanup. Storage generalization and overlapped tiling are
+separate future research tracks and are not prerequisites for this paper.
+
 ## Direction
 - Follow your default route:
   - Decision #1: depth gap via translation/normalization layer (reuse PolyGen proof)
