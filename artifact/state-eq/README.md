@@ -126,9 +126,58 @@ must use only files and tools already present in the image.
 The complete human-readable analysis and the bounded locking plan are in
 [`DEPENDENCY_LOCK_AUDIT.md`](./DEPENDENCY_LOCK_AUDIT.md).
 
+## Reviewed Image Publication
+
+Publication is separate from building. By default it uses the archived full
+review evidence in `evidence/2026-07-18-full-review.json` and refuses any local
+image whose Docker image ID differs from the reviewed ID.
+
+First validate an explicit, versioned registry reference without tagging,
+pushing, or contacting the registry:
+
+```sh
+make publication-validate \
+  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-05-25-v2
+```
+
+The reference must include a registry host, lowercase repository, and a
+versioned tag. Moving tags such as `latest`, `main`, and `stable` are rejected.
+There is no default registry.
+
+After authenticating Docker separately, publish with:
+
+```sh
+make publish-reviewed-image \
+  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-05-25-v2
+```
+
+The workflow performs these checks and actions:
+
+1. Require successful `full`, `network=none` review evidence.
+2. Require source tag/commit/tree to match `manifest.json`, zero proof holes,
+   18/18 artifact subchecks, 114 Pluto compatibility checks, 62/62 strict
+   cases, and passing ISS/parallel/vector/second-level/diamond suites.
+3. Require the local Docker image ID to equal the ID archived in that evidence.
+4. Run `docker tag` and `docker push` for the explicit registry tag.
+5. Read the matching registry digest from Docker `RepoDigests` after push.
+6. Atomically write `publication/publication-record.json`, binding the review
+   evidence checksum, local image ID, tag, and immutable `repository@digest`.
+
+The script never calls `docker login`. Registry credentials and authorization
+must already be configured. A rebuilt wrapper has a different image ID and is
+rejected by the default evidence; publishing it requires an explicit new full
+review evidence file via `POLCERT_REVIEW_EVIDENCE`.
+
+The publication parser and refusal paths have a no-network fixture suite:
+
+```sh
+make publication-test
+```
+
 ## Claim Boundary
 
 The claim ledger is intentionally about the completed `State.eq` milestone.
 It does not claim storage-changing transformations, scalar/array
-privatization, reduction-aware parallelization, or full SIMD semantics. See
-`claims.json` for the complete claim-to-evidence map.
+privatization, reduction-aware parallelization, full SIMD semantics, or
+overlapped/flextended tiling. See `claims.json` for the complete
+claim-to-evidence map.

@@ -73,6 +73,7 @@
   "boundaries": [
     "Scalar and array storage privatization are not covered by State.eq.",
     "General storage-changing transformations are outside this milestone.",
+    "Overlapped/flextended tiling is outside this milestone.",
     "Reduction-aware parallelization and full SIMD semantics are not claimed.",
     "Pluto's optimization heuristics and C/OpenScop text parsers are trusted or unverified components; accepted transformations are checked at the stated semantic boundaries."
   ]
