@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "claim_set": "state-eq-polyhedral-verification-complete-2026-05-25-v2",
+  "claims": [
+    {
+      "id": "C1",
+      "claim": "The checked compiler routes exposed by the milestone refine the source program under State.eq.",
+      "evidence": [
+        "proof-build",
+        "check-admitted",
+        "artifact-check/proof-report"
+      ],
+      "theorem_surface": [
+        "VerifiedParallelCompilerConfig.compile_correct",
+        "VerifiedParallelCompilerConfig.compile_verified_correct"
+      ]
+    },
+    {
+      "id": "C2",
+      "claim": "The checked tiling family covers ordinary, identity, second-level, diamond, full-diamond, and supported compositions.",
+      "evidence": [
+        "artifact-check/strict-loop-suite",
+        "artifact-check/second-level-suite",
+        "artifact-check/diamond-suite",
+        "artifact-check/pluto-compat-suite"
+      ]
+    },
+    {
+      "id": "C3",
+      "claim": "Index-set splitting composes with the supported checked optimization routes.",
+      "evidence": [
+        "artifact-check/iss-suite",
+        "extended/iss-live-suite",
+        "artifact-check/pluto-compat-suite"
+      ]
+    },
+    {
+      "id": "C4",
+      "claim": "Explicit-current and Pluto-hinted parallel, multiparallel, and vector routes use checked certificates and verified code generation.",
+      "evidence": [
+        "artifact-check/parallel-current-suite",
+        "vector-current-suite",
+        "artifact-check/pluto-compat-suite",
+        "artifact-check/proof-report"
+      ]
+    },
+    {
+      "id": "C5",
+      "claim": "The milestone includes checked literal-stride lowering and the documented checked subset of unroll-and-jam post-passes.",
+      "evidence": [
+        "artifact-check/end-to-end-c-stride-even",
+        "artifact-check/end-to-end-c-stride-down",
+        "artifact-check/end-to-end-c-const-unroll",
+        "artifact-check/end-to-end-c-unrolljam-block-variable",
+        "artifact-check/end-to-end-c-unrolljam-dependent-guard",
+        "artifact-check/unrolljam-effect-corpus"
+      ]
+    },
+    {
+      "id": "C6",
+      "claim": "The artifact reports the supported Pluto-facing request surface and rejects unsupported combinations before unchecked compilation.",
+      "evidence": [
+        "artifact-check/capability-matrix",
+        "artifact-check/pluto-compat-suite"
+      ]
+    }
+  ],
+  "profiles": {
+    "smoke": "Clean bootstrap plus the frozen implementation's smoke artifact check.",
+    "full": "Default reviewer gate: clean bootstrap, core regression, full artifact check, and explicit vector-current coverage.",
+    "extended": "Full profile plus the live Pluto-backed ISS suite; retained as additional evidence rather than a default gate because of its cost and larger integration surface."
+  },
+  "boundaries": [
+    "Scalar and array storage privatization are not covered by State.eq.",
+    "General storage-changing transformations are outside this milestone.",
+    "Reduction-aware parallelization and full SIMD semantics are not claimed.",
+    "Pluto's optimization heuristics and C/OpenScop text parsers are trusted or unverified components; accepted transformations are checked at the stated semantic boundaries."
+  ]
+}

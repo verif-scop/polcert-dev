@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "artifact": {
+    "id": "polcert-state-eq-2026-05-25-v2",
+    "description": "Reproduction envelope for the completed State.eq-preserving PolCert milestone",
+    "created": "2026-07-18"
+  },
+  "polcert": {
+    "repository": "https://github.com/Hughshine/PolCert.git",
+    "tag": "state-eq-polyhedral-verification-complete-2026-05-25-v2",
+    "tag_object": "f9cc209ae597f58e98841a96e13f8b355ee75eb3",
+    "commit": "13295e741ad62173411882c6d900dd9dc57337a8",
+    "tree": "8b83093929e54657c033fa09c5aae73b492c0b67"
+  },
+  "pluto": {
+    "repository": "https://github.com/verif-scop/pluto.git",
+    "commit": "6f43860b6c4cddeeca09189bf3073f05b78b14a5",
+    "base_image": "hughshine/pluto-verif:polcert-pluto-iss-bridge-ac5ea83",
+    "base_image_digest": "sha256:0e15a7614af280b02ab0dc31f110c3ee3f7a1fe3ee3d1b503cc3400d87b4f4ce"
+  },
+  "toolchain": {
+    "opam": "2.0.8",
+    "ocaml": "4.13.1",
+    "coq": "8.13.2"
+  },
+  "reproducibility": {
+    "source_snapshot": "exact git tree exported with git archive",
+    "image_build_requires_network": true,
+    "review_run_requires_network": false,
+    "dependency_lock": "partial",
+    "dependency_lock_note": "PolCert, Pluto, OCaml, Coq, and the Pluto base image digest are pinned. Ubuntu apt packages and non-Coq opam packages are not yet locked by version."
+  }
+}
