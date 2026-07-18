@@ -38,6 +38,11 @@ make build POLCERT_SOURCE=/path/to/PolCert
 make review
 ```
 
+The result directory must be empty at the start of a review. This prevents a
+second run from leaving stale logs or nested suite outputs in the archived
+evidence. Use a new `POLCERT_ARTIFACT_OUTPUT` path, or explicitly remove the
+previous generated results with `make clean-results`, before rerunning.
+
 The shorter health check is:
 
 ```sh

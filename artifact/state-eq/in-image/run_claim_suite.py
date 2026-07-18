@@ -7,6 +7,7 @@ import os
 import platform
 import shutil
 import subprocess
+import sys
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -148,6 +149,12 @@ def main() -> int:
 
     output = Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
+    if any(output.iterdir()):
+        print(
+            f"[claim-suite] output directory must be empty: {output}",
+            file=sys.stderr,
+        )
+        return 2
     shutil.copy2(ARTIFACT_ROOT / "manifest.json", output / "manifest.json")
     shutil.copy2(ARTIFACT_ROOT / "claims.json", output / "claims.json")
 
