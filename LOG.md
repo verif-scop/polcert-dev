@@ -1255,3 +1255,12 @@ Date: 2026-03-08
   `31e205c`, then synchronized multi-current/multipar and exact-tag artifact
   evidence at `5424324`. The 16-page paper and 3-page artifact report both
   build without LaTeX warnings.
+- Committed proof cleanup slice 3 as `711d10d`: access-transformation equality
+  and exact-column facts are now established once for the WW/WR/RW collision
+  branches, reducing `AffineValidator.v` by another 16 lines. Proof and direct
+  downstream checks pass.
+- Committed paper Markdown capability reconciliation as `7d0eb18` and the
+  corresponding paper-local status update as `a2daa19`. Second-level,
+  diamond/full-diamond, and multipar routes are no longer described as future
+  work; overlapped tiling, reductions, and OpenMP runtime semantics remain
+  explicit non-claims.

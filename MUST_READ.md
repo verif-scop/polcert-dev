@@ -48,8 +48,9 @@
     executable boundary
   - paper structure is in
     `doc/pluto-comprehensive/paper-local/STATE_EQ_PAPER_OUTLINE.md`
-  - paper-local commits `31e205c` and `5424324` integrate the calibrated
-    contribution story, multipar scope, and exact-tag artifact evidence
+  - paper-local commits `31e205c`, `5424324`, and `7d0eb18` integrate the
+    calibrated contribution story, exact-tag evidence, and current
+    second-level/diamond/multipar scope; `a2daa19` records the resulting status
   - storage-changing validation remains separate future work, not a blocker
     for the State.eq paper
 

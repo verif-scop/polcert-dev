@@ -75,6 +75,8 @@ only after the completed baseline and its artifact evidence are recoverable.
     add proof-structure comments, without changing net source lines.
   - [x] Second slice: factor WW/WR/RW access-to-cell noncollision lifting into
     one local helper, reducing `AffineValidator.v` by 17 lines.
+  - [x] Third slice: share access-transformation shape facts across the three
+    collision branches, reducing `AffineValidator.v` by another 16 lines.
 - [ ] Preserve theorem statements, accepted schedules, extracted behavior, and
   trust assumptions unless a deliberate semantic change is separately
   justified.
