@@ -1230,3 +1230,13 @@ Date: 2026-03-08
 - Added the paper claim ledger and the paper-local State.eq outline. Storage
   generalization remains a separate future project rather than a prerequisite
   for the current paper.
+- Started proof cleanup from the immutable baseline on isolated branch
+  `proof-cleanup-affine-batch1`.
+  - commit `50aefe5` removes one literal duplicate induction by reusing the
+    existing local lemma and adds five proof-structure comments
+  - only `src/AffineValidator.v` changes, with `+10/-10` and no definition,
+    theorem-statement, hint, import, or extraction-interface change
+  - `check-admitted` and the direct AffineValidator downstream rebuild pass
+- Committed a claim-calibrated abstract and contribution draft in the nested
+  paper repository at `0219e1a`; migration into the LaTeX body remains in
+  progress.

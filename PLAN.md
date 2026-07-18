@@ -61,7 +61,8 @@ claims.
 This is proof-maintenance work, not a missing-correctness obligation. Begin it
 only after the completed baseline and its artifact evidence are recoverable.
 
-- [ ] Create a dedicated proof-cleanup branch from the frozen milestone.
+- [x] Create dedicated branch `proof-cleanup-affine-batch1` from the frozen
+  milestone. Its first proof-only commit is `50aefe5`.
 - [x] Inventory copy-pasted and structurally repeated proof blocks in the
   original affine-scheduling validator and its helper lemmas.
 - [x] Record a pre-refactor baseline: public theorem statements, assumptions,
@@ -69,6 +70,9 @@ only after the completed baseline and its artifact evidence are recoverable.
 - [ ] Factor repeated reasoning into narrowly scoped lemmas or local tactics;
   improve theorem/variable names and comments where the invariants are hard to
   recover from the proof script.
+  - [x] First slice: replace the duplicate
+    `nth_error_compose_ipl_ext_inv` induction with the existing local lemma and
+    add proof-structure comments, without changing net source lines.
 - [ ] Preserve theorem statements, accepted schedules, extracted behavior, and
   trust assumptions unless a deliberate semantic change is separately
   justified.
@@ -86,6 +90,8 @@ only after the completed baseline and its artifact evidence are recoverable.
 - [ ] Rewrite the abstract, introduction, and contribution list relative to the
   inherited affine-scheduling validator: the new contribution is the completed
   end-to-end, multi-family verified compiler path, not affine scheduling itself.
+  A claim-calibrated abstract and contribution draft is committed in the paper
+  repository at `0219e1a`; integration into the LaTeX body is in progress.
 - [ ] State the exact correctness boundary around `State.eq`, including why
   storage-changing transformations remain outside this theorem family.
 - [ ] Make tiling and its supported variants the central technical extension;
