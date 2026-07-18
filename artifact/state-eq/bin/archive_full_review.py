@@ -190,6 +190,22 @@ def parse_strict_loop_summary(path: Path) -> dict[str, int]:
     }
 
 
+def parse_strict_case_seconds(path: Path, case: str) -> float:
+    pattern = re.compile(
+        rf"^\[\d+/\d+\] {re.escape(case)}: ok .* time=([0-9]+(?:\.[0-9]+)?)s$"
+    )
+    matches = []
+    for line in require_file(path).decode(errors="replace").splitlines():
+        match = pattern.fullmatch(line)
+        if match:
+            matches.append(float(match.group(1)))
+    if len(matches) != 1:
+        raise EvidenceError(
+            f"strict-loop timing requires exactly one successful {case} result"
+        )
+    return matches[0]
+
+
 def validate_proof_report(proof: dict[str, Any]) -> dict[str, int]:
     fields = (
         "coq_file_count",
@@ -365,6 +381,33 @@ def validate_compact_v2(
             "total=62, passed=62, changed=59, detected_tiled=39"
         )
 
+    timing = evidence.get("timing", {})
+    if timing.get("make_jobs") != 1:
+        raise EvidenceError("schema-v2 timing requires make_jobs=1")
+    if timing.get("parallel_make_requested") is not False:
+        raise EvidenceError(
+            "schema-v2 timing must record that parallel make was not requested"
+        )
+    for field in (
+        "full_review_seconds",
+        "proof_build_seconds",
+        "artifact_check_seconds",
+        "strict_loop_suite_seconds",
+        "advect3d_seconds",
+    ):
+        value = timing.get(field)
+        if not isinstance(value, (int, float)) or value < 0:
+            raise EvidenceError(f"schema-v2 timing has invalid {field}")
+    results_by_name = {item["name"]: item for item in results}
+    expected_timing = {
+        "full_review_seconds": review.get("elapsed_seconds"),
+        "proof_build_seconds": results_by_name["proof-build"]["elapsed_seconds"],
+        "artifact_check_seconds": results_by_name["artifact-check"]["elapsed_seconds"],
+    }
+    for field, expected in expected_timing.items():
+        if timing[field] != expected:
+            raise EvidenceError(f"schema-v2 timing {field} differs from the gate ledger")
+
 
 def build_evidence(
     results_dir: Path,
@@ -433,6 +476,10 @@ def build_evidence(
         raise EvidenceError("capability matrix does not record 114 compatibility checks")
     strict = parse_strict_loop_summary(
         results_dir / "artifact-check" / "strict-loop-suite.stdout.txt"
+    )
+    advect3d_seconds = parse_strict_case_seconds(
+        results_dir / "artifact-check" / "strict-loop-suite.stdout.txt",
+        "advect3d",
     )
 
     candidate_reference = manifest.get("images", {}).get("default_candidate", {}).get(
@@ -533,6 +580,17 @@ def build_evidence(
                 "PASS" if inner_by_name["second-level-suite"]["ok"] else "FAIL"
             ),
             "diamond_suite": "PASS" if inner_by_name["diamond-suite"]["ok"] else "FAIL",
+        },
+        "timing": {
+            "make_jobs": 1,
+            "parallel_make_requested": False,
+            "full_review_seconds": sum(item["elapsed_seconds"] for item in outer),
+            "proof_build_seconds": outer_by_name["proof-build"]["elapsed_seconds"],
+            "artifact_check_seconds": outer_by_name["artifact-check"]["elapsed_seconds"],
+            "strict_loop_suite_seconds": inner_by_name["strict-loop-suite"][
+                "elapsed_seconds"
+            ],
+            "advect3d_seconds": advect3d_seconds,
         },
         "build": {
             "metadata_sha256": sha256(require_file(build_metadata_path)),

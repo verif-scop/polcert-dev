@@ -99,6 +99,7 @@ class ArchiveFullReviewTests(unittest.TestCase):
             {"summary": {"compatibility_checks": 114}},
         )
         (self.results / "artifact-check/strict-loop-suite.stdout.txt").write_text(
+            "[3/62] advect3d: ok changed=true time=148.80s\n"
             "total=62\nok=62\nchanged=59\ndetected_tiled=39\n"
         )
 
@@ -182,6 +183,9 @@ class ArchiveFullReviewTests(unittest.TestCase):
             list(ARCHIVE.EXPECTED_OUTER_GATES),
         )
         self.assertEqual(first["dependency_lock"]["sha256"], ARCHIVE.sha256(self.lock.read_bytes()))
+        self.assertEqual(first["timing"]["make_jobs"], 1)
+        self.assertFalse(first["timing"]["parallel_make_requested"])
+        self.assertEqual(first["timing"]["advect3d_seconds"], 148.8)
         ARCHIVE.validate_compact_v2(
             first,
             json.loads(self.manifest.read_text()),
@@ -226,9 +230,17 @@ class ArchiveFullReviewTests(unittest.TestCase):
         proof["coq_file_count"] = 178
         proof_path.write_text(json.dumps(proof))
         (self.results / "artifact-check/strict-loop-suite.stdout.txt").write_text(
+            "[3/62] advect3d: ok changed=true time=148.80s\n"
             "total=62\nok=62\nchanged=58\ndetected_tiled=39\n"
         )
         with self.assertRaisesRegex(ARCHIVE.EvidenceError, "strict-loop summary mismatch"):
+            self.build()
+
+    def test_refuses_missing_advect3d_timing(self) -> None:
+        (self.results / "artifact-check/strict-loop-suite.stdout.txt").write_text(
+            "total=62\nok=62\nchanged=59\ndetected_tiled=39\n"
+        )
+        with self.assertRaisesRegex(ARCHIVE.EvidenceError, "advect3d"):
             self.build()
 
     def test_validation_detects_raw_bundle_mutation(self) -> None:

@@ -77,6 +77,7 @@ class PublishReviewedImageTests(unittest.TestCase):
         evidence["schema_version"] = 2
         evidence["packaging_revision"] = "dependency-lock-v1"
         evidence["review"]["recorded_at"] = "2026-07-18T12:00:00+00:00"
+        evidence["review"]["elapsed_seconds"] = 13.0
         evidence["images"]["artifact"] = {"reference": CANDIDATE, "id": image_id}
         evidence["environment"][
             "network_contract"
@@ -105,6 +106,15 @@ class PublishReviewedImageTests(unittest.TestCase):
                 ),
                 **{name: "f" * 64 for name in STRUCTURED_RESULT_FILES},
             },
+        }
+        evidence["timing"] = {
+            "make_jobs": 1,
+            "parallel_make_requested": False,
+            "full_review_seconds": 13.0,
+            "proof_build_seconds": 1.0,
+            "artifact_check_seconds": 1.0,
+            "strict_loop_suite_seconds": 1.0,
+            "advect3d_seconds": 1.0,
         }
         return evidence
 
@@ -187,6 +197,7 @@ class PublishReviewedImageTests(unittest.TestCase):
             lambda item: item["capability_results"]["strict_loop_suite"].update(
                 detected_tiled=38
             ),
+            lambda item: item["timing"].update(proof_build_seconds=2.0),
             lambda item: item["review"]["raw_results"]["required_files"].update(
                 {"manifest.json": "0" * 64}
             ),

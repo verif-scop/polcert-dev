@@ -23,10 +23,10 @@ with the published image rather than committed to this control repository.
 
 ## Lock-v1 Evidence
 
-The existing file uses schema-v1 and remains the publication evidence for the
-pre-lock reviewed image only. The lock-v1 candidate must use schema-v2 evidence
-created by `bin/archive_full_review.py`; copying this file and changing an image
-ID is intentionally rejected.
+`2026-07-18-full-review.json` uses schema-v1 and remains the review record for
+the pre-lock dependency origin image. `lock-v1-full-review.json` uses schema-v2
+and is the publication evidence for the separately identified lock-v1
+candidate; copying either file and changing an image ID is rejected.
 
 Schema-v2 is generated from an untouched raw result directory. It requires the
 exact 13 outer gates in order, including `dependency-lock` first, and preserves
@@ -41,3 +41,9 @@ Use `make archive-full-review` once after the full run, then
 fail closed; the create command refuses to overwrite an existing evidence
 file. The raw directory remains local-only and should be packaged externally
 without changing its contents.
+
+The schema-v2 timing summary is also mechanically derived from the raw result
+tree. It records a serial make baseline, the total review, proof-build,
+artifact-check, and strict-suite times, and the `advect3d` long-tail case from
+the 62-case stdout log. These are observed wall-clock values, not performance
+guarantees.

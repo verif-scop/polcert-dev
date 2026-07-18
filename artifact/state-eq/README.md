@@ -88,6 +88,26 @@ make smoke
 `smoke` still performs a clean proof and executable bootstrap because the
 artifact is meant to validate source, not merely replay precompiled binaries.
 
+## Expected Review Time
+
+The recorded lock-v1 full review ran with Docker networking disabled and
+without make parallelism (`-j` was not requested and the image does not set
+`MAKEFLAGS`). On the recorded WSL2 x86-64 host it took 1,996.4 seconds, or
+33.3 minutes. Reviewers should budget 45 minutes for a comparable serial run;
+host load and Docker storage can change wall-clock time.
+
+The two largest outer gates were the clean Coq proof build (748.8 seconds) and
+the nested full artifact check (1,097.0 seconds). Within the latter, the strict
+62-case loop suite took 355.4 seconds. Its known long-tail case is `advect3d`,
+which took 148.8 seconds in this run and 150.8 seconds in the preceding frozen
+baseline run. Existing profiling attributes almost all of that case's cost to
+the verified `CodeGen.codegen` path, not Pluto or validation. See
+`REPRODUCTION_TIMING.md` for the measured breakdown and interpretation.
+
+These numbers are a serial reproducibility baseline, not a claim that parallel
+builds require the same time. A parallel `make -jN` configuration has not yet
+been measured as archived review evidence.
+
 ## Clean-Tree Bootstrap
 
 The frozen source archive does not contain generated `.depend` files. Running
@@ -177,9 +197,9 @@ lock directory and requires that image ID to match strict full-review evidence.
 
 The origin evidence is copied into the candidate wrapper only so the first
 review gate can authenticate the dependency lock's provenance and checksum. It
-is not review evidence for the candidate wrapper. The candidate requires a new
-successful full offline run and separately archived evidence tied to its exact
-image ID before it can be published.
+is not review evidence for the candidate wrapper. The candidate's separate
+successful full offline run is recorded in
+`evidence/lock-v1-full-review.json` and tied to its exact image ID.
 
 After the image has been built or pulled, review is offline. `bin/run-image.sh`
 always uses `docker run --network none`; the proof build and all claim checks
@@ -190,11 +210,12 @@ The complete human-readable analysis and the bounded locking plan are in
 
 ## Reviewed Image Publication
 
-Publication is separate from building. By default it uses the archived full
-review evidence in `evidence/2026-07-18-full-review.json`. That evidence names
-the unchanged `polcert-artifact:state-eq-2026-05-25-v2` image, not the default
-lock-v1 candidate. Publication refuses any local image whose Docker image ID
-differs from the reviewed ID.
+Publication is separate from building. By default it uses the schema-v2 full
+review evidence in `evidence/lock-v1-full-review.json`, which names the
+fully reviewed lock-v1 candidate. The schema-v1 evidence in
+`evidence/2026-07-18-full-review.json` remains the dependency-lock origin
+record. Publication refuses any local image whose Docker image ID differs from
+the ID in the selected evidence.
 
 Schema-v1 remains accepted for the existing reviewed pre-lock image. Evidence
 whose artifact reference is the lock-v1 candidate must use schema-v2; the
@@ -233,10 +254,10 @@ The workflow performs these checks and actions:
    evidence checksum, local image ID, tag, and immutable `repository@digest`.
 
 The script never calls `docker login`. Registry credentials and authorization
-must already be configured. The lock-v1 candidate has a different image ID and
-is rejected by the default evidence, even when passed explicitly as the local
-image. Publishing it requires an explicit new full review evidence file via
-`POLCERT_REVIEW_EVIDENCE` that names that exact candidate image ID.
+must already be configured. The lock-v1 candidate remains unpublished until a
+registry reference is provided and a push records its immutable registry
+digest. Its local full review and publication eligibility do not imply registry
+availability.
 
 The publication parser and refusal paths have a no-network fixture suite:
 

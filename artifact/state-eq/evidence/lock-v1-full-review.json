@@ -1,0 +1,190 @@
+{
+  "build": {
+    "metadata_sha256": "2e0c6f948d17d351a63505cf314414aee8895701c9172354f1b065e6e6084943",
+    "recorded_at": "2026-07-18T09:09:17.870586+00:00"
+  },
+  "capability_results": {
+    "artifact_subchecks": 18,
+    "artifact_subchecks_passed": 18,
+    "diamond_suite": "PASS",
+    "iss_suite": "PASS",
+    "parallel_current_suite": "PASS",
+    "pluto_compat_checks": 114,
+    "second_level_suite": "PASS",
+    "strict_loop_suite": {
+      "changed": 59,
+      "detected_tiled": 39,
+      "passed": 62,
+      "total": 62
+    },
+    "vector_current_suite": "PASS"
+  },
+  "dependency_lock": {
+    "gate": "dependency-lock",
+    "ok": true,
+    "origin_review_evidence_sha256": "07f0225f97a09302d572f213e1145d6a1a87f69c2d019c6c3ca747740ea91aa7",
+    "sha256": "de00dc21e4a3320b6798cc842b485ff5131408695c8485f1d8d1fe5f609ed395"
+  },
+  "environment": {
+    "artifact_id": "polcert-state-eq-2026-05-25-v2",
+    "coq": "The Coq Proof Assistant, version 8.13.2 (May 2026)",
+    "network_contract": "review command is run with Docker --network none",
+    "ocaml": "4.13.1",
+    "opam": "2.0.8",
+    "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+    "pluto": "PLUTO version 6f43860 - An automatic parallelizer and locality optimizer",
+    "polcert_source_commit": "13295e741ad62173411882c6d900dd9dc57337a8",
+    "polcert_source_tag": "state-eq-polyhedral-verification-complete-2026-05-25-v2",
+    "polcert_source_tree": "8b83093929e54657c033fa09c5aae73b492c0b67",
+    "python": "3.8.10",
+    "recorded_at": "2026-07-18T09:40:32.078006+00:00"
+  },
+  "images": {
+    "artifact": {
+      "id": "sha256:fa4bcb4a6cc0b2694483fb8241238f900bb90f50577a5b2a6cdab3e917dea0c3",
+      "reference": "polcert-artifact:state-eq-lock-v1-candidate"
+    },
+    "pluto_base": {
+      "digest": "sha256:0e15a7614af280b02ab0dc31f110c3ee3f7a1fe3ee3d1b503cc3400d87b4f4ce",
+      "reference": "hughshine/pluto-verif:polcert-pluto-iss-bridge-ac5ea83"
+    },
+    "source": {
+      "id": "sha256:8f1b2a66f6698398183b558c5154cd4f4cdfa0f82b2f5d3214296309da852a18",
+      "reference": "polcert-artifact-source:13295e741ad6"
+    }
+  },
+  "packaging_revision": "dependency-lock-v1",
+  "proof_report": {
+    "abort_count": 0,
+    "admitted_count": 0,
+    "coq_file_count": 178,
+    "extraction_axiom_count": 0,
+    "missing_route_theorem_count": 0
+  },
+  "review": {
+    "elapsed_seconds": 1996.409787863,
+    "network": "none",
+    "ok": true,
+    "profile": "full",
+    "raw_results": {
+      "bytes": 6913016,
+      "file_count": 2045,
+      "required_files": {
+        "apt-packages.lock": "2ef0290183ff3392e14b9803877b1b804c376cb3230a775222d5f9f8566c594b",
+        "artifact-check/artifact-results.json": "013fdeff4c3679403d9f921a973104337e0813f9a757b994c70b333f625dcfe4",
+        "artifact-check/capability-matrix.json": "8433003f50042c60722be397ddaa9ec2a7a686d5027169eb1130514016427640",
+        "artifact-check/proof-report.json": "6a43fa0a23657c0beec55b0d8ec80d79db50bae74b63acc3e0c6274d81c7348c",
+        "artifact-check/strict-loop-suite.stdout.txt": "6f1ce3584c3c1983f8559bf694799c740059ada71dbe18c70d60cf6aca0d7869",
+        "claim-results.json": "7251b6a1d8bd374e406dae57334e4bedfdebebf34db7b404adbc6d0a8e75c33c",
+        "claims.json": "d90cefbd5d82ef2f7ac24d709fb1874428a9fb9b446897fe6633f8933aea93a8",
+        "dependency-lock-audit.json": "d11defaa5119c7fb369ca532cdee7fb1002a3018e0337ae932e7bca5fc52e2f9",
+        "dependency-lock.json": "de00dc21e4a3320b6798cc842b485ff5131408695c8485f1d8d1fe5f609ed395",
+        "environment.json": "b569607c7ffd0b89e570624d7c83dd5a3299d165372891d8afc6cd8609c26156",
+        "logs/dependency-lock.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "logs/dependency-lock.stdout.txt": "b93c3f63ea0eadd0486a494e9e7e05c9d8fa4320ec188662e3cdacff6ed74cd7",
+        "manifest.json": "89d291c1e9259308f8a4ad144ae0bfc80915fbc537689a3aad4d590a9baafa6e",
+        "opam-packages.lock": "b0d1b546ec3d8e657ecf3d84f1f967bfef570709440a33930239eb3ae17003dc",
+        "opam-switch-full.export": "8011b64bbe6c0cfb339cae59bb2cb73ef0162e24b72194784a601f4aece6c5d9"
+      },
+      "tree_sha256": "95c949b15b5e5c9d117765d1c4a68d8c431013d6bc1889c9c7d8229b0d8958c6"
+    },
+    "recorded_at": "2026-07-18T09:40:32.078006+00:00"
+  },
+  "schema_version": 2,
+  "source": {
+    "archive_sha256": "2fb4b1685fceac34df77cd9acff7aaec7886adea4c50d0cb1b531013b320e7f3",
+    "commit": "13295e741ad62173411882c6d900dd9dc57337a8",
+    "tag": "state-eq-polyhedral-verification-complete-2026-05-25-v2",
+    "tag_object": "f9cc209ae597f58e98841a96e13f8b355ee75eb3",
+    "tree": "8b83093929e54657c033fa09c5aae73b492c0b67"
+  },
+  "timing": {
+    "advect3d_seconds": 148.8,
+    "artifact_check_seconds": 1096.9929517100009,
+    "full_review_seconds": 1996.409787863,
+    "make_jobs": 1,
+    "parallel_make_requested": false,
+    "proof_build_seconds": 748.7680891220007,
+    "strict_loop_suite_seconds": 355.36566572299853
+  },
+  "top_level_results": [
+    {
+      "elapsed_seconds": 10.834960366000814,
+      "name": "dependency-lock",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 0.4825242660008371,
+      "name": "pluto-baseline",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 0.11655292700015707,
+      "name": "clean",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 0.3701562730002479,
+      "name": "depend",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 748.7680891220007,
+      "name": "proof-build",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 0.17227802900015377,
+      "name": "check-admitted",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 25.33205567600089,
+      "name": "extraction",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 53.54902334699909,
+      "name": "build-polopt",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 0.13826490999963426,
+      "name": "build-polcert-ini",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 1.306719530999544,
+      "name": "build-polcert",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 50.19178826699863,
+      "name": "core-regression",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 1096.9929517100009,
+      "name": "artifact-check",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "elapsed_seconds": 8.154423438998492,
+      "name": "vector-current-suite",
+      "ok": true,
+      "returncode": 0
+    }
+  ]
+}

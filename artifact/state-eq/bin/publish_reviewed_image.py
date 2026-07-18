@@ -22,7 +22,7 @@ from archive_full_review import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_EVIDENCE = ROOT / "evidence" / "2026-07-18-full-review.json"
+DEFAULT_EVIDENCE = ROOT / "evidence" / "lock-v1-full-review.json"
 DEFAULT_RECORD = ROOT / "publication" / "publication-record.json"
 MANIFEST = ROOT / "manifest.json"
 IMAGE_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
