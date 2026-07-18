@@ -14,6 +14,39 @@
   - Coq/OCaml/runtime/build changes for PolCert itself -> `gifted_curie:/polcert`
   - do not stage `work/container-overlay/polcert/**` in `polcert-dev` unless the change is intentionally about the overlay mirror itself
 
+## Current State.eq milestone (2026-07-18)
+- Frozen implementation tag:
+  `state-eq-polyhedral-verification-complete-2026-05-25-v2`
+- Frozen commit: `13295e741ad62173411882c6d900dd9dc57337a8`
+- Pinned Pluto commit: `6f43860b6c4cddeeca09189bf3073f05b78b14a5`
+- Exact-tag evidence:
+  - `doc/STATE_EQ_BASELINE_REPRODUCTION.md`
+  - `doc/evidence/state-eq-baseline-2026-07-18/`
+  - `doc/STATE_EQ_CLAIM_LEDGER.md`
+- Exact-tag results:
+  - artifact runner `18 / 18`
+  - proof report: 178 Coq files, no admits, aborts, unrealized extraction
+    axioms, or missing route theorem
+  - Pluto compatibility `114 / 114`
+  - strict loop suite `62 / 62`
+  - `make test`, ISS-live, parallel-current, vector-current, second-level, and
+    diamond suites pass
+- Reproducible Docker artifact:
+  - control directory: `artifact/state-eq/`
+  - local image: `polcert-artifact:state-eq-2026-05-25-v2`
+  - local content ID:
+    `sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f`
+  - offline `--network none` full review: 12 / 12 top-level gates and 18 / 18
+    nested artifact checks pass
+  - compact evidence: `artifact/state-eq/evidence/2026-07-18-full-review.json`
+  - registry publication and complete apt/non-Coq-opam locking remain pending
+- Active next work:
+  - affine proof cleanup must use a new branch/worktree from the frozen tag
+  - paper structure is in
+    `doc/pluto-comprehensive/paper-local/STATE_EQ_PAPER_OUTLINE.md`
+  - storage-changing validation remains separate future work, not a blocker
+    for the State.eq paper
+
 ## Raw Pluto Structural Comparison
 - The checked-in raw comparison report is:
   - `doc/pluto-raw-family-compare.md`

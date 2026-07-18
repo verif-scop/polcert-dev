@@ -9,9 +9,11 @@ and code generation.
 Implementation provenance: this document lives in the `polcert-dev` documentation
 repository, but the executable and theorem references are to the PolCert
 implementation repository `Hughshine/PolCert`, branch `end-to-end`. The last
-full artifact smoke cited here was run on code commit `72deba1`; later
-documentation-only commits may exist on that branch. Run artifact commands from
-a PolCert implementation checkout, not from this documentation repository.
+full artifact evidence cited here was run on annotated tag
+`state-eq-polyhedral-verification-complete-2026-05-25-v2`, commit `13295e7`,
+with Pluto commit `6f43860`. The exact source run and the new Docker artifact's
+offline full review both passed. Run implementation artifact commands from a
+PolCert checkout, or use the wrapper under `artifact/state-eq/`.
 
 ## 1. Top-Level Shape
 

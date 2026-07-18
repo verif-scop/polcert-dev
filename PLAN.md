@@ -13,45 +13,47 @@ claims.
 
 ### 1. Freeze and document the completed milestone
 
-- [ ] Treat annotated tag
+- [x] Treat annotated tag
   `state-eq-polyhedral-verification-complete-2026-05-25-v2` (commit
   `13295e741ad62173411882c6d900dd9dc57337a8`) as the current implementation
   baseline; do not move or overwrite it.
-- [ ] Check out that exact commit in a clean worktree and run the complete
+- [x] Check out that exact commit in a clean worktree and run the complete
   proof, extraction, regression, and `artifact-check` workflow.
-- [ ] Archive the proof report, admitted/axiom checks, capability matrix,
+- [x] Archive the proof report, admitted/axiom checks, capability matrix,
   regression results, command log, and toolchain manifest produced by that
   exact run.
-- [ ] Add a durable milestone document that maps every paper-facing claim to a
+- [x] Add a durable milestone document that maps every paper-facing claim to a
   theorem, executable route, test family, and known boundary.
-- [ ] Record the exact PolCert and Pluto commits together. The currently pinned
-  Pluto baseline is `6f43860`; verify it again while constructing the artifact.
+- [x] Record the exact PolCert and Pluto commits together. The verified Pluto
+  baseline is `6f43860b6c4cddeeca09189bf3073f05b78b14a5`.
 - [ ] If archival metadata or scripts require a new commit, create a new
   annotated archival tag rather than changing the completed-result tag.
 
 ### 2. Build a new reproducible Docker artifact
 
-- [ ] Build an immutable Docker image from the frozen source baseline, with the
-  base image, Coq/OCaml/opam dependencies, and Pluto revision pinned.
-- [ ] Include source, proofs, extracted executables, benchmarks, test inputs,
+- [x] Build a Docker image from the frozen source baseline, with the exact
+  source tree, Pluto/base-image digest, Coq, and OCaml versions pinned.
+- [x] Include source, proofs, extracted executables, benchmarks, test inputs,
   artifact scripts, claim matrix, and reviewer documentation in the image.
-- [ ] Provide one reviewer-facing command that rebuilds or checks the proofs,
+- [x] Provide one reviewer-facing command that rebuilds or checks the proofs,
   checks for admitted obligations, regenerates proof/capability reports, and
   runs all claimed transformation families.
-- [ ] Cover the full supported route surface in the artifact: affine
+- [x] Cover the full supported route surface in the artifact: affine
   scheduling, ordinary/identity/second-level/diamond tiling, ISS, parallel and
   multipar, checked vector routes, the supported unroll/jam subset, stride
   lowering, cleanup, and their documented supported compositions.
-- [ ] Re-run the Pluto flag-compatibility suites, including the comprehensive
+- [x] Re-run the Pluto flag-compatibility suites, including the comprehensive
   compatibility suite and strict regression corpus, and preserve both positive
   and expected-rejection results.
-- [ ] Label the image with source revisions and dependency versions; publish
-  and record an immutable image digest rather than relying only on a mutable
-  image name.
-- [ ] Test the documented commands from a fresh Docker environment and archive
+- [x] Label the local image with source revisions and dependency versions and
+  record content ID
+  `sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f`.
+- [ ] Publish the image and record its registry digest; finish locking Ubuntu
+  apt and non-Coq opam package versions.
+- [x] Test the documented commands from a fresh Docker environment and archive
   the resulting logs. After the image has been pulled, the core reproduction
   path should not require network access.
-- [ ] Keep the artifact guide claim-oriented: each claim should name the exact
+- [x] Keep the artifact guide claim-oriented: each claim should name the exact
   command and expected output that demonstrates it.
 
 ### 3. Simplify the affine-scheduling proofs
@@ -60,9 +62,9 @@ This is proof-maintenance work, not a missing-correctness obligation. Begin it
 only after the completed baseline and its artifact evidence are recoverable.
 
 - [ ] Create a dedicated proof-cleanup branch from the frozen milestone.
-- [ ] Inventory copy-pasted and structurally repeated proof blocks in the
+- [x] Inventory copy-pasted and structurally repeated proof blocks in the
   original affine-scheduling validator and its helper lemmas.
-- [ ] Record a pre-refactor baseline: public theorem statements, assumptions,
+- [x] Record a pre-refactor baseline: public theorem statements, assumptions,
   extraction output, build result, and relevant regression results.
 - [ ] Factor repeated reasoning into narrowly scoped lemmas or local tactics;
   improve theorem/variable names and comments where the invariants are hard to
@@ -79,7 +81,7 @@ only after the completed baseline and its artifact evidence are recoverable.
 
 ### 4. Write the paper
 
-- [ ] Freeze a contribution ledger against the archived artifact before making
+- [x] Freeze a contribution ledger against the archived artifact before making
   headline claims.
 - [ ] Rewrite the abstract, introduction, and contribution list relative to the
   inherited affine-scheduling validator: the new contribution is the completed

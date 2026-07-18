@@ -1186,3 +1186,47 @@ Date: 2026-03-08
     and it reuses the proof-oriented affine and tiling validators, but the
     exact four-phase CLI wiring is not yet lifted into the same kind of
     top-level theorem as the ordinary band-aware route.
+
+## 2026-07-18: State.eq milestone archive and Docker artifact
+
+- Confirmed the immutable implementation baseline:
+  - annotated tag
+    `state-eq-polyhedral-verification-complete-2026-05-25-v2`
+  - commit `13295e741ad62173411882c6d900dd9dc57337a8`
+  - Pluto `6f43860b6c4cddeeca09189bf3073f05b78b14a5`
+- Reproduced the tag in a detached clean worktree.
+  - `artifact-check-full`: 18 / 18 checks pass
+  - proof report: 178 Coq files, 0 admits, 0 aborts, 0 unrealized extraction
+    axioms, 0 missing route theorem
+  - Pluto compatibility: 114 / 114
+  - strict loop suite: 62 / 62, with 59 changed and 39 tiled outputs
+  - `make test`, ISS-live, parallel-current, vector-current, second-level, and
+    diamond suites pass
+- Archived the exact-tag report and controlled evidence in:
+  - `doc/STATE_EQ_BASELINE_REPRODUCTION.md`
+  - `doc/evidence/state-eq-baseline-2026-07-18/`
+  - `doc/STATE_EQ_CLAIM_LEDGER.md`
+- Identified fresh-checkout bootstrap requirements:
+  - enter the `polcert` opam switch explicitly
+  - run `./configure x86_64-linux`
+  - run `make depend` before the artifact target
+  - use a clean output root because the frozen runner does not clear it
+- Added `artifact/state-eq/`, which exports the exact tag with `git archive`,
+  validates tag/tree/Pluto/base-image pins, builds a labeled image, and runs a
+  claim-oriented reviewer entry point with Docker networking disabled.
+- Built and reviewed the new image:
+  - local content ID
+    `sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f`
+  - offline full review: 12 / 12 top-level gates pass
+  - nested artifact runner: 18 / 18 checks pass
+  - compact evidence:
+    `artifact/state-eq/evidence/2026-07-18-full-review.json`
+- Remaining artifact-distribution work:
+  - publish the image and record its registry digest
+  - lock Ubuntu apt and non-Coq opam package versions more completely
+- Completed a read-only affine proof audit in
+  `doc/AFFINE_PROOF_CLEANUP_AUDIT.md`; proof cleanup now proceeds on a separate
+  branch after the archived baseline.
+- Added the paper claim ledger and the paper-local State.eq outline. Storage
+  generalization remains a separate future project rather than a prerequisite
+  for the current paper.

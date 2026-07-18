@@ -7,10 +7,10 @@ exists now, not about speculative future extensions.
 Implementation provenance: this document is maintained in the `polcert-dev`
 documentation repository, while the implementation paths, theorem names, and
 artifact command refer to the PolCert implementation repository
-`Hughshine/PolCert` on branch `end-to-end`. The artifact evidence cited below
-was run on code commit `72deba1`, tagged
-`state-eq-polyhedral-verification-complete-2026-05-25`; later commits on that
-branch may be documentation-only.
+`Hughshine/PolCert`. The artifact evidence cited below was run on annotated tag
+`state-eq-polyhedral-verification-complete-2026-05-25-v2`, commit
+`13295e741ad62173411882c6d900dd9dc57337a8`, with Pluto commit
+`6f43860b6c4cddeeca09189bf3073f05b78b14a5`.
 
 For the public naming and layering of the final affine+tiling route, see:
 
@@ -338,23 +338,32 @@ Important theorems:
 
 ## 8. Confirmed Build / Test Status
 
-The current container-side smoke command, run from the root of a PolCert
-implementation checkout, is:
+The implementation-side smoke command is:
 
 ```bash
 make -j4 artifact-check
 ```
 
-The most recent confirmed run on `Hughshine/PolCert@end-to-end` commit `72deba1` passed:
+The exact-tag run on commit `13295e7` passed:
 
 - extraction and `polopt`/`polcert` builds;
 - `make -s check-admitted` with `Nothing admitted.`;
-- proof report generation with no missing listed route theorem;
+- proof report generation over 178 Coq files with no admitted marker, abort,
+  unrealized extraction axiom, or missing listed route theorem;
 - capability matrix generation;
-- Pluto compatibility suite with 113 checks;
+- Pluto compatibility suite with 114 checks;
+- strict generated loop suite with 62 of 62 cases passing;
 - generated-C end-to-end checks for stride and unroll/jam cases;
 - second-level tiling suite;
-- diamond tiling suite.
+- diamond tiling suite;
+- ISS, ISS-live, parallel-current, vector-current, and legacy `make test`.
+
+The replacement Docker artifact in `artifact/state-eq/` also passed a fresh
+offline review with Docker networking disabled. Its 12 top-level gates and all
+18 nested artifact checks passed. The local image content ID is
+`sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f`.
+Registry publication and complete apt/non-Coq-opam dependency locking remain
+artifact-distribution work.
 
 The proof report lists the unified route:
 
@@ -412,16 +421,18 @@ At present this warning does not block:
 It is therefore a runtime cleanliness issue, not a current proof blocker, but it
 is still worth isolating later.
 
-## 11. Recommended Next Extensions
+## 11. Recommended Next Work
 
-The cleanest next extensions are:
+The completed State.eq result should now be prepared for publication:
 
-1. broaden vector and multipar evidence without changing the current doall
-   certificate story;
-2. finish a memory-changing validation layer for scalar privatization,
-   contraction, and layout transformations;
-3. add a generalized state relation for transformations that allocate,
-   privatize, or remap storage.
+1. simplify the inherited affine-scheduling proof in bounded, proof-only
+   commits while preserving the archived tag and theorem interface;
+2. write the paper from the claim ledger, with witness-centered tiling as the
+   central technical extension and ISS/parallel as semantic extensions;
+3. generate paper tables from the archived artifact outputs;
+4. publish the Docker image by registry digest and tighten the remaining
+   apt/non-Coq-opam dependency pins.
 
-That order keeps state-preserving polyhedral compilation separate from the
-storage-changing families that need a different semantic relation.
+Memory-changing validation for scalar privatization, contraction, and layout
+transformations remains a separate future research track. It is not required
+to complete the current State.eq paper.

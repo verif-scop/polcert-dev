@@ -16,7 +16,10 @@ proofs present in the tagged source from checks reproduced on that exact tag.
 - Exact-tag source reproduction: passed on 2026-07-18; see
   `doc/STATE_EQ_BASELINE_REPRODUCTION.md` and
   `doc/evidence/state-eq-baseline-2026-07-18/`
-- New Docker image review: image built; offline full review pending
+- New Docker image review: passed offline with Docker networking disabled;
+  local content ID
+  `sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f`;
+  see `artifact/state-eq/evidence/2026-07-18-full-review.json`
 - Earlier full artifact evidence: commit `72deba1`; useful historical evidence,
   but not sufficient evidence for the final tag because multipar code changed
   after that run
@@ -132,8 +135,8 @@ depend on it.
 
 ## Freeze procedure
 
-1. Complete the new Docker image's offline full review and archive its digest
-   and report.
+1. Publish the Docker image, record its registry digest, and archive the full
+   result bundle with the published artifact.
 2. Generate paper capability tables from the archived machine-readable output.
 3. Cross-check abstract, introduction, correctness theorem, evaluation, and
    conclusion against this ledger.
