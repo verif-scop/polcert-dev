@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "review": {
+    "profile": "full",
+    "network": "none",
+    "ok": true,
+    "elapsed_seconds": 1992.6,
+    "raw_results": "local-only: artifact/state-eq/results-full-20260718"
+  },
+  "source": {
+    "tag": "state-eq-polyhedral-verification-complete-2026-05-25-v2",
+    "tag_object": "f9cc209ae597f58e98841a96e13f8b355ee75eb3",
+    "commit": "13295e741ad62173411882c6d900dd9dc57337a8",
+    "tree": "8b83093929e54657c033fa09c5aae73b492c0b67",
+    "archive_sha256": "2fb4b1685fceac34df77cd9acff7aaec7886adea4c50d0cb1b531013b320e7f3"
+  },
+  "images": {
+    "pluto_base": {
+      "reference": "hughshine/pluto-verif:polcert-pluto-iss-bridge-ac5ea83",
+      "digest": "sha256:0e15a7614af280b02ab0dc31f110c3ee3f7a1fe3ee3d1b503cc3400d87b4f4ce"
+    },
+    "source": {
+      "reference": "polcert-artifact-source:13295e741ad6",
+      "id": "sha256:80cb7090907438e35a892e135b0362d14c2832823a02fd6dd7e734c2ecbed020"
+    },
+    "artifact": {
+      "reference": "polcert-artifact:state-eq-2026-05-25-v2",
+      "id": "sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f"
+    }
+  },
+  "environment": {
+    "opam": "2.0.8",
+    "ocaml": "4.13.1",
+    "coq": "8.13.2",
+    "pluto": "6f43860b6c4cddeeca09189bf3073f05b78b14a5",
+    "python": "3.8.10"
+  },
+  "top_level_results": [
+    {"name": "pluto-baseline", "ok": true, "elapsed_seconds": 0.5},
+    {"name": "clean", "ok": true, "elapsed_seconds": 0.1},
+    {"name": "depend", "ok": true, "elapsed_seconds": 0.4},
+    {"name": "proof-build", "ok": true, "elapsed_seconds": 754.8},
+    {"name": "check-admitted", "ok": true, "elapsed_seconds": 0.2},
+    {"name": "extraction", "ok": true, "elapsed_seconds": 25.6},
+    {"name": "build-polopt", "ok": true, "elapsed_seconds": 54.3},
+    {"name": "build-polcert-ini", "ok": true, "elapsed_seconds": 0.1},
+    {"name": "build-polcert", "ok": true, "elapsed_seconds": 1.3},
+    {"name": "core-regression", "ok": true, "elapsed_seconds": 50.0},
+    {"name": "artifact-check", "ok": true, "elapsed_seconds": 1097.4},
+    {"name": "vector-current-suite", "ok": true, "elapsed_seconds": 7.9}
+  ],
+  "proof_report": {
+    "coq_file_count": 178,
+    "admitted_count": 0,
+    "abort_count": 0,
+    "extraction_axiom_count": 0,
+    "missing_route_theorem_count": 0
+  },
+  "capability_results": {
+    "artifact_subchecks": 18,
+    "artifact_subchecks_passed": 18,
+    "pluto_compat_checks": 114,
+    "strict_loop_suite": {"total": 62, "passed": 62, "changed": 59, "detected_tiled": 39},
+    "iss_suite": "PASS",
+    "parallel_current_suite": "PASS",
+    "vector_current_suite": "PASS",
+    "second_level_suite": "PASS",
+    "diamond_suite": "PASS"
+  },
+  "build_notes": {
+    "elapsed_seconds_cached": 6.1,
+    "cache_note": "The real image build reused previously verified apt/opam/Pluto layers; the exact source COPY, configure, wrapper, labels, and metadata layers were rebuilt.",
+    "warnings": "The frozen source Dockerfile emitted seven legacy ENV syntax warnings; the artifact wrapper Dockerfile passed BuildKit static checks without warnings.",
+    "dependency_boundary": "PolCert, Pluto, the Pluto base digest, OCaml, and Coq are pinned. Apt and non-Coq opam package versions remain only partially locked."
+  }
+}
