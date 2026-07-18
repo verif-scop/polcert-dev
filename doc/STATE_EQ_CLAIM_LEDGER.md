@@ -13,7 +13,10 @@ proofs present in the tagged source from checks reproduced on that exact tag.
 - PolCert commit: `13295e741ad62173411882c6d900dd9dc57337a8`
 - Pluto commit: `6f43860b6c4cddeeca09189bf3073f05b78b14a5`, verified in
   both `tools/ci/pluto-baseline.env` and the frozen Dockerfile
-- Exact-tag artifact status: pending clean reproduction
+- Exact-tag source reproduction: passed on 2026-07-18; see
+  `doc/STATE_EQ_BASELINE_REPRODUCTION.md` and
+  `doc/evidence/state-eq-baseline-2026-07-18/`
+- New Docker image review: image built; offline full review pending
 - Earlier full artifact evidence: commit `72deba1`; useful historical evidence,
   but not sufficient evidence for the final tag because multipar code changed
   after that run
@@ -49,22 +52,23 @@ backend behavior, or OpenMP runtime semantics.
 
 | Contribution | Proof surface at frozen tag | Executable evidence required | Exact-tag status |
 | --- | --- | --- | --- |
-| End-to-end verified compiler closure | `Extractor.extractor_correct`; `PrepareCodegen.prepared_codegen_correct_general`; `VerifiedParallelCompilerConfig.compile_correct` | Clean proof build, extraction, `polopt` build, representative source-to-output runs | Pending reproduction |
-| Inherited affine scheduling validation | `AffineValidator.v`; `PolOptCorrect.Affine_opt_prepared_correct` and `Opt_correct` | Affine-only positive and negative cases in strict and Pluto-compatible suites | Pending reproduction |
-| Witness-centered generic tiling | `TilingValidator.checked_tiling_validate_poly_correct`; `checked_tiling_prepared_codegen_correct` | Ordinary and identity tiling cases, witness rejection cases, generated-code checks | Pending reproduction |
-| Pluto-oriented band-aware tiling | `TilingBandScheduleValidator.checked_tiling_schedule_stripmined_validate_correct_same_ctxt_pluto_structured` | Default band-aware route plus legacy generic comparison and rejection cases | Pending reproduction |
-| Second-level / hierarchical tiling | Accepted `RawSeq` and checked route composition through `compile_seq_verified_correct` | Dedicated second-level suite and ISS/parallel composition cases | Pending reproduction |
-| Diamond and full-diamond routes | `ParallelPolOptCorrect.try_diamond_phase_pipeline_from_source_pol_poly_correct` and diamond route lemmas; final composition through `compile_correct` | Diamond suite, full-diamond cases, ISS/parallel compositions, frontend versus validator rejection classification | Pending reproduction |
-| ISS structural generalization | `ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct`; ISS route lemmas in `PolOptCorrect.v` and `ParallelPolOptCorrect.v` | ISS-only, affine, tiled, second-level, diamond, and parallel compositions | Pending reproduction |
-| Checked parallel-current | `ParallelValidator.checked_parallelize_current_sound`; `ParallelCodegen.checked_annotated_codegen_correct_general`; single-current route theorems in `ParallelPolOptCorrect.v` | Explicit-current and Pluto-hinted positive/negative cases; emitted `ParMode` output | Pending reproduction |
-| Checked multipar | `ParallelCodegen.checked_annotated_codegen_many_correct_general`; `Opt_parallel_current_many_*_correct`; final `compile_correct` composition | Pluto-hinted multi-current cases, strict hint handling, unsupported plan rejection | Pending reproduction |
-| Checked vector annotations | `ParallelCodegen.checked_vector_annotated_codegen_correct_general`; `ParallelPolOpt.checked_vector_current_annotated_codegen_correct` | Explicit and Pluto-hinted vector cases using the documented doall certificate | Pending reproduction |
-| Checked unroll/jam subset | `LoopUnroll.const_unroll_correct`, `peel_unroll_correct`, `suffix_peel_unroll_correct`, and `block_unroll_correct` | Effect corpus and generated-C semantic checks for supported factors/shapes | Pending reproduction |
-| Literal stride lowering | `LoopStride.stride_loop_stmt_semantics` and `down_stride_loop_stmt_semantics` | Positive- and negative-literal stride generated-C cases | Pending reproduction |
-| Verified cleanup | `LoopCleanup.cleanup_correct`; `LoopSingletonCleanup.cleanup_correct` | Cleanup/singleton cases and downstream extraction/codegen checks | Pending reproduction |
+| End-to-end verified compiler closure | `Extractor.extractor_correct`; `PrepareCodegen.prepared_codegen_correct_general`; `VerifiedParallelCompilerConfig.compile_correct` | Clean proof build, extraction, `polopt` build, representative source-to-output runs | Exact-tag proof/build, `artifact-check-full`, and `make test`: pass |
+| Inherited affine scheduling validation | `AffineValidator.v`; `PolOptCorrect.Affine_opt_prepared_correct` and `Opt_correct` | Affine-only positive and negative cases in strict and Pluto-compatible suites | Strict `62/62`; compatibility `114/114` |
+| Witness-centered generic tiling | `TilingValidator.checked_tiling_validate_poly_correct`; `checked_tiling_prepared_codegen_correct` | Ordinary and identity tiling cases, witness rejection cases, generated-code checks | Strict, compatibility, and identity-composition checks: pass |
+| Pluto-oriented band-aware tiling | `TilingBandScheduleValidator.checked_tiling_schedule_stripmined_validate_correct_same_ctxt_pluto_structured` | Default band-aware route plus legacy generic comparison and rejection cases | Strict and compatibility checks: pass |
+| Second-level / hierarchical tiling | Accepted `RawSeq` and checked route composition through `compile_seq_verified_correct` | Dedicated second-level suite and ISS/parallel composition cases | Second-level suite: pass; compatibility compositions: pass |
+| Diamond and full-diamond routes | `ParallelPolOptCorrect.try_diamond_phase_pipeline_from_source_pol_poly_correct` and diamond route lemmas; final composition through `compile_correct` | Diamond suite, full-diamond cases, ISS/parallel compositions, frontend versus validator rejection classification | Diamond suite and compatibility compositions: pass |
+| ISS structural generalization | `ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct`; ISS route lemmas in `PolOptCorrect.v` and `ParallelPolOptCorrect.v` | ISS-only, affine, tiled, second-level, diamond, and parallel compositions | Dump suite and live Pluto suite: pass |
+| Checked parallel-current | `ParallelValidator.checked_parallelize_current_sound`; `ParallelCodegen.checked_annotated_codegen_correct_general`; single-current route theorems in `ParallelPolOptCorrect.v` | Explicit-current and Pluto-hinted positive/negative cases; emitted `ParMode` output | Parallel-current and compatibility suites: pass |
+| Checked multipar | `ParallelCodegen.checked_annotated_codegen_many_correct_general`; `Opt_parallel_current_many_*_correct`; final `compile_correct` composition | Pluto-hinted multi-current cases, strict hint handling, unsupported plan rejection | Compatibility multipar and strict-hint cases: pass |
+| Checked vector annotations | `ParallelCodegen.checked_vector_annotated_codegen_correct_general`; `ParallelPolOpt.checked_vector_current_annotated_codegen_correct` | Explicit and Pluto-hinted vector cases using the documented doall certificate | Vector-current and compatibility vector cases: pass |
+| Checked unroll/jam subset | `LoopUnroll.const_unroll_correct`, `peel_unroll_correct`, `suffix_peel_unroll_correct`, and `block_unroll_correct` | Effect corpus and generated-C semantic checks for supported factors/shapes | Effect corpus and three generated-C checks: pass |
+| Literal stride lowering | `LoopStride.stride_loop_stmt_semantics` and `down_stride_loop_stmt_semantics` | Positive- and negative-literal stride generated-C cases | Both generated-C stride checks: pass |
+| Verified cleanup | `LoopCleanup.cleanup_correct`; `LoopSingletonCleanup.cleanup_correct` | Cleanup/singleton cases and downstream extraction/codegen checks | Exact-tag proof, extraction, strict, and core test gates: pass |
 
-The exact-tag proof report must confirm the theorem names above. The ledger
-should be generated from or checked against the report before paper freeze.
+The exact-tag proof report confirmed all 24 theorem-facing routes named by its
+route map. The ledger should remain checked against the generated report before
+paper freeze.
 
 ## Artifact acceptance matrix
 
@@ -128,11 +132,10 @@ depend on it.
 
 ## Freeze procedure
 
-1. Complete the exact-tag run and link its report from this ledger.
-2. Replace every `Pending reproduction` cell with the archived command/result
-   identifier, or narrow the corresponding claim.
-3. Generate paper capability tables from the archived machine-readable output.
-4. Cross-check abstract, introduction, correctness theorem, evaluation, and
+1. Complete the new Docker image's offline full review and archive its digest
+   and report.
+2. Generate paper capability tables from the archived machine-readable output.
+3. Cross-check abstract, introduction, correctness theorem, evaluation, and
    conclusion against this ledger.
-5. If proof cleanup changes the paper artifact revision, repeat this process and
+4. If proof cleanup changes the paper artifact revision, repeat this process and
    retain the original tag's image and report.
