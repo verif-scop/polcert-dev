@@ -1,0 +1,21 @@
+make[1]: Entering directory '/tmp/polcert-state-eq-v2-repro'
+make -f Makefile.extr polopt
+make[2]: Entering directory '/tmp/polcert-state-eq-v2-repro'
+make[2]: Leaving directory '/tmp/polcert-state-eq-v2-repro'
+./polopt --validate-iss-pluto-suite
+[ISS-POS] reverse_before.txt -> reverse_after.txt: exit=0
+validation: OK (coq complete-cut-shape)
+[ISS-POS] multi_stmt_periodic_before.txt -> multi_stmt_periodic_after.txt: exit=0
+validation: OK (coq complete-cut-shape)
+[ISS-POS] jacobi_2d_periodic_before.txt -> jacobi_2d_periodic_after.txt: exit=0
+validation: OK (coq complete-cut-shape)
+[ISS-POS] heat_2dp_before.txt -> heat_2dp_after.txt: exit=0
+validation: OK (coq complete-cut-shape)
+[ISS-NEG] reverse_before.txt -> iss_name_collision.txt: exit=1
+validation: FAIL: after stmt S1 has no source payload match
+[ISS-NEG] reverse_before.txt -> reverse_bad_halfspace: exit=1
+validation: FAIL: S1: recovered cut count mismatch
+[ISS-NEG] reverse_before.txt -> reverse_bad_payload: exit=1
+validation: FAIL: after stmt S1 has no source payload match
+[ISS-SUITE] OK
+make[1]: Leaving directory '/tmp/polcert-state-eq-v2-repro'

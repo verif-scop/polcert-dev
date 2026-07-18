@@ -1,0 +1,4364 @@
+{
+  "capabilities": [
+    {
+      "evidence": "strict suite; pluto-compat ordinary-tiled; PolOptBandTiling Opt_band_correct",
+      "next_step": "keep as baseline",
+      "reason": "extracted checked affine plus ordinary/second-level tiling route",
+      "request": "default tiled route",
+      "status": "supported"
+    },
+    {
+      "evidence": "pluto-compat affine-only; Affine_opt_prepared_correct",
+      "next_step": "keep",
+      "reason": "extracted affine-only checked route",
+      "request": "--notile",
+      "status": "supported"
+    },
+    {
+      "evidence": "pluto-compat identity-notile; Identity_opt_prepared_correct",
+      "next_step": "keep",
+      "reason": "extracted no-Pluto identity extraction/codegen route",
+      "request": "--identity --notile",
+      "status": "supported"
+    },
+    {
+      "evidence": "pluto-compat identity-tiled; Opt_identity_tiled_band_correct",
+      "next_step": "add composed identity-tile routes only when they map to an extracted theorem-facing pass",
+      "reason": "checked identity schedule plus tile-only Pluto route; gives a tiling effect when the source-order band is directly tileable",
+      "request": "--identity --tile",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat identity-tiled-iss; Opt_identity_tiled_band_with_iss_correct; identity-composition ISS-sensitive search over 63 regression fixtures",
+      "next_step": "revisit only if a new Pluto/input corpus exposes a distinct ISS-sensitive identity-tiling effect",
+      "reason": "checked ISS complete-cut split composed with the checked identity-tiling route; current fixture demonstrates the tiling effect under the ISS flag, and bounded exploration found no ISS-only or ISS-different case in the regression corpus",
+      "request": "--identity --tile --iss",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat identity-second-level and identity-second-level-matmul-init; identity-composition fusion7 support/effect probe; Identity_tiling_generic_opt_prepared_correct",
+      "next_step": "broaden further beyond directly tileable identity bands",
+      "reason": "checked generic identity tiling route validates Pluto's second-level tile-only output and regenerates the canonical outer-first 256/32 loop shape",
+      "request": "--identity --tile --second-level-tile",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat identity-second-level-iss; identity_tiling_generic_opt_prepared_with_iss_correct",
+      "next_step": "broaden ISS fixtures beyond the focused identity-band case",
+      "reason": "checked ISS complete-cut validation composes with the generic second-level identity-tiling route",
+      "request": "--identity --tile --iss --second-level-tile",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat identity-tiled-parallel; Opt_parallel_current_identity_tiled_result_correct; checked_tiling_validate plus checked_annotated_codegen",
+      "next_step": "broaden fixtures",
+      "reason": "checked identity tiling boundary composed with extracted checked one-dimension parallel codegen over the validated current-space program",
+      "request": "--identity --tile --parallel",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat identity-tiled-multipar; pluto-compat parallel-multipar-three-dims; Opt_parallel_current_many_identity_tiled_correct; checked_annotated_codegen_many",
+      "next_step": "broaden multipar fixtures; strict-mode hint-only positive checks are covered",
+      "reason": "same checked identity tiling boundary, then extracted multi-cert parallel codegen for all distinct accepted current dimensions from Pluto-hinted/current-depth candidates",
+      "request": "--identity --tile --parallel --multipar",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat optimizer-implicit-tile-sizes-file; optimizer-explicit-tile-sizes-file; optimizer-explicit-tile-sizes-file-nodep; explicit-file cleanup check",
+      "next_step": "keep explicit option as preferred artifact interface",
+      "reason": "Pluto reads this old working-directory file to choose tile sizes; PolOpt can now install it explicitly for the oracle call and accepts it because the checked tiling route validates the produced tile-size witness",
+      "request": "tile.sizes / --tile-sizes-file FILE",
+      "status": "supported-legacy-and-explicit-control-file"
+    },
+    {
+      "evidence": "pluto-compat optimizer-implicit-fst-file; optimizer-explicit-fst-file; optimizer-explicit-fst-file-fusion2; explicit-file cleanup check",
+      "next_step": "keep explicit option as preferred artifact interface",
+      "reason": "Pluto reads this old working-directory file to force a fusion/distribution partition; PolOpt can now install it explicitly for the oracle call and accepts schedules that pass the checked affine validator",
+      "request": ".fst / --fusion-structure FILE",
+      "status": "supported-legacy-and-explicit-control-file"
+    },
+    {
+      "evidence": "pluto-compat optimizer-implicit-precut-file; optimizer-explicit-precut-file; optimizer-explicit-precut-file-fusion2; explicit-file cleanup check",
+      "next_step": "keep explicit option as preferred artifact interface",
+      "reason": "Pluto reads this old working-directory file as a partial transformation to complete; PolOpt can now install it explicitly for the oracle call and accepts produced schedules that pass checked affine and tiling validators",
+      "request": ".precut / --precut-file FILE",
+      "status": "supported-legacy-and-explicit-control-file"
+    },
+    {
+      "evidence": "ISS suites",
+      "next_step": "add artifact-check summary",
+      "reason": "ISS split validation plus ordinary optimization route",
+      "request": "--iss",
+      "status": "supported"
+    },
+    {
+      "evidence": "second-level suite; pluto-compat second-level-iss; pluto-compat second-level-parallel; pluto-compat second-level-parallel-matmul-init",
+      "next_step": "broaden fixtures",
+      "reason": "checked second-level tiling route, including ISS, explicit-current, and Pluto-hinted parallel compositions",
+      "request": "--second-level-tile",
+      "status": "supported"
+    },
+    {
+      "evidence": "pluto-compat parallel; pluto-compat parallel-multipar; compile_verified_correct; Opt_parallel_current_many_correct",
+      "next_step": "broaden hint-selection fixtures",
+      "reason": "Pluto-hinted route uses extracted tiling/parallel validators and codegen, with Pluto used only to choose candidate current dimensions",
+      "request": "--parallel",
+      "status": "supported-component-verified"
+    },
+    {
+      "evidence": "parallel-current suite; identity-tiled-current-combined-effect; Opt_parallel_current_correct; Opt_parallel_current_identity_tiled_result_correct",
+      "next_step": "keep separate from Pluto compatibility",
+      "reason": "explicit checked parallel dimension; native --identity-tiled --parallel-current d exposes the identity-tiling plus explicit-current theorem route",
+      "request": "--parallel-current d",
+      "status": "supported"
+    },
+    {
+      "evidence": "pluto-compat prevector and default-prevector; checked_vector_annotated_codegen_correct_general; vector-current suite",
+      "next_step": "add specialized vector checkers only if future SIMD/reduction semantics need them",
+      "reason": "Pluto vector hints are parsed from OpenScop loop directive bit 4 and checked with the same doall certificate used by parallelization; output is annotated as vector for",
+      "request": "--prevector / --vector",
+      "status": "supported-component-verified"
+    },
+    {
+      "evidence": "vector-current suite; checked_vector_annotated_codegen_correct_general",
+      "next_step": "keep as theorem-facing entry",
+      "reason": "explicit checked vector dimension over the current-space program; reuses the parallel/doall validator and emits vector for",
+      "request": "--vector-current d",
+      "status": "supported"
+    },
+    {
+      "evidence": "pluto-compat const-unrolljam-constant-loop; const-unrolljam-ufactor-constant-loop; block-unrolljam-ufactor-variable-loop; mixed-const-and-block-unrolljam; unrolljam-empty-selector-policy; end-to-end-c const_unroll; end-to-end-c unrolljam_block_variable; end-to-end-c unrolljam_dependent_guard; direct Pluto unroll-jam effect corpus covers 6/6 native codegen effects in the default 11-fixture set and records 0 additional checked PolOpt effects where native Pluto has no clean codegen effect; LoopUnroll.const_unroll_correct; LoopUnroll.block_unroll_correct; LoopJamNative.jammed_two_loop_instance_refines_unjammed; LoopJamLower.try_jam_pair_exact_sound; LoopJamValidator.checked_loop_jam_pair_at_depth_sound; LoopSingletonCleanup.cleanup_correct",
+      "next_step": "broaden the direct effect corpus and keep checked-all-depths as a theorem-facing stress route",
+      "reason": "mapped to checked PolOpt post passes: constant-bound loops are fully unrolled under the theorem-facing selector, while variable-bound sequential loops use block/remainder unroll and jam-fuse same-bound sibling loops through a per-candidate local validator; the default untrusted selector chooses concrete depth/path candidates with a Pluto-profitability-compatible temporal-reuse/register-budget policy",
+      "request": "--unrolljam",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat stride-loop-positive-literal; pluto-compat stride-loop-negative-literal; reject-stride-zero; reject-stride-symbolic; end-to-end-c stride_even; end-to-end-c stride_down; LoopStride.stride_loop_stmt_semantics; LoopStride.down_stride_loop_stmt_semantics; SLoopSymbolicSimpl.display_instr_expr_correct",
+      "next_step": "extend beyond literal strides only after adding a way to prove/enforce step sign and nonzero-ness",
+      "reason": "front-end syntax accepts nonzero integer literal strides and calls extracted LoopStride lowering; positive and negative directions both keep the extractor-facing Loop affine by using a unit-stride candidate loop plus affine guard, and checked codegen can recover the compact stride-indexed shape with theorem-backed symbolic expression display cleanup",
+      "request": ".loop literal stride range(lb, ub, step)",
+      "status": "supported"
+    },
+    {
+      "evidence": "diamond suite; pluto-compat diamond combinations; Opt_diamond_band_correct",
+      "next_step": "broaden effect fixtures and polish raw-codegen fallback output",
+      "reason": "extracted four-phase diamond route with sequential, ISS, second-level, parallel, and multipar compositions",
+      "request": "--diamond-tile",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat full-diamond; pluto-compat full-diamond-batch; Opt_diamond_band_correct",
+      "next_step": "add more effect-distinguishing full-diamond cases",
+      "reason": "stronger producer mode over the same extracted checked diamond route",
+      "request": "--full-diamond-tile",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat diamond-iss; Opt_diamond_band_with_iss_correct",
+      "next_step": "add broader ISS+diamond fixtures",
+      "reason": "ISS bridge validation is composed before the single-level four-phase diamond route",
+      "request": "--diamond-tile --iss",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat full-diamond-iss; Opt_diamond_band_with_iss_correct",
+      "next_step": "add broader ISS+full-diamond fixtures",
+      "reason": "full-diamond producer mode over the same checked ISS+diamond route",
+      "request": "--full-diamond-tile --iss",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat diamond-second-level; Opt_diamond_band_correct",
+      "next_step": "add broader second-level diamond fixtures",
+      "reason": "second-level Pluto diamond output is checked by the same diamond route with second-level witness extraction enabled",
+      "request": "--diamond-tile --second-level-tile",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat diamond-iss-second-level; Opt_diamond_band_with_iss_correct",
+      "next_step": "add broader ISS+second-level diamond fixtures",
+      "reason": "ISS bridge validation composes with second-level diamond witness extraction",
+      "request": "--diamond-tile --iss --second-level-tile",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat diamond-parallel; pluto-compat diamond-parallel-jacobi-batch; Opt_parallel_current_diamond_correct",
+      "next_step": "polish singleton-loop cleanup output",
+      "reason": "Pluto supplies the parallel hint; polopt routes the selected dimension through the checked diamond parallel-current validator with raw-codegen fallback when cleanup would make traces non-affine",
+      "request": "--diamond-tile --parallel",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat diamond-parallel-multipar; Opt_parallel_current_many_diamond_correct; checked_annotated_codegen_many_correct_general",
+      "next_step": "broaden diamond multipar fixtures; strict-mode hint-only positive checks are covered",
+      "reason": "the extracted diamond pipeline can feed a list of candidate current dimensions into the checked multi-cert parallel codegen route",
+      "request": "--diamond-tile --parallel --multipar",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat diamond-iss-parallel; Opt_parallel_current_diamond_with_iss_correct",
+      "next_step": "broaden ISS fixtures beyond the single-statement batch stencil",
+      "reason": "ISS bridge validation composes with the Pluto-hinted diamond parallel-current route",
+      "request": "--diamond-tile --iss --parallel",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat diamond-iss-parallel-multipar; Opt_parallel_current_many_diamond_with_iss_correct; checked_annotated_codegen_many_correct_general",
+      "next_step": "broaden ISS diamond multipar fixtures; strict-mode hint-only positive checks are covered",
+      "reason": "ISS bridge validation composes with the Pluto-hinted diamond multi-cert parallel-current route",
+      "request": "--diamond-tile --iss --parallel --multipar",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "parallel-current diamond-current-combined-effect; parallel-current diamond-current-jacobi-batch-positive; Opt_parallel_current_diamond_correct",
+      "next_step": "polish singleton-loop cleanup output",
+      "reason": "diamond route validates the four-phase diamond boundary before explicit current-space parallel certification; positive support includes the single-statement batch stencil and batched two-statement Jacobi via checked raw-codegen fallback",
+      "request": "--diamond-tile --parallel-current d",
+      "status": "supported-narrow"
+    },
+    {
+      "evidence": "pluto-compat optimizer-candldep-scalpriv-affine; optimizer-candldep-scalpriv-parallel-conservative; bare --scalpriv rejection",
+      "next_step": "add a checked scalar-private storage rewrite before accepting schedules or parallel hints that require privatization",
+      "reason": "Candl scalar-privatization is passed to Pluto only with --candldep; PolOpt still validates the produced schedule and parallel hints under the original scalar storage semantics",
+      "request": "--candldep --scalpriv",
+      "status": "supported-conservative-oracle-tuning"
+    },
+    {
+      "evidence": "route rejection",
+      "next_step": "keep rejecting",
+      "reason": "diamond requires a tiling phase",
+      "request": "--diamond-tile --notile",
+      "status": "correct-rejection"
+    },
+    {
+      "evidence": "route rejection",
+      "next_step": "keep rejecting unless a meaningful identity-diamond route is designed",
+      "reason": "diamond requires Pluto scheduling/skew plus tiling",
+      "request": "--diamond-tile --identity",
+      "status": "correct-rejection"
+    },
+    {
+      "evidence": "tools/artifact/explore_identity_compositions.py; compat rejection",
+      "next_step": "keep rejecting unless a distinct identity-diamond effect fixture appears",
+      "reason": "direct Pluto's identity diamond output is not distinct from ordinary identity tiling on the 63-fixture regression corpus; the focused wavefront phase dump validates but exposes no route-specific output effect",
+      "request": "--identity --tile --diamond-tile",
+      "status": "correct-rejection"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto Candl dependence analysis is passed through when the selected Pluto binary passes the Candl importer smoke probe",
+      "request": "--candldep",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto automatic tile-size selection is passed to the checked scheduler oracle",
+      "request": "--determine-tile-size",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto fast linear-independence search is passed to the checked scheduler oracle",
+      "request": "--fast-lin-ind-check",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto fast linear-independence search is passed to the checked scheduler oracle",
+      "request": "--flic",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto intra-tile schedule rewriting is passed to the checked scheduler oracle",
+      "request": "--intratileopt",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto ISL access-wise dependence extraction is passed to the checked scheduler oracle",
+      "request": "--isldepaccesswise",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto ISL dependence coalescing is passed to the checked scheduler oracle",
+      "request": "--isldepcoalesce",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto ISL statement-wise dependence extraction is passed to the checked scheduler oracle",
+      "request": "--isldepstmtwise",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto last-writer dependence mode is passed to the checked scheduler oracle",
+      "request": "--lastwriter",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto maximal-fusion policy is passed to the checked scheduler oracle",
+      "request": "--maxfuse",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto multi-degree parallel extraction is passed to the checked scheduler oracle",
+      "request": "--multipar",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto dependence-bound search tuning is passed to the checked scheduler oracle",
+      "request": "--nodepbound",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto no-fusion policy is passed to the checked scheduler oracle",
+      "request": "--nofuse",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto default transitive dependence mode is passed to the checked scheduler oracle",
+      "request": "--nolastwriter",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto per-connected-component objective is passed to the checked scheduler oracle",
+      "request": "--per-cc-obj",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto PIP solver selection is passed to the checked scheduler oracle",
+      "request": "--pipsolve",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden fixtures for additional effect cases",
+      "reason": "Pluto smart fusion policy is passed to the checked scheduler oracle",
+      "request": "--smartfuse",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden value/effect fixtures",
+      "reason": "Pluto cache-size tile model parameter is passed to the checked scheduler oracle",
+      "request": "--cache-size <n>",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden value/effect fixtures",
+      "reason": "Pluto affine coefficient bound is passed to the checked scheduler oracle",
+      "request": "--coeff-bound <n>",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden value/effect fixtures",
+      "reason": "Pluto data-element-size tile model parameter is passed to the checked scheduler oracle",
+      "request": "--data-element-size <n>",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden value/effect fixtures",
+      "reason": "Pluto force-parallel bit-vector is passed through; this pinned Pluto source has no effective use site",
+      "request": "--forceparallel <n>",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden value/effect fixtures",
+      "reason": "Pluto first tiled hyperplane level is passed to the checked scheduler oracle",
+      "request": "--ft <n>",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden value/effect fixtures",
+      "reason": "Pluto last tiled hyperplane level is passed to the checked scheduler oracle",
+      "request": "--lt <n>",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pluto-compat optimizer tuning checks; existing affine/tiling validators re-check the produced schedule",
+      "next_step": "broaden value/effect fixtures",
+      "reason": "Pluto tile-size model unroll factor is passed through with --determine-tile-size; with checked --unrolljam it is used by the verified LoopUnroll post pass",
+      "request": "--ufactor <n>",
+      "status": "supported-oracle-tuning"
+    },
+    {
+      "evidence": "pinned GLPK-enabled Pluto baseline accepts and validates representative affine cases, including non-matmul DFP/typed/hybrid/delayedcut checks where applicable; alternate Pluto binaries are rejected if they lack the advertised option",
+      "next_step": "broaden delayed-cut-specific and non-dense-kernel effect fixtures",
+      "reason": "Pluto DFP SCC clustering is passed through when the selected Pluto binary advertises LP/DFP support",
+      "request": "--clusterscc",
+      "status": "supported-oracle-tuning-with-runtime-probe"
+    },
+    {
+      "evidence": "pinned GLPK-enabled Pluto baseline accepts and validates representative affine cases, including non-matmul DFP/typed/hybrid/delayedcut checks where applicable; alternate Pluto binaries are rejected if they lack the advertised option",
+      "next_step": "broaden delayed-cut-specific and non-dense-kernel effect fixtures",
+      "reason": "Pluto DFP delayed-cut mode is passed through when the selected Pluto binary has GLPK or Gurobi support",
+      "request": "--delayedcut",
+      "status": "supported-oracle-tuning-with-runtime-probe"
+    },
+    {
+      "evidence": "pinned GLPK-enabled Pluto baseline accepts and validates representative affine cases, including non-matmul DFP/typed/hybrid/delayedcut checks where applicable; alternate Pluto binaries are rejected if they lack the advertised option",
+      "next_step": "broaden delayed-cut-specific and non-dense-kernel effect fixtures",
+      "reason": "Pluto DFP scheduler mode is passed through when the selected Pluto binary advertises LP/DFP support",
+      "request": "--dfp",
+      "status": "supported-oracle-tuning-with-runtime-probe"
+    },
+    {
+      "evidence": "pinned GLPK-enabled Pluto baseline accepts and validates representative affine cases, including non-matmul DFP/typed/hybrid/delayedcut checks where applicable; alternate Pluto binaries are rejected if they lack the advertised option",
+      "next_step": "broaden delayed-cut-specific and non-dense-kernel effect fixtures",
+      "reason": "Pluto GLPK solver selection is passed through when the selected Pluto binary advertises --glpk",
+      "request": "--glpk",
+      "status": "supported-oracle-tuning-with-runtime-probe"
+    },
+    {
+      "evidence": "pinned GLPK-enabled Pluto baseline accepts and validates representative affine cases, including non-matmul DFP/typed/hybrid/delayedcut checks where applicable; alternate Pluto binaries are rejected if they lack the advertised option",
+      "next_step": "broaden delayed-cut-specific and non-dense-kernel effect fixtures",
+      "reason": "Pluto Gurobi solver selection is passed through when the selected Pluto binary advertises --gurobi",
+      "request": "--gurobi",
+      "status": "supported-oracle-tuning-with-runtime-probe"
+    },
+    {
+      "evidence": "pinned GLPK-enabled Pluto baseline accepts and validates representative affine cases, including non-matmul DFP/typed/hybrid/delayedcut checks where applicable; alternate Pluto binaries are rejected if they lack the advertised option",
+      "next_step": "broaden delayed-cut-specific and non-dense-kernel effect fixtures",
+      "reason": "Pluto hybrid fusion is passed through when the selected Pluto binary has GLPK or Gurobi support",
+      "request": "--hybridfuse",
+      "status": "supported-oracle-tuning-with-runtime-probe"
+    },
+    {
+      "evidence": "pinned GLPK-enabled Pluto baseline accepts and validates representative affine cases, including non-matmul DFP/typed/hybrid/delayedcut checks where applicable; alternate Pluto binaries are rejected if they lack the advertised option",
+      "next_step": "broaden delayed-cut-specific and non-dense-kernel effect fixtures",
+      "reason": "Pluto DFP ILP mode is passed through when the selected Pluto binary advertises LP/DFP support",
+      "request": "--ilp",
+      "status": "supported-oracle-tuning-with-runtime-probe"
+    },
+    {
+      "evidence": "pinned GLPK-enabled Pluto baseline accepts and validates representative affine cases, including non-matmul DFP/typed/hybrid/delayedcut checks where applicable; alternate Pluto binaries are rejected if they lack the advertised option",
+      "next_step": "broaden delayed-cut-specific and non-dense-kernel effect fixtures",
+      "reason": "Pluto LP relaxation mode is passed through when the selected Pluto binary advertises --lp",
+      "request": "--lp",
+      "status": "supported-oracle-tuning-with-runtime-probe"
+    },
+    {
+      "evidence": "pinned GLPK-enabled Pluto baseline accepts and validates representative affine cases, including non-matmul DFP/typed/hybrid/delayedcut checks where applicable; alternate Pluto binaries are rejected if they lack the advertised option",
+      "next_step": "broaden delayed-cut-specific and non-dense-kernel effect fixtures",
+      "reason": "Pluto LP-coloring mode is passed through when the selected Pluto binary advertises LP/DFP support",
+      "request": "--lpcolor",
+      "status": "supported-oracle-tuning-with-runtime-probe"
+    },
+    {
+      "evidence": "pinned GLPK-enabled Pluto baseline accepts and validates representative affine cases, including non-matmul DFP/typed/hybrid/delayedcut checks where applicable; alternate Pluto binaries are rejected if they lack the advertised option",
+      "next_step": "broaden delayed-cut-specific and non-dense-kernel effect fixtures",
+      "reason": "Pluto typed fusion is passed through when the selected Pluto binary has GLPK or Gurobi support",
+      "request": "--typedfuse",
+      "status": "supported-oracle-tuning-with-runtime-probe"
+    },
+    {
+      "evidence": "native compat rejection",
+      "next_step": "keep as separate importer/debug mode if needed",
+      "reason": "Pluto OpenScop dumps are an oracle-debug interface, not a polopt input/output mode",
+      "request": "--dumpscop",
+      "status": "out-of-optimizer-surface"
+    },
+    {
+      "evidence": "native compat rejection",
+      "next_step": "keep as separate importer/debug mode if needed",
+      "reason": "frontend is polopt's verified loop extractor, not Pluto/PET",
+      "request": "--pet",
+      "status": "out-of-optimizer-surface"
+    },
+    {
+      "evidence": "native compat rejection",
+      "next_step": "keep as separate importer/debug mode if needed",
+      "reason": "frontend is polopt's verified loop extractor, not Pluto OpenScop input",
+      "request": "--readscop",
+      "status": "out-of-optimizer-surface"
+    },
+    {
+      "evidence": "native compat rejection",
+      "next_step": "implement checked PolOpt equivalent, not Pluto pass-through",
+      "reason": "Bee pragmas are Pluto codegen output, while polopt uses its own codegen",
+      "request": "--bee",
+      "status": "validator-or-codegen-gap"
+    },
+    {
+      "evidence": "native compat rejection",
+      "next_step": "implement checked PolOpt equivalent, not Pluto pass-through",
+      "reason": "Cloog codegen tuning is outside the polopt checked route",
+      "request": "--cloogsh",
+      "status": "validator-or-codegen-gap"
+    },
+    {
+      "evidence": "native compat rejection",
+      "next_step": "implement checked PolOpt equivalent, not Pluto pass-through",
+      "reason": "formatting is outside the optimizer-validation route",
+      "request": "--indent",
+      "status": "validator-or-codegen-gap"
+    },
+    {
+      "evidence": "native compat stale/current-Pluto rejection checks",
+      "next_step": "do not expose as optimizer compatibility",
+      "reason": "this flag is not accepted by the current Pluto binary",
+      "request": "--dump-iss-bridge",
+      "status": "stale-or-non-pluto"
+    },
+    {
+      "evidence": "native compat stale/current-Pluto rejection checks",
+      "next_step": "do not expose as optimizer compatibility",
+      "reason": "this flag appears in stale scripts but is not accepted by the current Pluto binary",
+      "request": "--lbtile",
+      "status": "stale-or-non-pluto"
+    },
+    {
+      "evidence": "native compat stale/current-Pluto rejection checks",
+      "next_step": "do not expose as optimizer compatibility",
+      "reason": "this flag appears in stale scripts but is not accepted by the current Pluto binary",
+      "request": "--multipipe",
+      "status": "stale-or-non-pluto"
+    },
+    {
+      "evidence": "native compat stale/current-Pluto rejection checks",
+      "next_step": "do not expose as optimizer compatibility",
+      "reason": "the current Pluto binary uses -o, not --output",
+      "request": "--output",
+      "status": "stale-or-non-pluto"
+    },
+    {
+      "evidence": "native compat stale/current-Pluto rejection checks",
+      "next_step": "do not expose as optimizer compatibility",
+      "reason": "this flag appears in stale scripts but is not accepted by the current Pluto binary",
+      "request": "--sched",
+      "status": "stale-or-non-pluto"
+    },
+    {
+      "evidence": "native compat stale/current-Pluto rejection checks",
+      "next_step": "do not expose as optimizer compatibility",
+      "reason": "this flag appears in stale scripts but is not accepted by the current Pluto binary",
+      "request": "--variables_not_global",
+      "status": "stale-or-non-pluto"
+    }
+  ],
+  "compatibility_checks": [
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "32 *",
+        "/ 32"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "ordinary-tiled",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: <default>"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--intratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range(0, ((M + 31) / 32))"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-intratileopt",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --intratileopt"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--determine-tile-size",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "2048 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-determine-tile-size",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --determine-tile-size"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--determine-tile-size",
+        "--cache-size=32768",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--determine-tile-size",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "64 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-cache-size",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --determine-tile-size --cache-size=32768"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--determine-tile-size",
+        "--data-element-size=16",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--determine-tile-size",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "1024 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-data-element-size",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --determine-tile-size --data-element-size=16"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--determine-tile-size",
+        "--cache-size=32768",
+        "--data-element-size=8",
+        "--ufactor=3",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--determine-tile-size",
+          "--cache-size=32768",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "63 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-ufactor-tile-model",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --determine-tile-size --cache-size=32768 --data-element-size=8 --ufactor=3"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [
+        "32 *",
+        "/ 32"
+      ],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "affine-only",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --notile"
+    },
+    {
+      "args": [
+        "--notile",
+        "--nofuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/fusion1.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-nofuse-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --nofuse"
+    },
+    {
+      "args": [
+        "--notile",
+        "--maxfuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/fusion6.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-maxfuse-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --maxfuse"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--nodepbound",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i2 in range((i0 + -1), i0)",
+        "B[i2][i3]"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/fusion2.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-nodepbound-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --nodepbound"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--per-cc-obj",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range((i0 + 1), (m + 1))",
+        "mean[m] = 0.0;"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/pca.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-per-cc-obj-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --per-cc-obj"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--flic",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range(1, N)",
+        "a[i0][i1] ="
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/costfunc.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-flic-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --flic"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--fast-lin-ind-check",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range(1, N)",
+        "a[i0][i1] ="
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/costfunc.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-fast-lin-ind-check-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --fast-lin-ind-check"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--lastwriter",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i0 in range(0, M)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-lastwriter-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --lastwriter"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--nolastwriter",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-nolastwriter-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --nolastwriter"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--pipsolve",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-pipsolve-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --pipsolve"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--isldepaccesswise",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-isldepaccesswise-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --isldepaccesswise"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--isldepstmtwise",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-isldepstmtwise-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --isldepstmtwise"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--isldepcoalesce",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-isldepcoalesce-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --isldepcoalesce"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--coeff-bound=10",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-coeff-bound-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --coeff-bound=10"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--coeff-bound=1",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "A[(2 * i0)] = 1;",
+        "B[3] = A[3];"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/fusion10.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-coeff-bound-tight-effect",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --coeff-bound=1"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--forceparallel=1",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-forceparallel-pass-through",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --forceparallel=1"
+    },
+    {
+      "args": [
+        "--identity",
+        "--notile",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "identity-notile",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --identity"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--ft=0",
+        "--lt=1",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "partial-tiling-levels",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --ft=0 --lt=1"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel",
+        "--second-level-tile"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/second_level_tiling/fixtures/matmul-init.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "second-level",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --second-level-tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel",
+        "--iss",
+        "--second-level-tile"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel",
+          "--iss"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "8 *",
+        "/ 256",
+        "32 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/second_level_tiling/fixtures/matmul-init.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "second-level-iss",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --iss --second-level-tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--parallel",
+        "--innerpar"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "parallel",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --parallel"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--parallel",
+        "--multipar",
+        "--innerpar"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--parallel",
+          "--innerpar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for i0",
+        "parallel for i2"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/nodep.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "parallel-multipar",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --multipar"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--parallel",
+        "--multipar",
+        "--parallel-strict",
+        "--innerpar"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--parallel",
+          "--multipar",
+          "--innerpar"
+        ]
+      ],
+      "effect_absent": [
+        "parallel for i2"
+      ],
+      "effect_needles": [
+        "parallel for i0"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/nodep.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "parallel-multipar-strict-hint-only",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --multipar"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--parallel",
+        "--multipar",
+        "--innerpar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--parallel",
+          "--innerpar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for i0",
+        "parallel for i1",
+        "parallel for i2"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/triple-nodep.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "parallel-multipar-three-dims",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --multipar"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--parallel",
+        "--innerpar",
+        "--second-level-tile"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel",
+          "--second-level-tile"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for",
+        "32 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/nodep.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "second-level-parallel",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --second-level-tile --parallel"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--parallel",
+        "--innerpar",
+        "--second-level-tile"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel",
+          "--second-level-tile"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for i1",
+        "/ 256",
+        "8 *",
+        "32 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/second_level_tiling/fixtures/matmul-init.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "second-level-parallel-matmul-init",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --second-level-tile --parallel"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--parallel",
+        "--multipar",
+        "--innerpar",
+        "--second-level-tile"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--parallel",
+          "--innerpar",
+          "--second-level-tile"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for i0",
+        "parallel for i1"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/nodep.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "second-level-parallel-multipar",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --multipar"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--diamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "% 4",
+        "32 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/jacobi-1d-imper.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "diamond",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --diamond-tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--diamond-tile",
+        "--noparallel",
+        "--iss"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel",
+          "--iss"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "% 4",
+        "32 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/jacobi-1d-imper.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "diamond-iss",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --iss --diamond-tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--diamond-tile",
+        "--parallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--diamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for",
+        "32 *",
+        "/ 32",
+        "i4 + (-1 * i5)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/parallel_current/fixtures/diamond-example-inner-batch.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "diamond-parallel",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --diamond-tile --parallel"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--diamond-tile",
+        "--parallel",
+        "--multipar",
+        "--innerpar"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--diamond-tile",
+          "--parallel",
+          "--innerpar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for i0",
+        "parallel for i5",
+        "i4 + (-1 * i5)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/parallel_current/fixtures/diamond-example-inner-batch.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "diamond-parallel-multipar",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --multipar"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--diamond-tile",
+        "--parallel",
+        "--multipar",
+        "--parallel-strict",
+        "--innerpar"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--diamond-tile",
+          "--parallel",
+          "--multipar",
+          "--innerpar"
+        ]
+      ],
+      "effect_absent": [
+        "parallel for i5"
+      ],
+      "effect_needles": [
+        "parallel for i0",
+        "i4 + (-1 * i5)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/parallel_current/fixtures/diamond-example-inner-batch.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "diamond-parallel-multipar-strict-hint-only",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --multipar"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--diamond-tile",
+        "--parallel",
+        "--iss"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--diamond-tile",
+          "--noparallel",
+          "--iss"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for",
+        "32 *",
+        "/ 32",
+        "i4 + (-1 * i5)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/parallel_current/fixtures/diamond-example-inner-batch.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "diamond-iss-parallel",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --iss --diamond-tile --parallel"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--diamond-tile",
+        "--parallel",
+        "--multipar",
+        "--innerpar",
+        "--iss"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--diamond-tile",
+          "--parallel",
+          "--iss"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for i0",
+        "parallel for i5",
+        "i4 + (-1 * i5)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/parallel_current/fixtures/diamond-example-inner-batch.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "diamond-iss-parallel-multipar",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --multipar"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--diamond-tile",
+        "--parallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--diamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for",
+        "64 *",
+        "(-2 * i11)",
+        "a[",
+        "b["
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/parallel_current/fixtures/jacobi-batch.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "diamond-parallel-jacobi-batch",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --diamond-tile --parallel"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--diamond-tile",
+        "--noparallel",
+        "--second-level-tile"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ],
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--diamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "% 4"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/jacobi-1d-imper.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "diamond-second-level",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --second-level-tile --diamond-tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--diamond-tile",
+        "--noparallel",
+        "--iss",
+        "--second-level-tile"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel",
+          "--iss"
+        ],
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--diamond-tile",
+          "--noparallel",
+          "--iss"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "% 4"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/jacobi-1d-imper.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "diamond-iss-second-level",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --iss --second-level-tile --diamond-tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--full-diamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "% 4",
+        "32 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/jacobi-1d-imper.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "full-diamond",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --full-diamond-tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--full-diamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [
+        "32 *",
+        "i4 + (-1 * i5)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/parallel_current/fixtures/diamond-example-inner-batch.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "full-diamond-batch",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --full-diamond-tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--full-diamond-tile",
+        "--noparallel",
+        "--iss"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel",
+          "--iss"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "% 4",
+        "32 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/jacobi-1d-imper.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "full-diamond-iss",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --iss --full-diamond-tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--full-diamond-tile",
+        "--noparallel",
+        "--second-level-tile"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ],
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--full-diamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "% 4"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/jacobi-1d-imper.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "full-diamond-second-level",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --second-level-tile --full-diamond-tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--full-diamond-tile",
+        "--noparallel",
+        "--iss",
+        "--second-level-tile"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel",
+          "--iss"
+        ],
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--full-diamond-tile",
+          "--noparallel",
+          "--iss"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "% 4"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/jacobi-1d-imper.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "full-diamond-iss-second-level",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --iss --second-level-tile --full-diamond-tile"
+    },
+    {
+      "args": [],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-bare-default",
+      "needle": "Pluto enables --intratileopt by default",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--prevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "vector for"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "prevector",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --vector"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "vector for"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "default-prevector",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --vector"
+    },
+    {
+      "args": [
+        "--notile",
+        "--nointratileopt",
+        "--noprevector",
+        "--unrolljam",
+        "--nodiamond-tile",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [
+        "for i0 in range"
+      ],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/const_unroll.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "const-unrolljam-constant-loop",
+      "needle": "a[3] = 3;",
+      "normalized": "polopt args: --notile --const-unroll"
+    },
+    {
+      "args": [
+        "--identity",
+        "--notile",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i0 in range(0, ((N + 1) / 2))",
+        "a[(2 * i0)] = ((2 * i0) + 1);"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/stride_even.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "stride-loop-positive-literal",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --identity"
+    },
+    {
+      "args": [
+        "--identity",
+        "--notile",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i0 in range(0, ((N + 1) / 2))",
+        "a[(N + ((-2 * i0) + -1))] = (N + ((-2 * i0) + 6));"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/stride_down.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "stride-loop-negative-literal",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --identity"
+    },
+    {
+      "args": [
+        "--identity",
+        "--notile",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/stride_bad_zero.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-stride-zero",
+      "needle": "range step must be a nonzero integer literal",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--identity",
+        "--notile",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/stride_bad_symbolic.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-stride-symbolic",
+      "needle": "range step must be a nonzero integer literal",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--notile",
+        "--nointratileopt",
+        "--noprevector",
+        "--unrolljam",
+        "--ufactor=3",
+        "--nodiamond-tile",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [
+        "for i0 in range"
+      ],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/const_unroll.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "const-unrolljam-ufactor-constant-loop",
+      "needle": "a[3] = 3;",
+      "normalized": "checked post flags: --ufactor=3"
+    },
+    {
+      "args": [
+        "--notile",
+        "--nointratileopt",
+        "--noprevector",
+        "--unrolljam",
+        "--ufactor=3",
+        "--nodiamond-tile",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [
+        "b[((3 * i0) + 2)] = a;",
+        "for i0 in range((3 * (N / 3)), N)",
+        "b[i0] = a;"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/scalpriv.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "block-unrolljam-ufactor-variable-loop",
+      "needle": "for i0 in range(0, (N / 3))",
+      "normalized": "checked post flags: --ufactor=3"
+    },
+    {
+      "args": [
+        "--identity",
+        "--notile",
+        "--nointratileopt",
+        "--noprevector",
+        "--unrolljam",
+        "--ufactor=2",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [
+        "c[0] = 0;",
+        "c[1] = 1;",
+        "b[((2 * i0) + 1)] = ((2 * i0) + 1);",
+        "for i0 in range((2 * (N / 2)), N)",
+        "b[i0] = i0;"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/mixed_unroll.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "mixed-const-and-block-unrolljam",
+      "needle": "for i0 in range(0, (N / 2))",
+      "normalized": "checked post flags: --ufactor=2"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--unrolljam",
+        "--ufactor=4",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [
+        "(4 * i",
+        "+ 3))",
+        " / 4)))"
+      ],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "unrolljam-empty-selector-policy",
+      "needle": "== Optimized Loop ==",
+      "normalized": "checked post flags: --ufactor=4"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--parallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-default-prevector-parallel",
+      "needle": "--prevector/--vector cannot be combined with --parallel",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--prevector",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-prevector-conflict",
+      "needle": "contradictory vector controls",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--tile",
+        "--intratileopt",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-intratile-conflict",
+      "needle": "contradictory tile-schedule controls",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--notile",
+        "--lastwriter",
+        "--nolastwriter",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-lastwriter-conflict",
+      "needle": "contradictory dependence controls",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--ft=0",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-ft-without-lt",
+      "needle": "--ft and --lt must be supplied together",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--pet",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-pet",
+      "needle": "frontend is polopt's verified loop extractor",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--multipipe",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-stale-multipipe",
+      "needle": "not accepted by the current Pluto binary",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--lbtile",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-stale-lbtile",
+      "needle": "not accepted by the current Pluto binary",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--sched",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-stale-sched",
+      "needle": "not accepted by the current Pluto binary",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--variables_not_global",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-stale-variables-not-global",
+      "needle": "not accepted by the current Pluto binary",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--output",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-stale-output",
+      "needle": "current Pluto binary uses -o",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--unroll",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-unroll-abbrev",
+      "needle": "use explicit --unrolljam",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--notile",
+        "--scalpriv",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-scalpriv-without-candldep",
+      "needle": "--scalpriv requires --candldep",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--cache-size=32768",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-cache-without-determine",
+      "needle": "require --determine-tile-size",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--ufactor=3",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-ufactor-without-determine-or-unrolljam",
+      "needle": "requires --unrolljam",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel",
+        "--tile-sizes-file",
+        "/tmp/polcert-missing-control-file"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-missing-explicit-tile-sizes-file",
+      "needle": "no such file",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--identity",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-bare-identity",
+      "needle": "use --identity --notile",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--identity",
+        "--tile",
+        "--second-level-tile",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--identity",
+          "--tile",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "/ 256",
+        "8 *",
+        "32 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "identity-second-level",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --identity --tile --second-level-tile"
+    },
+    {
+      "args": [
+        "--identity",
+        "--tile",
+        "--second-level-tile",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--identity",
+          "--tile",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "/ 256",
+        "8 *",
+        "32 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/second_level_tiling/fixtures/matmul-init.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "identity-second-level-matmul-init",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --identity --tile --second-level-tile"
+    },
+    {
+      "args": [
+        "--identity",
+        "--tile",
+        "--iss",
+        "--second-level-tile",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--identity",
+          "--tile",
+          "--iss",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "/ 256",
+        "8 *",
+        "32 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/fusion7.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "identity-second-level-iss",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --iss --identity --tile --second-level-tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "16 *",
+        "/ 16"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": "tile.sizes",
+      "implicit_control_file_content": "16\n16\n16\n",
+      "name": "optimizer-implicit-tile-sizes-file",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: <default>"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "16 *",
+        "/ 16"
+      ],
+      "expect": "success",
+      "explicit_control_flag": "--tile-sizes-file",
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-explicit-tile-sizes-file",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto control files: tile.sizes<="
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--tile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--rar",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i0 in range(0, 13)",
+        "8 *"
+      ],
+      "expect": "success",
+      "explicit_control_flag": "--tile-sizes-file",
+      "fixture": "tests/polopt-regression/inputs/nodep.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-explicit-tile-sizes-file-nodep",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto control files: tile.sizes<="
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/fusion1.loop",
+      "implicit_control_file": ".fst",
+      "implicit_control_file_content": "2\n1\n0\n0\n1\n1\n0\n",
+      "name": "optimizer-implicit-fst-file",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": "--fusion-structure",
+      "fixture": "tests/polopt-regression/inputs/fusion1.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-explicit-fst-file",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto control files: .fst<="
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range(i0, (i0 + 100))"
+      ],
+      "expect": "success",
+      "explicit_control_flag": "--fusion-structure",
+      "fixture": "tests/polopt-regression/inputs/fusion2.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-explicit-fst-file-fusion2",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto control files: .fst<="
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "if (4 <= N)",
+        "if (6 <= N)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/fusion1.loop",
+      "implicit_control_file": ".precut",
+      "implicit_control_file_content": "2\n1\n2 4\n0 0 0 0\n0 1 0 0\n1\n0\n2 4\n0 0 0 1\n0 1 0 0\n1\n0\n",
+      "name": "optimizer-implicit-precut-file",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "if (4 <= N)",
+        "if (6 <= N)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": "--precut-file",
+      "fixture": "tests/polopt-regression/inputs/fusion1.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-explicit-precut-file",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto control files: .precut<="
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range(0, 100)",
+        "B[i0][i1]"
+      ],
+      "expect": "success",
+      "explicit_control_flag": "--precut-file",
+      "fixture": "tests/polopt-regression/inputs/fusion2.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-explicit-precut-file-fusion2",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto control files: .precut<="
+    },
+    {
+      "args": [
+        "--identity",
+        "--tile",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--identity",
+          "--notile",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "32 *",
+        "/ 32"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/fusion7.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "identity-tiled",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --identity --tile"
+    },
+    {
+      "args": [
+        "--identity",
+        "--tile",
+        "--parallel",
+        "--innerpar",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile"
+      ],
+      "differs_from_args": [
+        [
+          "--identity",
+          "--tile",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for i1",
+        "32 *",
+        "/ 32"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/second_level_tiling/fixtures/matmul-init.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "identity-tiled-parallel",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --identity --tile --parallel"
+    },
+    {
+      "args": [
+        "--identity",
+        "--tile",
+        "--parallel",
+        "--multipar",
+        "--innerpar",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile"
+      ],
+      "differs_from_args": [
+        [
+          "--identity",
+          "--tile",
+          "--parallel",
+          "--innerpar",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--nodiamond-tile"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "parallel for i0",
+        "parallel for i1",
+        "32 *",
+        "/ 32"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/second_level_tiling/fixtures/matmul-init.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "identity-tiled-multipar",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --multipar"
+    },
+    {
+      "args": [
+        "--identity",
+        "--tile",
+        "--parallel",
+        "--multipar",
+        "--innerpar",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--parallel-strict"
+      ],
+      "differs_from_args": [
+        [
+          "--identity",
+          "--tile",
+          "--parallel",
+          "--multipar",
+          "--innerpar",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--nodiamond-tile"
+        ]
+      ],
+      "effect_absent": [
+        "parallel for i0"
+      ],
+      "effect_needles": [
+        "parallel for i1",
+        "32 *",
+        "/ 32"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tools/second_level_tiling/fixtures/matmul-init.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "identity-tiled-multipar-strict-hint-only",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --multipar"
+    },
+    {
+      "args": [
+        "--identity",
+        "--tile",
+        "--iss",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [
+        [
+          "--identity",
+          "--notile",
+          "--nointratileopt",
+          "--noprevector",
+          "--nounrolljam",
+          "--nodiamond-tile",
+          "--noparallel"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "32 *",
+        "/ 32"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/fusion7.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "identity-tiled-iss",
+      "needle": "== Optimized Loop ==",
+      "normalized": "polopt args: --iss --identity --tile"
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--tile",
+        "--notile",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-tile-notile",
+      "needle": "--tile and --notile are both present",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar",
+        "--diamond-tile",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-generated/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-diamond-nodiamond",
+      "needle": "--diamond-tile/--full-diamond-tile and --nodiamond-tile are both present",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--glpk",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i0 in range(0, M)",
+        "A[i0][i2]"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-glpk-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --glpk"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--glpk",
+        "--ilp",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i0 in range(0, M)",
+        "A[i0][i2]"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-ilp-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --glpk --ilp"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--glpk",
+        "--lp",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i0 in range(0, M)",
+        "A[i0][i2]"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-lp-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --glpk --lp"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--glpk",
+        "--lpcolor",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i0 in range(0, M)",
+        "A[i0][i2]"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-lpcolor-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --glpk --lpcolor"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--glpk",
+        "--dfp",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range(i0, (N + i0))",
+        "(-1 * i0)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-dfp-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --glpk --dfp"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--glpk",
+        "--clusterscc",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i0 in range(0, M)",
+        "A[i0][i2]"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-clusterscc-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --glpk --clusterscc"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--glpk",
+        "--hybridfuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range(i0, (N + i0))",
+        "(-1 * i0)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-hybridfuse-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --glpk --hybridfuse"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--glpk",
+        "--dfp",
+        "--delayedcut",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range(i0, (N + i0))",
+        "(-1 * i0)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-delayedcut-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --glpk --dfp --delayedcut"
+    },
+    {
+      "args": [
+        "--notile",
+        "--typedfuse",
+        "--glpk",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range(i0, (N + i0))",
+        "(-1 * i0)"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-typedfuse-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --typedfuse --glpk"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--glpk",
+        "--dfp",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--glpk",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "if ((1 <= N && 2 <= M))",
+        "symmat[i1][i0] = symmat[i0][i1];"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/corcol.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-dfp-corcol-effect",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --glpk --dfp"
+    },
+    {
+      "args": [
+        "--notile",
+        "--typedfuse",
+        "--glpk",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--glpk",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range(0, N)",
+        "X[i2][i1]"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/adi.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-typedfuse-adi-effect",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --typedfuse --glpk"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--glpk",
+        "--hybridfuse",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--glpk",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "for i1 in range(0, N)",
+        "X[i2][i1]"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/adi.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-hybridfuse-adi-effect",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --glpk --hybridfuse"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--glpk",
+        "--dfp",
+        "--delayedcut",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [
+        [
+          "--notile",
+          "--smartfuse",
+          "--glpk",
+          "--nointratileopt",
+          "--nodiamond-tile",
+          "--noprevector",
+          "--nounrolljam",
+          "--noparallel",
+          "--rar"
+        ]
+      ],
+      "effect_absent": [],
+      "effect_needles": [
+        "if ((1 <= N && 2 <= M))",
+        "symmat[i1][i0] = symmat[i0][i1];"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/corcol.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-delayedcut-corcol-effect",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --glpk --dfp --delayedcut"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--candldep",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-candldep-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --candldep"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--candldep",
+        "--scalpriv",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [
+        "b[i0] = a"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/scalpriv.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-candldep-scalpriv-affine",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --candldep --scalpriv"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--candldep",
+        "--scalpriv",
+        "--parallel",
+        "--nointratileopt",
+        "--nodiamond-tile",
+        "--noprevector",
+        "--nounrolljam",
+        "--rar"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [
+        "parallel for"
+      ],
+      "effect_needles": [
+        "b[i0] = a",
+        "[alarm] optimization triggered a checked fallback or warning"
+      ],
+      "expect": "success",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/scalpriv.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "optimizer-candldep-scalpriv-parallel-conservative",
+      "needle": "== Optimized Loop ==",
+      "normalized": "pluto oracle flags: --smartfuse --candldep --scalpriv"
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--candldep",
+        "--lastwriter",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-candldep-lastwriter",
+      "needle": "--lastwriter is only supported with Pluto's ISL dependence tester",
+      "normalized": null
+    },
+    {
+      "args": [
+        "--notile",
+        "--smartfuse",
+        "--isldep",
+        "--candldep",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "differs_from_args": [],
+      "effect_absent": [],
+      "effect_needles": [],
+      "expect": "reject",
+      "explicit_control_flag": null,
+      "fixture": "tests/polopt-regression/inputs/matmul.loop",
+      "implicit_control_file": null,
+      "implicit_control_file_content": "16\n",
+      "name": "reject-isldep-candldep",
+      "needle": "--isldep and --candldep are both present",
+      "normalized": null
+    }
+  ],
+  "root": "/tmp/polcert-state-eq-v2-repro",
+  "summary": {
+    "capability_rows": 81,
+    "compatibility_checks": 114,
+    "diamond_supported_route": "sequential, parallel, multipar, ISS, and second-level four-phase routes",
+    "pluto_style_entry": "./polopt --pluto-compat",
+    "remaining_semantic_gaps": [
+      {
+        "reason": "The supported front-end stride form requires a nonzero integer literal. This keeps the lowered candidate domain affine and avoids adding a runtime proof obligation for the step sign and nonzero-ness.",
+        "request": "symbolic or runtime-dependent stride steps",
+        "required_work": "Add a sign/nonzero certificate or checked precondition for affine/dynamic step expressions, then reuse the LoopStride affine-guard lowering under that certificate."
+      },
+      {
+        "reason": "Current support is conservative oracle tuning; schedules that rely on privatized scalar instances need a checked storage rewrite.",
+        "request": "full --candldep --scalpriv",
+        "required_work": "Materialize private scalar storage or an equivalent loop-local representation and prove preservation under the scalar-privatization precondition."
+      }
+    ]
+  }
+}
