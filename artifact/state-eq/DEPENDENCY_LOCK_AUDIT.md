@@ -2,13 +2,16 @@
 
 Date: 2026-07-18
 
-This audit separates the identity of the verified image from the ability to
-rebuild that image later. A content-addressed image fixes the bytes already
-built. It does not make a Dockerfile reproducible when that Dockerfile resolves
-packages from moving repositories.
+This audit separates three identities: the image covered by the archived full
+review, the dependency state captured from that image, and the new lock-v1
+candidate wrapper that enforces that state. The candidate uses a distinct local
+tag and has no full-review evidence yet. A content-addressed reviewed image
+fixes bytes already built; it does not make a Dockerfile reproducible when that
+Dockerfile resolves packages from moving repositories.
 
-The machine-readable record is
-[`dependency-lock-audit.json`](./dependency-lock-audit.json).
+The classification record is
+[`dependency-lock-audit.json`](./dependency-lock-audit.json). The enforced
+content lock is [`locks/dependency-lock.json`](./locks/dependency-lock.json).
 
 ## Lock Status
 
@@ -18,17 +21,17 @@ The machine-readable record is
 | Pluto compiler source | Immutable content pin | Full Git commit plus build-time and runtime baseline checks |
 | Pluto base image | Immutable content pin | Registry digest is verified before `docker build --pull=false` |
 | Base Ubuntu/tool packages | Transitively immutable | Their bytes are inside the verified Pluto base digest |
-| opam executable | Version pin only | `2.0.8` URL; observed SHA-256 is not checked and TLS verification is disabled |
+| opam executable | Version pin plus fail-closed checksum | `2.0.8` URL still disables TLS verification, but the built executable must match the reviewed SHA-256 |
 | OCaml | Version pin only | `opam switch create polcert 4.13.1` against an unpinned repository state |
 | Coq | Version pin only | `opam pin add coq 8.13.2`; no frozen repository snapshot is imported |
-| Other opam packages | Observed only | Package names are installed without version constraints |
-| New apt layers | Observed only | Package names are installed without versions from moving Focal repositories |
-| Installed switch and dpkg bytes | Indirectly immutable in this image | The local final image ID fixes the bytes, but they are not locked inputs to a fresh build |
+| Other opam packages | Resolved-state and installed-content lock | Exact package closure, full switch export, and switch filesystem tree are compared after build and at review startup |
+| New apt layers | Resolved-state and installed-content lock | All 684 installed package versions, the dpkg database, and package-owned filesystem contents are compared after build and at review startup |
+| Installed switch and dpkg bytes | Fail-closed installed-state lock | Final filesystem tree digests are verified after build; they are not archived inputs to resolution |
 
-The verified image contains `glpk 0.1.8`, `menhir 20260209`,
+The full-reviewed dependency-lock origin image contains `glpk 0.1.8`, `menhir 20260209`,
 `stdlib-shims 0.3.0`, and `zarith 1.14`, plus the transitive package versions
 listed in the JSON audit. These are observations from the successful offline
-review image, not constraints in the frozen Dockerfile.
+origin-image review, not constraints in the frozen Dockerfile.
 
 The same distinction applies to apt. For example, the image contains
 `git 1:2.25.1-1ubuntu3.14`, `libglpk-dev 4.65-2`, and
@@ -44,33 +47,53 @@ select other versions.
 - Observed full opam switch export SHA-256:
   `8011b64bbe6c0cfb339cae59bb2cb73ef0162e24b72194784a601f4aece6c5d9`
 
-The latter two checksums are not yet enforced during a rebuild. They identify
-what was observed in the verified image.
+The opam executable, full switch export, dpkg/package-owned filesystem tree,
+and opam switch tree checksums are now enforced after the frozen Dockerfile
+finishes. The same verification is the first offline review gate.
 
-The final local image ID is recorded in the evidence report. It is not called
-a published registry digest because the image has not been published.
+- Complete dpkg closure SHA-256:
+  `2ef0290183ff3392e14b9803877b1b804c376cb3230a775222d5f9f8566c594b`
+- Complete opam package list SHA-256:
+  `b0d1b546ec3d8e657ecf3d84f1f967bfef570709440a33930239eb3ae17003dc`
 
-No opam lock or full switch export is currently consumed by the Dockerfile.
-The recorded export hash identifies the observed switch state only. Similarly,
-the apt list covers the Dockerfile's direct requests, not the entire transitive
-dpkg closure or an SBOM.
+The origin image's local ID is recorded in the evidence report. It is not
+called a published registry digest because the image has not been published.
+That report authenticates lock capture only for the candidate; it does not
+claim the candidate wrapper passed review.
+
+The frozen Dockerfile still resolves packages from network repositories rather
+than importing these locks. `build-image.sh` now fails before creating the
+candidate wrapper image if that resolution differs in any installed dpkg package,
+package-owned file, opam package, switch file, switch metadata, opam executable
+byte, or OS release byte. This is a strong detection lock, not an offline
+source archive.
 
 ## Bounded Locking Plan
 
-1. Archive and checksum the opam `2.0.8` executable, remove
-   `--no-check-certificate`, and verify its SHA-256 before installation.
-2. Check in the full opam switch export from the verified image and import it
-   as the package metadata lock. Verify that every downloaded source has an
-   opam checksum.
+Completed locally:
+
+1. Captured the full 684-package dpkg closure, 22-package opam closure, full
+   opam switch export, installed filesystem trees, opam binary checksum, and OS
+   release identity.
+2. Added fail-closed verification after the source image build and as the first
+   offline reviewer gate.
+
+Remaining external actions:
+
+1. Archive the opam `2.0.8` executable, remove `--no-check-certificate`, and
+   verify its SHA-256 before installation rather than only after installation.
+2. Import the captured full opam switch export during package installation and
+   archive or verify every downloaded package source.
 3. Replace moving Ubuntu endpoints with a dated snapshot, or archive the exact
    `.deb` closure in a small local repository. Version strings without an
    available snapshot are insufficient.
 4. Build the toolchain image once, publish it, and record its registry digest.
    Then build the exact PolCert source and reviewer layer from that digest.
-5. Re-run the clean offline full profile and publish the final image by
+5. Re-run the clean offline full profile for the candidate, archive evidence
+   tied to its exact image ID, and publish the final image by
    registry digest together with `build-metadata.json` and the result bundle.
 
-Steps 1-4 change only artifact packaging. They do not require changing the
+These steps change only artifact packaging. They do not require changing the
 frozen PolCert source tag. They do require a new image build because package
 installation inputs change. The 33-minute full review should then be rerun
 once for the newly locked image; documentation-only changes do not invalidate

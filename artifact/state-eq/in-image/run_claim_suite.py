@@ -83,6 +83,19 @@ def command_version(command: list[str]) -> str:
 
 def checks(mode: str, output: Path) -> list[tuple[str, list[str], int]]:
     bootstrap = [
+        (
+            "dependency-lock",
+            [
+                "python3",
+                "/opt/polcert-artifact/dependency_lock.py",
+                "verify-local",
+                "--lock",
+                "/opt/polcert-artifact/locks/dependency-lock.json",
+                "--manifest",
+                "/opt/polcert-artifact/manifest.json",
+            ],
+            300,
+        ),
         ("pluto-baseline", ["bash", "tools/ci/check_pluto_baseline.sh"], 300),
         ("clean", ["make", "clean"], 600),
         # A clean git archive has no generated .depend files. This step is
@@ -157,6 +170,16 @@ def main() -> int:
         return 2
     for name in ("manifest.json", "claims.json", "dependency-lock-audit.json"):
         shutil.copy2(ARTIFACT_ROOT / name, output / name)
+    shutil.copy2(
+        ARTIFACT_ROOT / "locks" / "dependency-lock.json",
+        output / "dependency-lock.json",
+    )
+    for name in (
+        "apt-packages.lock",
+        "opam-packages.lock",
+        "opam-switch-full.export",
+    ):
+        shutil.copy2(ARTIFACT_ROOT / "locks" / name, output / name)
 
     environment = {
         "recorded_at": datetime.now(timezone.utc).isoformat(),

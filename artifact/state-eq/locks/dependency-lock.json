@@ -1,0 +1,62 @@
+{
+  "base_image": {
+    "reference": "hughshine/pluto-verif:polcert-pluto-iss-bridge-ac5ea83",
+    "registry_digest": "sha256:0e15a7614af280b02ab0dc31f110c3ee3f7a1fe3ee3d1b503cc3400d87b4f4ce"
+  },
+  "captured_at": "2026-07-18T08:54:57.508267+00:00",
+  "enforcement": {
+    "fresh_build": "verify-image runs after the frozen source Dockerfile and before the reviewer wrapper image is built",
+    "offline_review": "verify-local is the first reviewer gate",
+    "resolution": "Package repositories remain external; drift is rejected after resolution rather than prevented before download"
+  },
+  "origin": {
+    "review_evidence": "evidence/2026-07-18-full-review.json",
+    "review_evidence_sha256": "07f0225f97a09302d572f213e1145d6a1a87f69c2d019c6c3ca747740ea91aa7",
+    "reviewed_image_id": "sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f",
+    "reviewed_image_reference": "polcert-artifact:state-eq-2026-05-25-v2"
+  },
+  "purpose": "Fail-closed dependency state lock captured from the offline full-reviewed image",
+  "schema_version": 1,
+  "source": {
+    "commit": "13295e741ad62173411882c6d900dd9dc57337a8",
+    "tag": "state-eq-polyhedral-verification-complete-2026-05-25-v2",
+    "tree": "8b83093929e54657c033fa09c5aae73b492c0b67"
+  },
+  "state": {
+    "apt_packages": {
+      "bytes": 21945,
+      "count": 684,
+      "path": "apt-packages.lock",
+      "sha256": "2ef0290183ff3392e14b9803877b1b804c376cb3230a775222d5f9f8566c594b"
+    },
+    "apt_filesystem": {
+      "coverage": "dpkg database and all paths recorded by installed package lists",
+      "entries": 57228,
+      "sha256": "c5303e02a9605e3fc32f4569ec342046e4699ab812607fe2150c6525fc3ad2ba"
+    },
+    "opam_binary": {
+      "path": "/usr/local/bin/opam",
+      "sha256": "95365a873d9e3ae6fb48e6109b5fc5df3b4e526c9d65d20652a78e263f745a35"
+    },
+    "opam_packages": {
+      "bytes": 358,
+      "count": 22,
+      "path": "opam-packages.lock",
+      "sha256": "b0d1b546ec3d8e657ecf3d84f1f967bfef570709440a33930239eb3ae17003dc"
+    },
+    "opam_switch_export": {
+      "bytes": 28745,
+      "path": "opam-switch-full.export",
+      "sha256": "8011b64bbe6c0cfb339cae59bb2cb73ef0162e24b72194784a601f4aece6c5d9"
+    },
+    "opam_switch_tree": {
+      "coverage": "/root/.opam/polcert filesystem tree",
+      "entries": 40269,
+      "sha256": "91a285cd3ee83b164c226f429af07a6c555cb6a253ba654f2b7b9bc7ef8a5d05"
+    },
+    "os_release": {
+      "path": "/etc/os-release",
+      "sha256": "c4109ab26f2402a6ef167a1f21debdff721ba53ad8934f65fb1bb90d9605b53a"
+    }
+  }
+}

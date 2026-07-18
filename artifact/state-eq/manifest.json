@@ -3,7 +3,20 @@
   "artifact": {
     "id": "polcert-state-eq-2026-05-25-v2",
     "description": "Reproduction envelope for the completed State.eq-preserving PolCert milestone",
-    "created": "2026-07-18"
+    "created": "2026-07-18",
+    "packaging_revision": "dependency-lock-v1"
+  },
+  "images": {
+    "default_candidate": {
+      "reference": "polcert-artifact:state-eq-lock-v1-candidate",
+      "review_status": "candidate; requires its own successful full offline review evidence before publication"
+    },
+    "dependency_lock_origin": {
+      "reference": "polcert-artifact:state-eq-2026-05-25-v2",
+      "local_image_id": "sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f",
+      "review_evidence": "evidence/2026-07-18-full-review.json",
+      "purpose": "reviewed source of the captured dependency state only; not review evidence for the lock-v1 candidate"
+    }
   },
   "polcert": {
     "repository": "https://github.com/Hughshine/PolCert.git",
@@ -29,6 +42,8 @@
     "review_run_requires_network": false,
     "dependency_lock": "partial",
     "dependency_lock_audit": "dependency-lock-audit.json",
-    "dependency_lock_note": "PolCert, Pluto, and the Pluto base registry digest are immutable pins. OCaml, Coq, and the opam executable are version pins. Apt resolution, the opam repository snapshot, and non-Coq opam package resolution are not build-enforced locks; their verified-image versions are observations only."
+    "dependency_state_lock": "locks/dependency-lock.json",
+    "dependency_state_enforcement": "fail-closed after image resolution and again at offline review startup",
+    "dependency_lock_note": "PolCert, Pluto, and the Pluto base registry digest are immutable pins. The dpkg and opam state was captured from the separately identified full-reviewed dependency-lock origin image. The lock-v1 candidate verifies that state after build and at review startup, but the origin evidence does not review the candidate wrapper. Apt repositories and opam source archives remain external, so resolution can fail or drift before the post-build check rejects it."
   }
 }

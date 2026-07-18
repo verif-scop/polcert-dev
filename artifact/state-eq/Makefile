@@ -1,11 +1,13 @@
 POLCERT_SOURCE ?=
-POLCERT_ARTIFACT_IMAGE ?= polcert-artifact:state-eq-2026-05-25-v2
+POLCERT_ARTIFACT_IMAGE ?= polcert-artifact:state-eq-lock-v1-candidate
 POLCERT_ARTIFACT_OUTPUT ?= $(CURDIR)/results
 POLCERT_PUBLICATION_REF ?=
 POLCERT_REVIEW_EVIDENCE ?= $(CURDIR)/evidence/2026-07-18-full-review.json
 POLCERT_PUBLICATION_RECORD ?= $(CURDIR)/publication/publication-record.json
+POLCERT_DEPENDENCY_LOCK_DIR ?= $(CURDIR)/locks
+POLCERT_DEPENDENCY_LOCK_ORIGIN_IMAGE ?= polcert-artifact:state-eq-2026-05-25-v2
 
-.PHONY: validate build smoke review extended reproduce publication-test publication-validate publish-reviewed-image clean-results
+.PHONY: validate build smoke review extended reproduce dependency-lock-capture dependency-lock-verify dependency-lock-test publication-test publication-validate publish-reviewed-image clean-results
 
 validate:
 	./bin/build-image.sh --source "$(POLCERT_SOURCE)" --image "$(POLCERT_ARTIFACT_IMAGE)" --validate-only
@@ -25,8 +27,24 @@ extended:
 reproduce: build
 	$(MAKE) review
 
+dependency-lock-capture:
+	./bin/dependency_lock.py capture-image \
+		--image "$(POLCERT_DEPENDENCY_LOCK_ORIGIN_IMAGE)" \
+		--review-evidence "$(POLCERT_REVIEW_EVIDENCE)" \
+		--manifest "$(CURDIR)/manifest.json" \
+		--output-dir "$(POLCERT_DEPENDENCY_LOCK_DIR)"
+
+dependency-lock-verify:
+	./bin/dependency_lock.py verify-image \
+		--image "$(POLCERT_ARTIFACT_IMAGE)" \
+		--lock "$(POLCERT_DEPENDENCY_LOCK_DIR)/dependency-lock.json" \
+		--manifest "$(CURDIR)/manifest.json"
+
+dependency-lock-test:
+	python3 -m unittest tests/test_dependency_lock.py
+
 publication-test:
-	python3 -m unittest tests/test_publish_reviewed_image.py
+	python3 -m unittest tests/test_publish_reviewed_image.py tests/test_candidate_boundary.py
 
 publication-validate:
 	./bin/publish_reviewed_image.py \

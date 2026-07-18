@@ -4,7 +4,7 @@ set -euo pipefail
 artifact_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 manifest="$artifact_root/manifest.json"
 source_repo="${POLCERT_SOURCE:-}"
-image="${POLCERT_ARTIFACT_IMAGE:-polcert-artifact:state-eq-2026-05-25-v2}"
+image="${POLCERT_ARTIFACT_IMAGE:-polcert-artifact:state-eq-lock-v1-candidate}"
 source_image="${POLCERT_ARTIFACT_SOURCE_IMAGE:-}"
 output_dir="${POLCERT_ARTIFACT_BUILD_OUTPUT:-$artifact_root/build}"
 validate_only=0
@@ -100,6 +100,12 @@ docker build \
   --label "io.polcert.source.archive.sha256=$archive_sha256" \
   --tag "$source_image" \
   "$context"
+
+echo "[artifact-build] verifying captured dependency closure"
+python3 "$artifact_root/bin/dependency_lock.py" verify-image \
+  --image "$source_image" \
+  --lock "$artifact_root/locks/dependency-lock.json" \
+  --manifest "$manifest"
 
 echo "[artifact-build] adding reviewer entry point to $image"
 docker build \

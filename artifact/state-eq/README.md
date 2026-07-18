@@ -21,12 +21,18 @@ From this directory, with any clone that contains the annotated tag:
 make reproduce POLCERT_SOURCE=/path/to/PolCert
 ```
 
-This builds `polcert-artifact:state-eq-2026-05-25-v2` and runs the full claim
-suite with Docker networking disabled. Results are written to `results/`:
+This builds `polcert-artifact:state-eq-lock-v1-candidate` and runs the full
+claim suite with Docker networking disabled. The candidate tag is deliberately
+different from the existing reviewed image tag, so a build cannot overwrite
+the image named by the archived 2026-07-18 evidence. Results are written to
+`results/`:
 
 - `manifest.json`: immutable source and toolchain pins;
 - `dependency-lock-audit.json`: build dependency classifications and observed
   versions;
+- `dependency-lock.json`: the exact dpkg/opam state accepted by the reviewer;
+- `apt-packages.lock`, `opam-packages.lock`, and
+  `opam-switch-full.export`: the companion dependency state records;
 - `claims.json`: claim-to-check map and explicit non-claims;
 - `environment.json`: observed tool versions;
 - `claim-results.json`: top-level command results;
@@ -115,9 +121,37 @@ packages and fetches the pinned Pluto commit. The lock status is not uniform:
   repository snapshot.
 
 [`dependency-lock-audit.json`](./dependency-lock-audit.json) records the exact
-versions observed in the verified image and classifies each dependency. An
-observed version is evidence about that image, not a guarantee that a future
-networked rebuild will resolve the same bytes.
+versions observed in the full-reviewed dependency-lock origin image and
+classifies each dependency. An observed version is evidence about that image,
+not a guarantee that a future networked rebuild will resolve the same bytes.
+
+The generated [`locks/dependency-lock.json`](./locks/dependency-lock.json)
+strengthens this boundary. It covers the full 684-package dpkg closure, the
+dpkg database and installed package file contents, the 22-package opam closure,
+the complete opam switch export and switch filesystem contents, the opam
+executable SHA-256, and the OS release. `build-image.sh` verifies it after
+building the frozen source image and before adding the reviewer layer. The same
+verification is the first offline review gate. Resolution or installed-content
+drift therefore fails closed.
+
+Capture and verification commands are:
+
+```sh
+make dependency-lock-capture  # only when creating a new reviewed-image lock
+make dependency-lock-verify
+make dependency-lock-test
+```
+
+Capture defaults to the separately named
+`polcert-artifact:state-eq-2026-05-25-v2` origin image. It refuses an existing
+lock directory and requires that image ID to match strict full-review evidence.
+`dependency-lock-verify` instead checks the current candidate image by default.
+
+The origin evidence is copied into the candidate wrapper only so the first
+review gate can authenticate the dependency lock's provenance and checksum. It
+is not review evidence for the candidate wrapper. The candidate requires a new
+successful full offline run and separately archived evidence tied to its exact
+image ID before it can be published.
 
 After the image has been built or pulled, review is offline. `bin/run-image.sh`
 always uses `docker run --network none`; the proof build and all claim checks
@@ -129,8 +163,10 @@ The complete human-readable analysis and the bounded locking plan are in
 ## Reviewed Image Publication
 
 Publication is separate from building. By default it uses the archived full
-review evidence in `evidence/2026-07-18-full-review.json` and refuses any local
-image whose Docker image ID differs from the reviewed ID.
+review evidence in `evidence/2026-07-18-full-review.json`. That evidence names
+the unchanged `polcert-artifact:state-eq-2026-05-25-v2` image, not the default
+lock-v1 candidate. Publication refuses any local image whose Docker image ID
+differs from the reviewed ID.
 
 First validate an explicit, versioned registry reference without tagging,
 pushing, or contacting the registry:
@@ -164,9 +200,10 @@ The workflow performs these checks and actions:
    evidence checksum, local image ID, tag, and immutable `repository@digest`.
 
 The script never calls `docker login`. Registry credentials and authorization
-must already be configured. A rebuilt wrapper has a different image ID and is
-rejected by the default evidence; publishing it requires an explicit new full
-review evidence file via `POLCERT_REVIEW_EVIDENCE`.
+must already be configured. The lock-v1 candidate has a different image ID and
+is rejected by the default evidence, even when passed explicitly as the local
+image. Publishing it requires an explicit new full review evidence file via
+`POLCERT_REVIEW_EVIDENCE` that names that exact candidate image ID.
 
 The publication parser and refusal paths have a no-network fixture suite:
 

@@ -17,6 +17,7 @@ EVIDENCE = ROOT / "evidence" / "2026-07-18-full-review.json"
 REVIEWED_ID = "sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f"
 REGISTRY_DIGEST = "sha256:" + "a" * 64
 DESTINATION = "registry.example.test/polcert/state-eq:state-eq-2026-05-25-v2"
+CANDIDATE = "polcert-artifact:state-eq-lock-v1-candidate"
 
 
 class PublishReviewedImageTests(unittest.TestCase):
@@ -88,6 +89,13 @@ class PublishReviewedImageTests(unittest.TestCase):
         result = self.invoke("--dry-run")
         self.assertEqual(result.returncode, 2)
         self.assertIn("does not match review evidence", result.stderr)
+
+    def test_refuses_candidate_with_old_review_evidence(self) -> None:
+        self.environment["FAKE_DOCKER_LOCAL_ID"] = "sha256:" + "c" * 64
+        result = self.invoke("--dry-run", "--local-image", CANDIDATE)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("does not match review evidence", result.stderr)
+        self.assertEqual(self.docker_log(), [["image", "inspect", CANDIDATE]])
 
     def test_explicit_new_review_evidence_selects_its_own_image_id(self) -> None:
         new_id = "sha256:" + "d" * 64
