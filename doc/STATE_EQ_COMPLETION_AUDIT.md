@@ -74,14 +74,20 @@ Completed evidence:
 
 - cleanup is isolated on `proof-cleanup-affine-batch1`, based exactly on the
   frozen commit;
-- commits `50aefe5`, `7a62341`, and `711d10d` change only
+- commits `50aefe5`, `7a62341`, `711d10d`, and `b5b2c32` change only
   `src/AffineValidator.v` proofs and local presentation;
-- the three commits reduce the file by 33 net lines while preserving public
-  theorem statements, computational definitions, imports, hints, and the
-  extraction surface;
+- the first three commits reduce the file by 33 net lines; the fourth replaces
+  two duplicated route-specific semantic arguments with one route-neutral
+  helper and smaller wrappers, for a net 30-line increase but one fewer copy of
+  the semantic core;
+- the four public affine/tiling correctness theorem statements are byte-for-byte
+  unchanged, and computational definitions, imports, hints, and the extraction
+  surface remain untouched;
 - each accepted slice passed `check-admitted` and rebuilt the directly
   dependent proof modules; the second slice was also independently forced
-  through a clean `AffineValidator.vo` rebuild.
+  through a clean `AffineValidator.vo` rebuild;
+- Batch 4 additionally passed the full proof build, extraction, `polopt` and
+  `polcert` builds, and the 602-second artifact smoke suite.
 
 Remaining requirements:
 

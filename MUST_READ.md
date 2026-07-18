@@ -50,9 +50,10 @@
   - registry publication and complete apt/non-Coq-opam locking remain pending
 - Active next work:
   - affine proof cleanup is isolated on `proof-cleanup-affine-batch1`; commits
-    `50aefe5`, `7a62341`, and `711d10d` are proof-only and preserve the frozen
-    theorem and executable boundary; a fourth bounded slice is under full
-    validation
+    `50aefe5`, `7a62341`, `711d10d`, and `b5b2c32` are proof-only and preserve
+    the frozen theorem and executable boundary; Batch 4 shares the
+    affine/tiling permutation-semantics core and passes the complete proof,
+    extraction, executable, and artifact smoke gates
   - paper structure is in
     `doc/pluto-comprehensive/paper-local/STATE_EQ_PAPER_OUTLINE.md`
   - paper-local commit `fa95786` generates the 81-row capability summary and

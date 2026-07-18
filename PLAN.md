@@ -81,6 +81,10 @@ only after the completed baseline and its artifact evidence are recoverable.
     one local helper, reducing `AffineValidator.v` by 17 lines.
   - [x] Third slice: share access-transformation shape facts across the three
     collision branches, reducing `AffineValidator.v` by another 16 lines.
+  - [x] Fourth slice: extract the duplicated affine/tiling
+    permutation-semantics argument into a route-neutral local lemma. Commit
+    `b5b2c32` preserves all four public theorem statements byte-for-byte and
+    passes the full proof, extraction, executable, and artifact smoke gates.
 - [ ] Preserve theorem statements, accepted schedules, extracted behavior, and
   trust assumptions unless a deliberate semantic change is separately
   justified.

@@ -1285,3 +1285,16 @@ Date: 2026-03-08
   - the generator checks cross-file counts, zero proof holes, dedicated suite
     status, and tracked-output drift
   - the 17-page paper and 5-page artifact report build with clean logs
+- Committed affine proof cleanup Batch 4 as `b5b2c32` on
+  `proof-cleanup-affine-batch1`.
+  - one route-neutral local lemma now contains the permutation/stable-sort
+    semantic argument previously duplicated by the affine and tiling primed
+    correctness proofs
+  - the two wrappers retain only their route-specific finite-witness and
+    permutability construction
+  - the diff changes only `src/AffineValidator.v` (`+140/-110`); all four
+    public affine/tiling correctness theorem statements are byte-for-byte
+    unchanged, and no definition, import, hint, or extraction root changed
+  - `AffineValidator.vo`, the 522-second full proof build, `check-admitted`,
+    extraction, `polopt`, `polcert`, and the 602-second artifact smoke suite all
+    pass
