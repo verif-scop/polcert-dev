@@ -25,6 +25,8 @@ This builds `polcert-artifact:state-eq-2026-05-25-v2` and runs the full claim
 suite with Docker networking disabled. Results are written to `results/`:
 
 - `manifest.json`: immutable source and toolchain pins;
+- `dependency-lock-audit.json`: build dependency classifications and observed
+  versions;
 - `claims.json`: claim-to-check map and explicit non-claims;
 - `environment.json`: observed tool versions;
 - `claim-results.json`: top-level command results;
@@ -99,14 +101,30 @@ verified base between validation and image construction.
 ## Network Boundary
 
 Image construction is not offline: the frozen Dockerfile installs apt/opam
-packages and fetches the pinned Pluto commit. The scaffold pins the Pluto base
-image digest and verifies the source commits, but apt packages and the
-non-Coq opam packages are not version-locked. This is the remaining build-time
-reproducibility gap.
+packages and fetches the pinned Pluto commit. The lock status is not uniform:
+
+- PolCert source, Pluto source, and the Pluto base registry digest are
+  immutable content pins checked before the build.
+- OCaml `4.13.1`, Coq `8.13.2`, and the opam executable `2.0.8` are explicit
+  version selections, but their repository state or downloaded bytes are not
+  all enforced by immutable checks in the frozen Dockerfile.
+- apt package requests have no `=version` constraints and use moving Ubuntu
+  Focal repositories.
+- `zarith`, `glpk`, `menhir`, and `stdlib-shims` have no version constraints;
+  their transitive opam dependencies are also resolved from an unpinned opam
+  repository snapshot.
+
+[`dependency-lock-audit.json`](./dependency-lock-audit.json) records the exact
+versions observed in the verified image and classifies each dependency. An
+observed version is evidence about that image, not a guarantee that a future
+networked rebuild will resolve the same bytes.
 
 After the image has been built or pulled, review is offline. `bin/run-image.sh`
 always uses `docker run --network none`; the proof build and all claim checks
 must use only files and tools already present in the image.
+
+The complete human-readable analysis and the bounded locking plan are in
+[`DEPENDENCY_LOCK_AUDIT.md`](./DEPENDENCY_LOCK_AUDIT.md).
 
 ## Claim Boundary
 

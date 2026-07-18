@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "audited_at": "2026-07-18",
+  "scope": "Dependency declarations in the frozen State.eq Dockerfile and the verified local artifact image",
+  "verified_image": {
+    "reference": "polcert-artifact:state-eq-2026-05-25-v2",
+    "local_image_id": "sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f",
+    "published_registry_digest": null,
+    "note": "The local content-addressed image ID is not evidence that the image has been published under a registry digest."
+  },
+  "classifications": {
+    "immutable_content_pin": "The build verifies a cryptographic content identity or full source object before use.",
+    "explicit_version_pin": "The declaration selects an exact version, but repository state or downloaded bytes can still drift.",
+    "transitively_immutable_in_base": "The bytes are contained in the verified immutable base image, although rebuilding that base is outside this scaffold.",
+    "transitively_immutable_in_verified_image": "The installed bytes are fixed by the verified local final image identity, but are not fixed inputs to a fresh networked rebuild.",
+    "observed_only": "The version was read from the verified image but is not required by the frozen build declaration.",
+    "unfixed_resolution": "The frozen build declaration does not select an immutable snapshot or exact package version."
+  },
+  "immutable_pins": [
+    {
+      "component": "PolCert source",
+      "classification": "immutable_content_pin",
+      "identity": "tag object f9cc209ae597f58e98841a96e13f8b355ee75eb3; commit 13295e741ad62173411882c6d900dd9dc57337a8; tree 8b83093929e54657c033fa09c5aae73b492c0b67",
+      "enforcement": "validate_source.py followed by git archive of the exact commit"
+    },
+    {
+      "component": "Pluto compiler source",
+      "classification": "immutable_content_pin",
+      "identity": "commit 6f43860b6c4cddeeca09189bf3073f05b78b14a5",
+      "enforcement": "manifest validation, exact git checkout, image environment check, and runtime baseline check"
+    },
+    {
+      "component": "Pluto base image",
+      "classification": "immutable_content_pin",
+      "identity": "hughshine/pluto-verif@sha256:0e15a7614af280b02ab0dc31f110c3ee3f7a1fe3ee3d1b503cc3400d87b4f4ce",
+      "enforcement": "build-image.sh verifies RepoDigests for the tag and then builds with --pull=false"
+    },
+    {
+      "component": "Ubuntu rootfs and packages already in the Pluto base",
+      "classification": "transitively_immutable_in_base",
+      "identity": "contained in the verified Pluto base image digest",
+      "enforcement": "base image content digest"
+    }
+  ],
+  "version_pins": [
+    {
+      "component": "opam executable",
+      "declared_version": "2.0.8",
+      "classification": "explicit_version_pin",
+      "observed_sha256": "95365a873d9e3ae6fb48e6109b5fc5df3b4e526c9d65d20652a78e263f745a35",
+      "gap": "The frozen Dockerfile downloads the versioned asset with --no-check-certificate and does not verify this checksum."
+    },
+    {
+      "component": "OCaml compiler",
+      "declared_version": "4.13.1",
+      "classification": "explicit_version_pin",
+      "gap": "The compiler package is selected from an unpinned opam repository state."
+    },
+    {
+      "component": "Coq",
+      "declared_version": "8.13.2",
+      "classification": "explicit_version_pin",
+      "gap": "opam pin selects the version but the frozen build does not import a frozen repository snapshot or full switch export."
+    }
+  ],
+  "opam": {
+    "repository_url": "https://opam.ocaml.org",
+    "repository_snapshot": null,
+    "repository_classification": "unfixed_resolution",
+    "requested_without_versions": [
+      "zarith",
+      "glpk",
+      "menhir",
+      "stdlib-shims"
+    ],
+    "observed_full_switch_export_sha256": "8011b64bbe6c0cfb339cae59bb2cb73ef0162e24b72194784a601f4aece6c5d9",
+    "full_switch_export_used_as_build_input": false,
+    "installed_switch_state_classification": "transitively_immutable_in_verified_image",
+    "installed_switch_state_note": "The local final image fixes the installed switch bytes. The frozen Dockerfile does not import the observed full export, so this does not constrain a fresh build.",
+    "observed_packages": [
+      {"name": "base-bigarray", "version": "base", "classification": "observed_only"},
+      {"name": "base-threads", "version": "base", "classification": "observed_only"},
+      {"name": "base-unix", "version": "base", "classification": "observed_only"},
+      {"name": "conf-findutils", "version": "1", "classification": "observed_only"},
+      {"name": "conf-gmp", "version": "5", "classification": "observed_only"},
+      {"name": "conf-pkg-config", "version": "4", "classification": "observed_only"},
+      {"name": "coq", "version": "8.13.2", "classification": "explicit_version_pin"},
+      {"name": "dune", "version": "3.22.2", "classification": "observed_only"},
+      {"name": "glpk", "version": "0.1.8", "classification": "observed_only"},
+      {"name": "menhir", "version": "20260209", "classification": "observed_only"},
+      {"name": "menhirCST", "version": "20260209", "classification": "observed_only"},
+      {"name": "menhirGLR", "version": "20260209", "classification": "observed_only"},
+      {"name": "menhirLib", "version": "20260209", "classification": "observed_only"},
+      {"name": "menhirSdk", "version": "20260209", "classification": "observed_only"},
+      {"name": "num", "version": "1.6", "classification": "observed_only"},
+      {"name": "ocaml", "version": "4.13.1", "classification": "explicit_version_pin"},
+      {"name": "ocaml-base-compiler", "version": "4.13.1", "classification": "explicit_version_pin"},
+      {"name": "ocaml-config", "version": "2", "classification": "observed_only"},
+      {"name": "ocaml-options-vanilla", "version": "1", "classification": "observed_only"},
+      {"name": "ocamlfind", "version": "1.9.8", "classification": "observed_only"},
+      {"name": "stdlib-shims", "version": "0.3.0", "classification": "observed_only"},
+      {"name": "zarith", "version": "1.14", "classification": "observed_only"}
+    ]
+  },
+  "apt": {
+    "distribution": "Ubuntu 20.04.6 LTS (Focal Fossa)",
+    "repository_snapshot": null,
+    "repository_classification": "unfixed_resolution",
+    "installed_package_state_classification": "transitively_immutable_in_verified_image",
+    "installed_package_state_note": "The local final image fixes installed package bytes, while the frozen apt commands remain free to resolve newer versions on a fresh build.",
+    "declaration": "apt-get install uses package names without =version constraints against focal, focal-updates, focal-backports, and focal-security",
+    "observed_explicit_packages": [
+      {"name": "apache2", "version": "2.4.41-4ubuntu3.23", "classification": "observed_only"},
+      {"name": "build-essential", "version": "12.8ubuntu1.1", "classification": "observed_only"},
+      {"name": "cloc", "version": "1.82-1", "classification": "observed_only"},
+      {"name": "git", "version": "1:2.25.1-1ubuntu3.14", "classification": "observed_only"},
+      {"name": "libeigen3-dev", "version": "3.3.7-2", "classification": "observed_only"},
+      {"name": "libglpk-dev", "version": "4.65-2", "classification": "observed_only"},
+      {"name": "libgmp-dev", "version": "2:6.2.0+dfsg-4ubuntu0.1", "classification": "observed_only"},
+      {"name": "libgmp3-dev", "version": "2:6.2.0+dfsg-4ubuntu0.1", "classification": "observed_only"},
+      {"name": "m4", "version": "1.4.18-4", "classification": "observed_only"},
+      {"name": "make", "version": "4.2.1-1.2", "classification": "observed_only"},
+      {"name": "patch", "version": "2.7.6-6", "classification": "observed_only"},
+      {"name": "unzip", "version": "6.0-25ubuntu1.2", "classification": "observed_only"},
+      {"name": "vim", "version": "2:8.1.2269-1ubuntu5.32", "classification": "observed_only"},
+      {"name": "wget", "version": "1.20.3-1ubuntu2.1", "classification": "observed_only"}
+    ]
+  },
+  "remaining_gaps": [
+    "The final artifact image has not been published and therefore has no recorded registry digest.",
+    "Ubuntu repositories are moving endpoints rather than dated snapshots; exact observed deb versions are not enforced or archived.",
+    "The audit records direct apt requests, not the entire transitive dpkg closure or a generated SBOM.",
+    "The opam repository state is not identified by a commit or snapshot and the observed full switch export is not a build input.",
+    "The opam executable checksum is observed but not checked by the frozen Dockerfile, which also disables certificate verification for that download.",
+    "A fresh networked build can resolve different apt and non-Coq opam package versions even though the verified image itself is content-addressed."
+  ]
+}

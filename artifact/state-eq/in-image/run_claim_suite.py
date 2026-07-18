@@ -155,8 +155,8 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
-    shutil.copy2(ARTIFACT_ROOT / "manifest.json", output / "manifest.json")
-    shutil.copy2(ARTIFACT_ROOT / "claims.json", output / "claims.json")
+    for name in ("manifest.json", "claims.json", "dependency-lock-audit.json"):
+        shutil.copy2(ARTIFACT_ROOT / name, output / name)
 
     environment = {
         "recorded_at": datetime.now(timezone.utc).isoformat(),

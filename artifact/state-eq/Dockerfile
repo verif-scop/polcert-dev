@@ -23,7 +23,7 @@ ENV POLCERT_ARTIFACT_ID="${POLCERT_ARTIFACT_ID}" \
     POLCERT_SOURCE_TREE="${POLCERT_SOURCE_TREE}" \
     POLCERT_ARTIFACT_OUTPUT="/artifact-results"
 
-COPY manifest.json claims.json /opt/polcert-artifact/
+COPY manifest.json claims.json dependency-lock-audit.json /opt/polcert-artifact/
 COPY in-image/review.sh in-image/run_claim_suite.py /opt/polcert-artifact/
 RUN chmod 0755 /opt/polcert-artifact/review.sh /opt/polcert-artifact/run_claim_suite.py
 

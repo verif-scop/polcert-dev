@@ -28,6 +28,7 @@
     "image_build_requires_network": true,
     "review_run_requires_network": false,
     "dependency_lock": "partial",
-    "dependency_lock_note": "PolCert, Pluto, OCaml, Coq, and the Pluto base image digest are pinned. Ubuntu apt packages and non-Coq opam packages are not yet locked by version."
+    "dependency_lock_audit": "dependency-lock-audit.json",
+    "dependency_lock_note": "PolCert, Pluto, and the Pluto base registry digest are immutable pins. OCaml, Coq, and the opam executable are version pins. Apt resolution, the opam repository snapshot, and non-Coq opam package resolution are not build-enforced locks; their verified-image versions are observations only."
   }
 }
