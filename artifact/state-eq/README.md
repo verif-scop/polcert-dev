@@ -51,6 +51,34 @@ second run from leaving stale logs or nested suite outputs in the archived
 evidence. Use a new `POLCERT_ARTIFACT_OUTPUT` path, or explicitly remove the
 previous generated results with `make clean-results`, before rerunning.
 
+## Full Review Evidence
+
+The lock-v1 candidate uses schema-v2 review evidence. Do not summarize a run
+by hand. After one successful full offline review, create the compact evidence
+directly from its untouched raw result directory and matching build metadata:
+
+```sh
+make archive-full-review \
+  POLCERT_REVIEW_RESULTS="$PWD/results-full-lock-v1" \
+  POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/lock-v1-full-review.json"
+
+make review-evidence-validate \
+  POLCERT_REVIEW_RESULTS="$PWD/results-full-lock-v1" \
+  POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/lock-v1-full-review.json"
+```
+
+The archiver refuses an existing evidence path. It requires the exact 13 full
+review gates in order, with `dependency-lock` first and every gate reporting
+`ok=true` and `returncode=0`. It also rechecks the proof and capability counts,
+binds the manifest candidate reference to its Docker image ID and build
+metadata, compares all copied lock/manifest inputs byte for byte, and records a
+deterministic SHA-256 tree digest over the complete raw result directory.
+
+The raw directory remains excluded from Git and must be archived externally
+with the image. Its recorded tree digest, file count, byte count, and required
+file hashes allow the extracted archive to be verified later. Run the focused
+tests without starting a review using `make review-evidence-test`.
+
 The shorter health check is:
 
 ```sh
@@ -167,6 +195,11 @@ review evidence in `evidence/2026-07-18-full-review.json`. That evidence names
 the unchanged `polcert-artifact:state-eq-2026-05-25-v2` image, not the default
 lock-v1 candidate. Publication refuses any local image whose Docker image ID
 differs from the reviewed ID.
+
+Schema-v1 remains accepted for the existing reviewed pre-lock image. Evidence
+whose artifact reference is the lock-v1 candidate must use schema-v2; the
+publication guard independently rechecks its exact 13-gate ledger, dependency
+lock SHA-256, proof/capability assertions, and required raw file hashes.
 
 First validate an explicit, versioned registry reference without tagging,
 pushing, or contacting the registry:

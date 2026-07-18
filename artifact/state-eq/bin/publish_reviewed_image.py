@@ -13,6 +13,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from archive_full_review import (
+    EvidenceError,
+    repository_static_hashes,
+    sha256,
+    validate_compact_v2,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_EVIDENCE = ROOT / "evidence" / "2026-07-18-full-review.json"
@@ -66,6 +73,9 @@ def load_review_evidence(path: Path) -> tuple[dict[str, Any], str]:
         evidence = json.loads(raw)
     except (OSError, json.JSONDecodeError) as exc:
         raise PublicationError(f"cannot read review evidence {path}: {exc}") from exc
+    schema_version = evidence.get("schema_version")
+    if schema_version not in (1, 2):
+        raise PublicationError("review evidence schema_version must be 1 or 2")
     review = evidence.get("review", {})
     if review.get("ok") is not True:
         raise PublicationError("review evidence does not record a successful review")
@@ -124,6 +134,23 @@ def load_review_evidence(path: Path) -> tuple[dict[str, Any], str]:
     local_reference = image.get("reference")
     if not isinstance(local_reference, str) or not local_reference:
         raise PublicationError("review evidence has no local artifact image reference")
+    candidate_reference = manifest.get("images", {}).get("default_candidate", {}).get(
+        "reference"
+    )
+    if local_reference == candidate_reference and schema_version != 2:
+        raise PublicationError("lock-v1 candidate review evidence must use schema_version=2")
+    if schema_version == 2:
+        try:
+            validate_compact_v2(
+                evidence,
+                manifest,
+                sha256((ROOT / "locks" / "dependency-lock.json").read_bytes()),
+                repository_static_hashes(
+                    ROOT / "manifest.json", ROOT / "locks" / "dependency-lock.json"
+                ),
+            )
+        except (EvidenceError, OSError) as exc:
+            raise PublicationError(str(exc)) from exc
     return evidence, hashlib.sha256(raw).hexdigest()
 
 

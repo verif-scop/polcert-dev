@@ -9,6 +9,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
+from archive_full_review import (  # noqa: E402
+    EXPECTED_OUTER_GATES,
+    STATIC_RESULT_FILES,
+    STRUCTURED_RESULT_FILES,
+    repository_static_hashes,
+    sha256,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "bin" / "publish_reviewed_image.py"
@@ -63,6 +72,42 @@ class PublishReviewedImageTests(unittest.TestCase):
             return []
         return [json.loads(line) for line in self.log.read_text().splitlines()]
 
+    def schema_v2_evidence(self, image_id: str) -> dict[str, object]:
+        evidence = json.loads(EVIDENCE.read_text())
+        evidence["schema_version"] = 2
+        evidence["packaging_revision"] = "dependency-lock-v1"
+        evidence["review"]["recorded_at"] = "2026-07-18T12:00:00+00:00"
+        evidence["images"]["artifact"] = {"reference": CANDIDATE, "id": image_id}
+        evidence["environment"][
+            "network_contract"
+        ] = "review command is run with Docker --network none"
+        evidence["top_level_results"] = [
+            {
+                "name": name,
+                "ok": True,
+                "returncode": 0,
+                "elapsed_seconds": 1.0,
+            }
+            for name in EXPECTED_OUTER_GATES
+        ]
+        evidence["dependency_lock"] = {
+            "gate": "dependency-lock",
+            "ok": True,
+            "sha256": sha256((ROOT / "locks" / "dependency-lock.json").read_bytes()),
+        }
+        evidence["review"]["raw_results"] = {
+            "file_count": 100,
+            "bytes": 1000,
+            "tree_sha256": "e" * 64,
+            "required_files": {
+                **repository_static_hashes(
+                    ROOT / "manifest.json", ROOT / "locks" / "dependency-lock.json"
+                ),
+                **{name: "f" * 64 for name in STRUCTURED_RESULT_FILES},
+            },
+        }
+        return evidence
+
     def test_dry_run_only_inspects_local_reviewed_image(self) -> None:
         result = self.invoke("--dry-run")
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -107,6 +152,54 @@ class PublishReviewedImageTests(unittest.TestCase):
         result = self.invoke("--dry-run", evidence=path)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)["reviewed_image_id"], new_id)
+
+    def test_valid_schema_v2_candidate_evidence_is_accepted(self) -> None:
+        new_id = "sha256:" + "d" * 64
+        path = self.directory / "lock-v1-full-review.json"
+        path.write_text(json.dumps(self.schema_v2_evidence(new_id)))
+        self.environment["FAKE_DOCKER_LOCAL_ID"] = new_id
+        result = self.invoke("--dry-run", evidence=path)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["reviewed_image_id"], new_id)
+
+    def test_refuses_schema_v1_candidate_even_when_image_id_matches(self) -> None:
+        new_id = "sha256:" + "d" * 64
+        evidence = json.loads(EVIDENCE.read_text())
+        evidence["images"]["artifact"] = {"reference": CANDIDATE, "id": new_id}
+        path = self.directory / "candidate-schema-v1.json"
+        path.write_text(json.dumps(evidence))
+        self.environment["FAKE_DOCKER_LOCAL_ID"] = new_id
+        result = self.invoke("--dry-run", evidence=path)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("must use schema_version=2", result.stderr)
+        self.assertEqual(self.docker_log(), [])
+
+    def test_refuses_incomplete_or_wrong_lock_schema_v2_evidence(self) -> None:
+        new_id = "sha256:" + "d" * 64
+        mutations = (
+            lambda item: item["top_level_results"].pop(0),
+            lambda item: item["top_level_results"][0].update(returncode=2, ok=False),
+            lambda item: item["dependency_lock"].update(sha256="0" * 64),
+            lambda item: item["proof_report"].update(coq_file_count=177),
+            lambda item: item["capability_results"]["strict_loop_suite"].update(
+                changed=58
+            ),
+            lambda item: item["capability_results"]["strict_loop_suite"].update(
+                detected_tiled=38
+            ),
+            lambda item: item["review"]["raw_results"]["required_files"].update(
+                {"manifest.json": "0" * 64}
+            ),
+        )
+        for index, mutate in enumerate(mutations):
+            with self.subTest(index=index):
+                evidence = self.schema_v2_evidence(new_id)
+                mutate(evidence)
+                path = self.directory / f"bad-v2-{index}.json"
+                path.write_text(json.dumps(evidence))
+                result = self.invoke("--dry-run", evidence=path)
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(self.docker_log(), [])
 
     def test_refuses_unsuccessful_or_nonfull_evidence(self) -> None:
         for field, value, message in (
