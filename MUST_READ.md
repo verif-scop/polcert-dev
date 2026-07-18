@@ -39,11 +39,17 @@
   - offline `--network none` full review: 12 / 12 top-level gates and 18 / 18
     nested artifact checks pass
   - compact evidence: `artifact/state-eq/evidence/2026-07-18-full-review.json`
+  - dependency status and locking plan:
+    `artifact/state-eq/DEPENDENCY_LOCK_AUDIT.md`
   - registry publication and complete apt/non-Coq-opam locking remain pending
 - Active next work:
-  - affine proof cleanup must use a new branch/worktree from the frozen tag
+  - affine proof cleanup is isolated on `proof-cleanup-affine-batch1`; commits
+    `50aefe5` and `7a62341` are proof-only and preserve the frozen theorem and
+    executable boundary
   - paper structure is in
     `doc/pluto-comprehensive/paper-local/STATE_EQ_PAPER_OUTLINE.md`
+  - paper-local commits `31e205c` and `5424324` integrate the calibrated
+    contribution story, multipar scope, and exact-tag artifact evidence
   - storage-changing validation remains separate future work, not a blocker
     for the State.eq paper
 

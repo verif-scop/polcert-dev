@@ -1240,3 +1240,18 @@ Date: 2026-03-08
 - Committed a claim-calibrated abstract and contribution draft in the nested
   paper repository at `0219e1a`; migration into the LaTeX body remains in
   progress.
+- Added a dependency-lock audit at outer commit `9236b69`.
+  - PolCert, Pluto, and the Pluto base digest are immutable content pins
+  - OCaml, Coq, and opam are version selections rather than complete content
+    locks
+  - moving apt/opam repositories and non-Coq dependency resolution remain the
+    main fresh-build reproducibility gap
+- Committed proof cleanup slice 2 as `7a62341` on
+  `proof-cleanup-affine-batch1`: one local access-to-cell noncollision helper
+  replaces the repeated WW/WR/RW lifting blocks, for a net 17-line reduction.
+  A forced `AffineValidator.vo` rebuild, admitted check, and six direct
+  downstream module builds pass.
+- Integrated the calibrated contribution story into the paper LaTeX at
+  `31e205c`, then synchronized multi-current/multipar and exact-tag artifact
+  evidence at `5424324`. The 16-page paper and 3-page artifact report both
+  build without LaTeX warnings.

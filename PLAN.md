@@ -73,6 +73,8 @@ only after the completed baseline and its artifact evidence are recoverable.
   - [x] First slice: replace the duplicate
     `nth_error_compose_ipl_ext_inv` induction with the existing local lemma and
     add proof-structure comments, without changing net source lines.
+  - [x] Second slice: factor WW/WR/RW access-to-cell noncollision lifting into
+    one local helper, reducing `AffineValidator.v` by 17 lines.
 - [ ] Preserve theorem statements, accepted schedules, extracted behavior, and
   trust assumptions unless a deliberate semantic change is separately
   justified.
@@ -87,18 +89,18 @@ only after the completed baseline and its artifact evidence are recoverable.
 
 - [x] Freeze a contribution ledger against the archived artifact before making
   headline claims.
-- [ ] Rewrite the abstract, introduction, and contribution list relative to the
+- [x] Rewrite the abstract, introduction, and contribution list relative to the
   inherited affine-scheduling validator: the new contribution is the completed
   end-to-end, multi-family verified compiler path, not affine scheduling itself.
-  A claim-calibrated abstract and contribution draft is committed in the paper
-  repository at `0219e1a`; integration into the LaTeX body is in progress.
-- [ ] State the exact correctness boundary around `State.eq`, including why
+  The draft is `0219e1a`; the LaTeX integration is `31e205c`.
+- [x] State the exact correctness boundary around `State.eq`, including why
   storage-changing transformations remain outside this theorem family.
-- [ ] Make tiling and its supported variants the central technical extension;
+- [x] Make tiling and its supported variants the central technical extension;
   present ISS and parallel/multipar as substantial semantic extensions, with
   vector, unroll/jam, stride lowering, and cleanup as supporting checked routes.
 - [ ] Derive all capability tables and evaluation numbers from the frozen
-  artifact outputs.
+  artifact outputs. The first exact-tag artifact table is committed at paper
+  revision `5424324`; remaining evaluation presentation is still pending.
 - [ ] Audit theorem names, implementation paths, capability counts, references,
   and limitations consistently across the abstract, introduction, technical
   sections, evaluation, and conclusion.
