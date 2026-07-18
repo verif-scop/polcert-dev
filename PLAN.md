@@ -50,6 +50,10 @@ claims.
   `sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f`.
 - [ ] Publish the image and record its registry digest; finish locking Ubuntu
   apt and non-Coq opam package versions.
+- [x] Add a guarded publication workflow that rejects moving/default-registry
+  targets, verifies the frozen source identity and complete archived claim
+  evidence, checks the reviewed local image ID, and records the resulting
+  immutable repository digest without overwriting an existing record.
 - [x] Test the documented commands from a fresh Docker environment and archive
   the resulting logs. After the image has been pulled, the core reproduction
   path should not require network access.
@@ -100,12 +104,18 @@ only after the completed baseline and its artifact evidence are recoverable.
 - [x] Make tiling and its supported variants the central technical extension;
   present ISS and parallel/multipar as substantial semantic extensions, with
   vector, unroll/jam, stride lowering, and cleanup as supporting checked routes.
-- [ ] Derive all capability tables and evaluation numbers from the frozen
-  artifact outputs. The first exact-tag artifact table is committed at paper
-  revision `5424324`; remaining evaluation presentation is still pending.
-- [ ] Audit theorem names, implementation paths, capability counts, references,
-  and limitations consistently across the abstract, introduction, technical
-  sections, evaluation, and conclusion.
+- [x] Derive all capability tables and evaluation numbers from the frozen
+  artifact outputs. Paper revision `fa95786` generates the 81-row capability
+  summary, 24-route theorem inventory, proof counts, and executable results
+  from archived JSON and provides a drift-detecting `--check` mode.
+- [x] Audit theorem names, implementation paths, capability counts, references,
+  and limitations consistently across the abstract, introduction, validator,
+  correctness section, evaluation, artifact report, and conclusion.
+- [x] Audit all 27 entries in the paper-facing bibliography and record the
+  independent RefChecker re-audit; keep uncited reading-packet candidates
+  provisional.
+- [ ] Complete the scientific-body revision and make the title and venue-format
+  decision after the remaining artifact publication inputs are stable.
 
 Paper drafting can begin once the claim ledger is frozen; it need not wait for
 every cosmetic proof cleanup. Storage generalization and overlapped tiling are

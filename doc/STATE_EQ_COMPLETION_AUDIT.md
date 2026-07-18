@@ -47,7 +47,13 @@ Completed evidence:
 - the reviewed local image content ID is
   `sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f`;
 - claims and explicit non-claims are mapped in `artifact/state-eq/claims.json`
-  and `STATE_EQ_CLAIM_LEDGER.md`.
+  and `STATE_EQ_CLAIM_LEDGER.md`;
+- the publication command refuses moving or default-registry targets, checks
+  the exact source tag/commit/tree, all zero proof-hole counts, 18/18 artifact
+  checks, 114 Pluto compatibility cases, 62/62 strict cases, and all dedicated
+  route suites before tagging or pushing;
+- its 14 fixture tests and a real local dry run pass without a registry
+  operation or publication record.
 
 Remaining requirements:
 
@@ -89,8 +95,8 @@ Remaining requirements:
 
 ## 4. Evidence-backed paper
 
-Status: contribution framing is integrated; final paper preparation is in
-progress.
+Status: contribution framing and frozen-evidence evaluation are integrated;
+final paper preparation is in progress.
 
 Completed evidence:
 
@@ -101,18 +107,27 @@ Completed evidence:
   supporting capabilities;
 - abstract, introduction, validator, conclusion, parallel note, Markdown
   narrative, and artifact report have been reconciled with exact-tag evidence;
-- current paper and artifact-report PDFs build without LaTeX warnings.
+- `scripts/generate_evaluation_tables.py` derives the capability summary,
+  theorem-route inventory, proof counts, and executable results from four
+  archived JSON inputs and rejects inconsistent or stale evidence;
+- the generated presentation covers 81 capability rows, 24 theorem-facing
+  routes, 178 Coq files, 12/12 top-level checks, 18/18 nested checks, 114/114
+  Pluto compatibility checks, and 62/62 strict cases;
+- all 27 paper-facing bibliography entries have been manually audited, with a
+  documented RefChecker re-audit;
+- the current 17-page paper and 5-page artifact-report PDFs build without
+  overfull boxes, undefined references, or LaTeX warnings.
 
 Remaining requirements:
 
-- derive the paper-facing capability/evaluation presentation from archived
-  machine-readable evidence rather than manually copied counts;
-- perform a final cross-section theorem-name, route, count, and limitation
-  audit;
-- finish the strict bibliography audit before treating related-work metadata
-  as submission-ready;
-- make an explicit title and venue-format decision only after the scientific
-  body and evaluation are stable.
+- finish the scientific-body revision using the generated evaluation and exact
+  theorem anchors;
+- keep uncited exploratory related-work candidates outside the curated
+  bibliography until each is needed and audited;
+- regenerate and re-audit the paper evidence after registry publication or any
+  frozen-source change;
+- make an explicit title and venue-format decision after the scientific body
+  and publication evidence are stable.
 
 ## Completion rule
 

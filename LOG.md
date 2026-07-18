@@ -1264,3 +1264,24 @@ Date: 2026-03-08
   diamond/full-diamond, and multipar routes are no longer described as future
   work; overlapped tiling, reductions, and OpenMP runtime semantics remain
   explicit non-claims.
+- Added a reviewed-image publication guard at outer commit `42ad7fe`.
+  - it requires an explicit versioned registry host/repository/tag
+  - it checks the frozen tag, commit, tree, four zero proof-hole counts, 18/18
+    artifact checks, 114 compatibility cases, 62/62 strict cases, and the ISS,
+    parallel, vector, second-level, and diamond suite results
+  - it verifies the exact reviewed local image ID before tag/push and records
+    the resulting immutable repository digest atomically
+  - 14 fixture tests and a real local dry run pass; no image has been pushed
+- Re-audited all 27 entries in the paper bibliography with RefChecker v2.0.27
+  and the repository consistency checker at paper commit `c941cbc`. The two
+  errors and six warnings were already-documented indexer collisions, so no
+  BibTeX entry changed.
+- Committed the evidence-backed paper evaluation at paper revision `fa95786`.
+  - `scripts/generate_evaluation_tables.py` reads the archived capability,
+    proof, artifact-runner, and network-disabled review JSON files
+  - generated tables cover 81 capability rows, 24 theorem-facing routes, 178
+    Coq files, 12/12 top-level gates, 18/18 nested checks, 114/114 Pluto
+    compatibility cases, and 62/62 strict cases
+  - the generator checks cross-file counts, zero proof holes, dedicated suite
+    status, and tracked-output drift
+  - the 17-page paper and 5-page artifact report build with clean logs

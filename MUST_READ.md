@@ -41,16 +41,25 @@
   - compact evidence: `artifact/state-eq/evidence/2026-07-18-full-review.json`
   - dependency status and locking plan:
     `artifact/state-eq/DEPENDENCY_LOCK_AUDIT.md`
+  - `make publication-validate` checks the archived review, exact frozen source
+    identity, proof closure, and every claimed suite against the reviewed local
+    image before any registry operation
+  - `make publish-reviewed-image` accepts only an explicit versioned registry
+    target and records the resulting immutable repository digest; its 14-test
+    fixture suite and a real local dry run pass
   - registry publication and complete apt/non-Coq-opam locking remain pending
 - Active next work:
   - affine proof cleanup is isolated on `proof-cleanup-affine-batch1`; commits
-    `50aefe5` and `7a62341` are proof-only and preserve the frozen theorem and
-    executable boundary
+    `50aefe5`, `7a62341`, and `711d10d` are proof-only and preserve the frozen
+    theorem and executable boundary; a fourth bounded slice is under full
+    validation
   - paper structure is in
     `doc/pluto-comprehensive/paper-local/STATE_EQ_PAPER_OUTLINE.md`
-  - paper-local commits `31e205c`, `5424324`, and `7d0eb18` integrate the
-    calibrated contribution story, exact-tag evidence, and current
-    second-level/diamond/multipar scope; `a2daa19` records the resulting status
+  - paper-local commit `fa95786` generates the 81-row capability summary and
+    24-route theorem inventory from frozen JSON evidence, integrates the
+    audited cross-section wording, and produces clean 17-page and 5-page PDFs
+  - the 27-entry paper bibliography is audited; the exploratory related-work
+    packet remains provisional
   - storage-changing validation remains separate future work, not a blocker
     for the State.eq paper
 
