@@ -19,6 +19,7 @@ from archive_full_review import (  # noqa: E402
     sha256,
 )
 from claim_evidence import claim_contract_summary  # noqa: E402
+from publish_reviewed_image import push_digest  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -73,6 +74,14 @@ class PublishReviewedImageTests(unittest.TestCase):
         if not self.log.exists():
             return []
         return [json.loads(line) for line in self.log.read_text().splitlines()]
+
+    def test_parses_realistic_docker_push_digest_line(self) -> None:
+        output = f"state-eq-v3: digest: {REGISTRY_DIGEST} size: 856\n"
+        repository = DESTINATION.rsplit(":", 1)[0]
+        self.assertEqual(
+            push_digest(output, repository),
+            (REGISTRY_DIGEST, f"{repository}@{REGISTRY_DIGEST}"),
+        )
 
     def schema_v2_evidence(self, image_id: str) -> dict[str, object]:
         evidence = json.loads(EVIDENCE.read_text())

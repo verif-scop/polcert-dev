@@ -229,7 +229,11 @@ def inspect_image(docker_bin: str, reference: str) -> dict[str, Any]:
 
 def push_digest(output: str, repository: str) -> tuple[str, str]:
     matches = set(
-        re.findall(r"(?m)^digest:\s*(sha256:[0-9a-f]{64})(?:\s|$)", output)
+        re.findall(
+            r"(?m)^(?:[^\r\n]+:\s+)?digest:\s*"
+            r"(sha256:[0-9a-f]{64})(?:\s|$)",
+            output,
+        )
     )
     if not matches:
         raise PublicationError(f"docker push returned no manifest digest for {repository}")

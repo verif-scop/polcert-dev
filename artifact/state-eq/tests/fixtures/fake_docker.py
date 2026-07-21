@@ -62,11 +62,11 @@ def main() -> int:
         if explicit_digests:
             for digest in json.loads(explicit_digests):
                 value = digest.rsplit("@", 1)[-1]
-                print(f"digest: {value} size: 123")
+                print(f"fixture-tag: digest: {value} size: 123")
         else:
             digest = os.environ.get("FAKE_DOCKER_REGISTRY_DIGEST")
             if digest:
-                print(f"digest: {digest} size: 123")
+                print(f"fixture-tag: digest: {digest} size: 123")
         return 0
     if arguments and arguments[0] == "pull":
         return int(os.environ.get("FAKE_DOCKER_PULL_EXIT", "0"))
