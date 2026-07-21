@@ -1,6 +1,6 @@
 # Reproduction Timing
 
-This note separates the current v3 measurement from the historical v2 planning
+This note separates the pending v3 measurement from the historical v2 planning
 baseline. Authoritative values come from schema-v2 evidence generated from an
 untouched raw review directory.
 
@@ -29,8 +29,8 @@ the observed build was serial.
 | Strict 62-case loop suite | 355.4 s (5.9 min) |
 | `advect3d` strict case | 148.8 s (2.5 min) |
 
-Reviewers should reserve 45 minutes for a comparable serial full review. The
-margin covers Docker filesystem and host-load variation. Image construction is
+The historical measurements suggest a 45-minute planning floor for a comparable
+serial v3 review. This is not a measured v3 budget. Image construction is
 separate and may require network access; its duration is not included because
 it depends on local layer caches and package mirrors.
 
@@ -45,8 +45,8 @@ fallback.
 
 The next slow strict cases in the recorded run were `tce` (59.6 seconds),
 `fdtd-2d` (33.6 seconds), `pca` (19.3 seconds), and `adi` (17.7 seconds). These
-per-case values are retained in the raw strict-suite stdout bound by the
-schema-v2 result-tree digest.
+per-case values are retained in the historical raw strict-suite stdout bound by
+the `lock-v1-full-review.json` schema-v2 result-tree digest.
 
 ## Parallel Runs
 

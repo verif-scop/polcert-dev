@@ -6,6 +6,7 @@ POLCERT_REVIEW_EVIDENCE ?= $(CURDIR)/evidence/2026-07-21-v3-full-review.json
 POLCERT_PUBLICATION_RECORD ?= $(CURDIR)/publication/publication-record.json
 POLCERT_DEPENDENCY_LOCK_DIR ?= $(CURDIR)/locks
 POLCERT_DEPENDENCY_LOCK_ORIGIN_IMAGE ?= polcert-artifact:state-eq-2026-05-25-v2
+POLCERT_DEPENDENCY_LOCK_ORIGIN_EVIDENCE ?= $(CURDIR)/evidence/2026-07-18-full-review.json
 POLCERT_REVIEW_RESULTS ?= $(POLCERT_ARTIFACT_OUTPUT)
 POLCERT_BUILD_METADATA ?= $(CURDIR)/build/build-metadata.json
 POLCERT_REVIEW_EVIDENCE_OUTPUT ?= $(CURDIR)/evidence/2026-07-21-v3-full-review.json
@@ -53,7 +54,7 @@ claim-evidence-test:
 dependency-lock-capture:
 	./bin/dependency_lock.py capture-image \
 		--image "$(POLCERT_DEPENDENCY_LOCK_ORIGIN_IMAGE)" \
-		--review-evidence "$(POLCERT_REVIEW_EVIDENCE)" \
+		--review-evidence "$(POLCERT_DEPENDENCY_LOCK_ORIGIN_EVIDENCE)" \
 		--manifest "$(CURDIR)/manifest.json" \
 		--output-dir "$(POLCERT_DEPENDENCY_LOCK_DIR)"
 

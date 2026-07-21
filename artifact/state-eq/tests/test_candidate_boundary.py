@@ -45,6 +45,14 @@ class CandidateBoundaryTests(unittest.TestCase):
             rf"(?m)^POLCERT_DEPENDENCY_LOCK_ORIGIN_IMAGE \?= {re.escape(REVIEWED)}$",
         )
         self.assertIn('--image "$(POLCERT_DEPENDENCY_LOCK_ORIGIN_IMAGE)"', makefile)
+        self.assertRegex(
+            makefile,
+            rf"(?m)^POLCERT_DEPENDENCY_LOCK_ORIGIN_EVIDENCE \?= \$\(CURDIR\)/{re.escape(EVIDENCE)}$",
+        )
+        self.assertIn(
+            '--review-evidence "$(POLCERT_DEPENDENCY_LOCK_ORIGIN_EVIDENCE)"',
+            makefile,
+        )
         self.assertEqual(manifest["images"]["default_candidate"]["reference"], CANDIDATE)
         origin = manifest["images"]["dependency_lock_origin"]
         self.assertEqual(origin["reference"], REVIEWED)
