@@ -83,9 +83,11 @@ class PublishReviewedImageTests(unittest.TestCase):
         evidence["packaging_revision"] = manifest["artifact"]["packaging_revision"]
         evidence["source"] = manifest["polcert"]
         evidence["review"]["recorded_at"] = "2026-07-18T12:00:00+00:00"
+        evidence["review"]["executed_image_id"] = image_id
         evidence["review"]["elapsed_seconds"] = 13.0
         evidence["images"]["artifact"] = {"reference": CANDIDATE, "id": image_id}
         evidence["environment"]["artifact_id"] = manifest["artifact"]["id"]
+        evidence["environment"]["artifact_image_id"] = image_id
         evidence["environment"]["polcert_source_tag"] = manifest["polcert"]["tag"]
         evidence["environment"]["polcert_source_commit"] = manifest["polcert"]["commit"]
         evidence["environment"]["polcert_source_tree"] = manifest["polcert"]["tree"]
@@ -336,7 +338,7 @@ class PublishReviewedImageTests(unittest.TestCase):
         del self.environment["FAKE_DOCKER_REGISTRY_DIGEST"]
         result = self.invoke()
         self.assertEqual(result.returncode, 2)
-        self.assertIn("no RepoDigest", result.stderr)
+        self.assertIn("no manifest digest", result.stderr)
         self.assertFalse(self.record.exists())
 
     def test_refuses_conflicting_or_malformed_registry_digests(self) -> None:
@@ -352,6 +354,56 @@ class PublishReviewedImageTests(unittest.TestCase):
                 result = self.invoke()
                 self.assertEqual(result.returncode, 2)
                 self.assertFalse(self.record.exists())
+
+    def test_uses_reviewed_id_and_digest_promotion(self) -> None:
+        result = self.invoke()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        log = self.docker_log()
+        tag = next(command for command in log if command[0] == "tag")
+        self.assertEqual(tag[1], REVIEWED_ID)
+        staging = tag[2]
+        self.assertIn(":polcert-stage-", staging)
+        self.assertIn(["push", staging], log)
+        immutable = f"{DESTINATION.rsplit(':', 1)[0]}@{REGISTRY_DIGEST}"
+        self.assertIn(["pull", immutable], log)
+        self.assertIn(
+            [
+                "buildx",
+                "imagetools",
+                "create",
+                "--prefer-index=false",
+                "--tag",
+                DESTINATION,
+                immutable,
+            ],
+            log,
+        )
+        record = json.loads(self.record.read_text())
+        self.assertEqual(record["registry"]["staging_reference"], staging)
+        self.assertEqual(record["registry"]["staging_digest"], REGISTRY_DIGEST)
+
+    def test_refuses_promotion_digest_mismatch(self) -> None:
+        self.environment["FAKE_DOCKER_PROMOTED_DIGEST"] = "sha256:" + "b" * 64
+        result = self.invoke()
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("differs from the reviewed staging digest", result.stderr)
+        self.assertFalse(self.record.exists())
+
+    def test_refuses_digest_pull_or_promotion_failures(self) -> None:
+        cases = (
+            ("FAKE_DOCKER_PULL_EXIT", "docker pull of pushed immutable digest failed"),
+            ("FAKE_DOCKER_PROMOTE_EXIT", "registry digest promotion failed"),
+            ("FAKE_DOCKER_REMOTE_INSPECT_EXIT", "cannot inspect registry manifest"),
+        )
+        for variable, message in cases:
+            with self.subTest(variable=variable):
+                self.environment[variable] = "9"
+                self.record = self.directory / f"{variable}.json"
+                result = self.invoke()
+                self.assertEqual(result.returncode, 2)
+                self.assertIn(message, result.stderr)
+                self.assertFalse(self.record.exists())
+                del self.environment[variable]
 
     def test_refuses_tag_push_and_inspect_failures_without_record(self) -> None:
         for variable, message in (

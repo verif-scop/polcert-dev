@@ -90,6 +90,11 @@ class CandidateBoundaryTests(unittest.TestCase):
         self.assertIn("reviewer Python compatibility passed", builder)
         self.assertIn("import claim_evidence as c", builder)
 
+        runner = (ROOT / "bin" / "run-image.sh").read_text()
+        self.assertIn("docker image inspect", runner)
+        self.assertIn('POLCERT_ARTIFACT_IMAGE_ID=$image_id', runner)
+        self.assertIn('"$image_id" "$mode"', runner)
+
     def test_unrolljam_claim_uses_generated_summary_schema(self) -> None:
         claims = json.loads((ROOT / "claims.json").read_text())
         artifact = claims["evidence_catalog"][

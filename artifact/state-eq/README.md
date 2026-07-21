@@ -211,8 +211,11 @@ successful full offline run in
 `evidence/2026-07-21-v3-full-review.json`, tied to its exact image ID.
 
 After the image has been built or pulled, review is offline. `bin/run-image.sh`
-always uses `docker run --network none`; the proof build and all claim checks
-must use only files and tools already present in the image.
+first resolves the candidate tag to a Docker image ID, then runs that immutable
+`sha256:` ID with `docker run --network none`. The ID is recorded in both the
+raw environment and claim ledger, and archiving requires it to match the live
+image and build metadata. The proof build and all claim checks must use only
+files and tools already present in the image.
 
 The complete human-readable analysis and the bounded locking plan are in
 [`DEPENDENCY_LOCK_AUDIT.md`](./DEPENDENCY_LOCK_AUDIT.md).
@@ -237,8 +240,9 @@ First validate an explicit, versioned registry reference without tagging,
 pushing, or contacting the registry:
 
 ```sh
+REVIEWED_IMAGE_HEX=38d1df0a35de3fa9e2f5af9b925c8978564e1731cd095caca94c3f3eeba5e304
 make publication-validate \
-  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-07-21-v3 \
+  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-07-21-v3-${REVIEWED_IMAGE_HEX} \
   POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21"
 ```
 
@@ -249,10 +253,15 @@ There is no default registry.
 After authenticating Docker separately, publish with:
 
 ```sh
+REVIEWED_IMAGE_HEX=38d1df0a35de3fa9e2f5af9b925c8978564e1731cd095caca94c3f3eeba5e304
 make publish-reviewed-image \
-  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-07-21-v3 \
+  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-07-21-v3-${REVIEWED_IMAGE_HEX} \
   POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21"
 ```
+
+For schema-v2 evidence, set `REVIEWED_IMAGE_HEX` to all 64 hexadecimal
+characters after `sha256:`. This content-derived suffix prevents two compliant
+publishers from assigning different reviewed images to the same tag.
 
 The workflow performs these checks and actions:
 
@@ -263,8 +272,11 @@ The workflow performs these checks and actions:
    strict cases, and passing ISS/parallel/vector/second-level/diamond suites.
 3. Recompute schema-v2 evidence from the untouched raw result directory.
 4. Require the local Docker image ID to equal the ID archived in that evidence.
-5. Run `docker tag` and `docker push` for the explicit registry tag.
-6. Read the matching registry digest from Docker `RepoDigests` after push.
+5. Tag the reviewed image ID with a process-unique staging reference and push
+   it, taking the manifest digest directly from that push.
+6. Pull the immutable digest and require it to resolve to the reviewed image
+   ID, then promote the same manifest to the requested tag without a wrapper
+   index and verify the registry reports the same digest.
 7. Atomically write `publication/publication-record.json`, binding the review
    evidence checksum, local image ID, tag, and immutable `repository@digest`.
 

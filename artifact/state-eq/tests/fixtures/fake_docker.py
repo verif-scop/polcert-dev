@@ -55,7 +55,36 @@ def main() -> int:
     if arguments and arguments[0] == "tag":
         return int(os.environ.get("FAKE_DOCKER_TAG_EXIT", "0"))
     if arguments and arguments[0] == "push":
-        return int(os.environ.get("FAKE_DOCKER_PUSH_EXIT", "0"))
+        exit_code = int(os.environ.get("FAKE_DOCKER_PUSH_EXIT", "0"))
+        if exit_code:
+            return exit_code
+        explicit_digests = os.environ.get("FAKE_DOCKER_REPO_DIGESTS_JSON")
+        if explicit_digests:
+            for digest in json.loads(explicit_digests):
+                value = digest.rsplit("@", 1)[-1]
+                print(f"digest: {value} size: 123")
+        else:
+            digest = os.environ.get("FAKE_DOCKER_REGISTRY_DIGEST")
+            if digest:
+                print(f"digest: {digest} size: 123")
+        return 0
+    if arguments and arguments[0] == "pull":
+        return int(os.environ.get("FAKE_DOCKER_PULL_EXIT", "0"))
+    if arguments[:3] == ["buildx", "imagetools", "create"]:
+        return int(os.environ.get("FAKE_DOCKER_PROMOTE_EXIT", "0"))
+    if arguments[:3] == ["buildx", "imagetools", "inspect"]:
+        inspect_exit = int(os.environ.get("FAKE_DOCKER_REMOTE_INSPECT_EXIT", "0"))
+        if inspect_exit:
+            print("fixture remote inspect failure", file=sys.stderr)
+            return inspect_exit
+        digest = os.environ.get("FAKE_DOCKER_PROMOTED_DIGEST") or os.environ.get(
+            "FAKE_DOCKER_REGISTRY_DIGEST"
+        )
+        if digest:
+            print(f"Name: {arguments[3]}")
+            print("MediaType: application/vnd.oci.image.index.v1+json")
+            print(f"Digest: {digest}")
+        return 0
     print(f"unsupported fake Docker command: {arguments}", file=sys.stderr)
     return 64
 

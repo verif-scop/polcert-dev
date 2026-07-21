@@ -279,6 +279,16 @@ def validate_compact_v2(
 
     candidate = manifest.get("images", {}).get("default_candidate", {}).get("reference")
     image = evidence.get("images", {}).get("artifact", {})
+    executed_image_id = review.get("executed_image_id")
+    if not isinstance(executed_image_id, str) or not IMAGE_ID_RE.fullmatch(
+        executed_image_id
+    ):
+        raise EvidenceError("schema-v2 review has no valid executed image ID")
+    if executed_image_id != image.get("id"):
+        raise EvidenceError("schema-v2 executed image ID differs from artifact image ID")
+    environment = evidence.get("environment", {})
+    if environment.get("artifact_image_id") != executed_image_id:
+        raise EvidenceError("schema-v2 environment image ID differs from executed image ID")
     if image.get("reference") != candidate:
         raise EvidenceError("schema-v2 evidence artifact reference is not the manifest candidate")
     if not isinstance(image.get("id"), str) or not IMAGE_ID_RE.fullmatch(image["id"]):
@@ -491,6 +501,8 @@ def build_evidence(
         raise EvidenceError("claim-results.json is not a successful full review")
     if claim.get("artifact_id") != manifest.get("artifact", {}).get("id"):
         raise EvidenceError("claim-results artifact ID differs from manifest")
+    if claim.get("artifact_image_id") != image_id:
+        raise EvidenceError("claim-results image ID differs from reviewed image ID")
     outer = validate_result_list(
         claim.get("results"), EXPECTED_OUTER_GATES, results_dir, "outer review"
     )
@@ -536,6 +548,8 @@ def build_evidence(
             raise EvidenceError(f"environment {environment_field} differs from manifest")
     if environment.get("network_contract") != "review command is run with Docker --network none":
         raise EvidenceError("environment does not record the offline review contract")
+    if environment.get("artifact_image_id") != image_id:
+        raise EvidenceError("environment image ID differs from reviewed image ID")
 
     proof = validate_proof_report(
         load_json(results_dir / "artifact-check" / "proof-report.json")
@@ -603,6 +617,7 @@ def build_evidence(
             "profile": "full",
             "network": "none",
             "ok": True,
+            "executed_image_id": image_id,
             "recorded_at": environment.get("recorded_at"),
             "elapsed_seconds": sum(item["elapsed_seconds"] for item in outer),
             "raw_results": {

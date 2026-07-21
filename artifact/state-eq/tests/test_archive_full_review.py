@@ -56,6 +56,7 @@ class ArchiveFullReviewTests(unittest.TestCase):
         environment = {
             "recorded_at": "2026-07-18T12:00:00+00:00",
             "artifact_id": manifest["artifact"]["id"],
+            "artifact_image_id": IMAGE_ID,
             "polcert_source_tag": manifest["polcert"]["tag"],
             "polcert_source_commit": manifest["polcert"]["commit"],
             "polcert_source_tree": manifest["polcert"]["tree"],
@@ -73,6 +74,7 @@ class ArchiveFullReviewTests(unittest.TestCase):
             "claim-results.json",
             {
                 "artifact_id": manifest["artifact"]["id"],
+                "artifact_image_id": IMAGE_ID,
                 "mode": "full",
                 "ok": True,
                 "results": outer,
@@ -102,6 +104,11 @@ class ArchiveFullReviewTests(unittest.TestCase):
                     "driver/VerifiedParallelCompilerConfig.v": [
                         "compile_correct",
                         "compile_verified_correct",
+                        "compile_unsupported_no_result",
+                    ],
+                    "src/Extractor.v": ["extractor_correct"],
+                    "src/PrepareCodegen.v": [
+                        "prepared_codegen_correct_general",
                     ],
                     "src/TilingBandDirectRuntime.v": [
                         "checked_second_level_direct_band_check_correct",
@@ -112,22 +119,31 @@ class ArchiveFullReviewTests(unittest.TestCase):
                         "validate_two_instrs_pluto_band_component_direct_sound",
                         "check_pprog_pluto_permutable_tiling_bands_direct_sound_with_env_len",
                         "check_pinstr_list_pluto_componentwise_permutable_bands_direct_sound",
+                        "pprog_pluto_permutable_tiling_bands_strong_implies_reordering_safe_wf_with_env_len",
+                        "pprog_pluto_componentwise_permutable_bands_implies_reordering_safe_if_local_bridge",
                         "second_level_local_reversal_bridge_by_layout_wf_with_env_len",
                     ],
                     "driver/PolOptBandTiling.v": [
                         "Opt_band_with_iss_correct",
                         "Opt_identity_tiled_band_with_iss_correct",
                         "Opt_diamond_band_with_iss_correct",
+                        "try_verified_diamond_after_phase_mid_band_correct",
+                        "Opt_diamond_band_correct",
                     ],
                     "driver/ParallelPolOptCorrect.v": [
                         "Opt_parallel_current_correct",
+                        "Opt_parallel_current_with_iss_correct",
                         "Opt_parallel_current_many_correct",
                         "Opt_parallel_current_many_with_iss_correct",
                         "Opt_vector_current_correct",
                         "Opt_vector_current_with_iss_correct",
                     ],
                     "src/ParallelCodegen.v": [
+                        "checked_annotated_codegen_many_correct_general",
                         "checked_vector_annotated_codegen_correct_general"
+                    ],
+                    "driver/ExtractedPipelineCorrect.v": [
+                        "extracted_parallel_compile_correct"
                     ],
                     "polygen/LoopStride.v": [
                         "stride_loop_stmt_semantics",
@@ -250,6 +266,8 @@ class ArchiveFullReviewTests(unittest.TestCase):
         second = self.build()
         self.assertEqual(first, second)
         self.assertEqual(first["schema_version"], 2)
+        self.assertEqual(first["review"]["executed_image_id"], IMAGE_ID)
+        self.assertEqual(first["environment"]["artifact_image_id"], IMAGE_ID)
         self.assertEqual(
             [item["name"] for item in first["top_level_results"]],
             list(ARCHIVE.EXPECTED_OUTER_GATES),
@@ -266,6 +284,22 @@ class ArchiveFullReviewTests(unittest.TestCase):
             ARCHIVE.sha256(self.lock.read_bytes()),
             claims=json.loads((ROOT / "claims.json").read_text()),
         )
+
+    def test_refuses_raw_image_id_mismatch(self) -> None:
+        other = "sha256:" + "d" * 64
+        for relative, field in (
+            ("environment.json", "artifact_image_id"),
+            ("claim-results.json", "artifact_image_id"),
+        ):
+            with self.subTest(relative=relative):
+                path = self.results / relative
+                original = json.loads(path.read_text())
+                mutated = copy.deepcopy(original)
+                mutated[field] = other
+                self.write_json(relative, mutated)
+                with self.assertRaisesRegex(ARCHIVE.EvidenceError, "image ID"):
+                    self.build()
+                self.write_json(relative, original)
 
     def test_refuses_missing_or_reordered_dependency_lock_gate(self) -> None:
         original = self.claim()

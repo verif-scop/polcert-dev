@@ -38,7 +38,14 @@ if find "$output_dir" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
   exit 2
 fi
 
+image_id="$(docker image inspect "$image" --format '{{.Id}}')"
+if [[ ! "$image_id" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+  echo "Docker returned an invalid image ID for $image: $image_id" >&2
+  exit 2
+fi
+
 docker run --rm \
   --network none \
+  --env "POLCERT_ARTIFACT_IMAGE_ID=$image_id" \
   --volume "$output_dir:/artifact-results" \
-  "$image" "$mode"
+  "$image_id" "$mode"

@@ -315,20 +315,23 @@
   "claims": [
     {
       "id": "C1",
-      "claim": "The routes enumerated by VerifiedParallelCompilerConfig refine the source program under State.eq when their extracted validators accept.",
+      "claim": "Every result returned by VerifiedParallelCompilerConfig refines the source program under State.eq; unsupported configurations return no result. The proved path includes extraction and preparation for verified code generation.",
       "evidence": [
         "proof-build",
         "check-admitted",
         "artifact-check/proof-report"
       ],
       "theorem_surface": [
+        "Extractor.extractor_correct",
+        "PrepareCodegen.prepared_codegen_correct_general",
         "VerifiedParallelCompilerConfig.compile_correct",
-        "VerifiedParallelCompilerConfig.compile_verified_correct"
+        "VerifiedParallelCompilerConfig.compile_verified_correct",
+        "VerifiedParallelCompilerConfig.compile_unsupported_no_result"
       ]
     },
     {
       "id": "C2",
-      "claim": "The unified tiling dispatcher covers ordinary, identity, second-level, diamond, full-diamond, and supported compositions, and reports each adopted candidate as permutable-band when the direct semantic band check succeeds or general-fallback when a proved generic validation route succeeds.",
+      "claim": "The unified tiling dispatcher is used at supported ordinary, identity, second-level, diamond, full-diamond, and composed tiling boundaries. It reports an accepted candidate as permutable-band only when direct semantic band validation succeeds, or as general-fallback when a proved legacy, canonical, or general validator succeeds; solver alarms do not fall back.",
       "evidence": [
         "artifact-check/strict-loop-suite",
         "artifact-check/second-level-suite",
@@ -342,10 +345,14 @@
         "TilingBandScheduleValidator.validate_two_instrs_pluto_band_component_direct_sound",
         "TilingBandScheduleValidator.check_pprog_pluto_permutable_tiling_bands_direct_sound_with_env_len",
         "TilingBandScheduleValidator.check_pinstr_list_pluto_componentwise_permutable_bands_direct_sound",
+        "TilingBandScheduleValidator.pprog_pluto_permutable_tiling_bands_strong_implies_reordering_safe_wf_with_env_len",
+        "TilingBandScheduleValidator.pprog_pluto_componentwise_permutable_bands_implies_reordering_safe_if_local_bridge",
         "TilingBandScheduleValidator.second_level_local_reversal_bridge_by_layout_wf_with_env_len",
         "TilingBandDirectRuntime.checked_second_level_direct_band_check_correct",
         "TilingBandDirectRuntime.checked_tiling_sourceb_first_direct_band_check_outer_correct",
-        "TilingBandDirectRuntime.checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct"
+        "TilingBandDirectRuntime.checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct",
+        "PolOptBandTiling.try_verified_diamond_after_phase_mid_band_correct",
+        "PolOptBandTiling.Opt_diamond_band_correct"
       ]
     },
     {
@@ -363,13 +370,14 @@
         "PolOptBandTiling.Opt_band_with_iss_correct",
         "PolOptBandTiling.Opt_identity_tiled_band_with_iss_correct",
         "PolOptBandTiling.Opt_diamond_band_with_iss_correct",
+        "ParallelPolOptCorrect.Opt_parallel_current_with_iss_correct",
         "ParallelPolOptCorrect.Opt_parallel_current_many_with_iss_correct",
         "ParallelPolOptCorrect.Opt_vector_current_with_iss_correct"
       ]
     },
     {
       "id": "C4",
-      "claim": "Explicit-current and Pluto-hinted parallel, multiparallel, and vector routes use checked certificates and verified code generation.",
+      "claim": "Explicit-current and untrusted Pluto-hinted parallel, multiparallel, and innermost-vector candidates enter checked compilation routes and verified code generation; non-innermost vector selections are rejected.",
       "evidence": [
         "artifact-check/parallel-current-suite",
         "vector-current-suite",
@@ -380,7 +388,9 @@
         "ParallelPolOptCorrect.Opt_parallel_current_correct",
         "ParallelPolOptCorrect.Opt_parallel_current_many_correct",
         "ParallelPolOptCorrect.Opt_vector_current_correct",
-        "ParallelCodegen.checked_vector_annotated_codegen_correct_general"
+        "ParallelCodegen.checked_annotated_codegen_many_correct_general",
+        "ParallelCodegen.checked_vector_annotated_codegen_correct_general",
+        "ExtractedPipelineCorrect.extracted_parallel_compile_correct"
       ]
     },
     {
@@ -406,7 +416,7 @@
     },
     {
       "id": "C6",
-      "claim": "The artifact reports the supported Pluto-facing request surface and rejects unsupported combinations before unchecked compilation.",
+      "claim": "The artifact reports 81 declared Pluto-facing capability rows through 138 recorded checks, comprising 112 expected successes and 26 expected rejections, and rejects unsupported combinations before invoking a checked compilation route.",
       "evidence": [
         "artifact-check/capability-matrix",
         "artifact-check/pluto-compat-suite"

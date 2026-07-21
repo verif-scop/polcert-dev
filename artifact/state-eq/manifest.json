@@ -4,7 +4,7 @@
     "id": "polcert-state-eq-2026-07-21-v3",
     "description": "Reproduction envelope for the completed State.eq-preserving PolCert milestone",
     "created": "2026-07-21",
-    "packaging_revision": "direct-band-claim-evidence-v3-fixtures1"
+    "packaging_revision": "direct-band-claim-evidence-v3-final2"
   },
   "images": {
     "default_candidate": {

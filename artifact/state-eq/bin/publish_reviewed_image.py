@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import subprocess
 import sys
 import tempfile
@@ -32,7 +33,6 @@ DEFAULT_EVIDENCE = ROOT / "evidence" / "2026-07-21-v3-full-review.json"
 DEFAULT_RECORD = ROOT / "publication" / "publication-record.json"
 MANIFEST = ROOT / "manifest.json"
 IMAGE_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-DIGEST_RE = IMAGE_ID_RE
 REGISTRY_RE = re.compile(r"^(?:localhost|[a-z0-9][a-z0-9.-]*(?::[0-9]+)?)$")
 REPOSITORY_SEGMENT_RE = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$")
 TAG_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$")
@@ -226,18 +226,39 @@ def inspect_image(docker_bin: str, reference: str) -> dict[str, Any]:
     return {"id": image_id, "repo_digests": repo_digests}
 
 
-def registry_digest(repo_digests: list[str], repository: str) -> tuple[str, str]:
-    prefix = f"{repository}@"
-    matches = [item for item in repo_digests if item.startswith(prefix)]
+
+def push_digest(output: str, repository: str) -> tuple[str, str]:
+    matches = set(
+        re.findall(r"(?m)^digest:\s*(sha256:[0-9a-f]{64})(?:\s|$)", output)
+    )
     if not matches:
-        raise PublicationError(f"pushed image has no RepoDigest for {repository}")
-    digests = {item[len(prefix) :] for item in matches}
-    if len(digests) != 1:
-        raise PublicationError(f"pushed image has conflicting RepoDigests for {repository}")
-    digest = next(iter(digests))
-    if not DIGEST_RE.fullmatch(digest):
-        raise PublicationError(f"registry returned an invalid digest for {repository}: {digest}")
+        raise PublicationError(f"docker push returned no manifest digest for {repository}")
+    if len(matches) != 1:
+        raise PublicationError(f"docker push returned conflicting digests for {repository}")
+    digest = next(iter(matches))
     return digest, f"{repository}@{digest}"
+
+
+def inspect_remote_digest(docker_bin: str, reference: str) -> str:
+    result = run_docker(
+        docker_bin,
+        ["buildx", "imagetools", "inspect", reference],
+        capture=True,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        raise PublicationError(
+            f"cannot inspect registry manifest {reference}: "
+            f"{detail or f'exit {result.returncode}'}"
+        )
+    matches = set(
+        re.findall(r"(?m)^Digest:\s*(sha256:[0-9a-f]{64})\s*$", result.stdout)
+    )
+    if len(matches) != 1:
+        raise PublicationError(
+            f"registry inspection returned no unique digest for {reference}"
+        )
+    return next(iter(matches))
 
 
 def atomic_write_json(path: Path, value: dict[str, Any]) -> None:
@@ -278,6 +299,7 @@ def publication_record(
     registry_tag: str,
     digest: str,
     immutable_reference: str,
+    staging_reference: str,
 ) -> dict[str, Any]:
     return {
         "schema_version": 1,
@@ -300,6 +322,8 @@ def publication_record(
             "tag": registry_tag,
             "digest": digest,
             "immutable_reference": immutable_reference,
+            "staging_reference": staging_reference,
+            "staging_digest": digest,
         },
     }
 
@@ -334,6 +358,11 @@ def main() -> int:
             )
         reviewed = evidence["images"]["artifact"]
         reviewed_id = reviewed["id"]
+        reviewed_hex = reviewed_id[len("sha256:") :]
+        if evidence.get("schema_version") == 2 and not tag.endswith(reviewed_hex):
+            raise PublicationError(
+                "schema-v2 registry tag must end with the complete reviewed image ID"
+            )
         local_reference = args.local_image or reviewed["reference"]
         if args.record.exists():
             raise PublicationError(f"publication record already exists: {args.record}")
@@ -359,6 +388,11 @@ def main() -> int:
                     f"raw review bundle validation failed: {exc}"
                 ) from exc
 
+        staging_reference = (
+            f"{repository}:polcert-stage-{reviewed_hex[:16]}-"
+            f"{os.getpid()}-{secrets.token_hex(8)}"
+        )
+        immutable_placeholder = f"{repository}@<digest-from-staging-push>"
         plan = {
             "dry_run": args.dry_run,
             "review_evidence": str(args.review_evidence.resolve()),
@@ -369,31 +403,91 @@ def main() -> int:
             "local_reference": local_reference,
             "reviewed_image_id": reviewed_id,
             "registry_tag_reference": args.registry_ref,
+            "staging_reference": staging_reference,
             "record": str(args.record.resolve()),
             "commands": [
-                [args.docker_bin, "tag", local_reference, args.registry_ref],
-                [args.docker_bin, "push", args.registry_ref],
+                [args.docker_bin, "tag", reviewed_id, staging_reference],
+                [args.docker_bin, "push", staging_reference],
+                [args.docker_bin, "pull", immutable_placeholder],
+                [
+                    args.docker_bin,
+                    "buildx",
+                    "imagetools",
+                    "create",
+                    "--prefer-index=false",
+                    "--tag",
+                    args.registry_ref,
+                    immutable_placeholder,
+                ],
+                [
+                    args.docker_bin,
+                    "buildx",
+                    "imagetools",
+                    "inspect",
+                    args.registry_ref,
+                ],
             ],
         }
         if args.dry_run:
             print(json.dumps(plan, indent=2, sort_keys=True))
             return 0
 
-        tagged = run_docker(args.docker_bin, ["tag", local_reference, args.registry_ref], capture=True)
+        tagged = run_docker(
+            args.docker_bin, ["tag", reviewed_id, staging_reference], capture=True
+        )
         if tagged.returncode != 0:
             detail = (tagged.stderr or tagged.stdout).strip()
             raise PublicationError(f"docker tag failed: {detail or f'exit {tagged.returncode}'}")
-        tagged_image = inspect_image(args.docker_bin, args.registry_ref)
+        tagged_image = inspect_image(args.docker_bin, staging_reference)
         if tagged_image["id"] != reviewed_id:
             raise PublicationError("tagged image ID changed before push")
 
-        pushed = run_docker(args.docker_bin, ["push", args.registry_ref], capture=False)
+        pushed = run_docker(
+            args.docker_bin, ["push", staging_reference], capture=True
+        )
         if pushed.returncode != 0:
             raise PublicationError(f"docker push failed with exit {pushed.returncode}")
-        published = inspect_image(args.docker_bin, args.registry_ref)
-        if published["id"] != reviewed_id:
-            raise PublicationError("local image ID changed after push")
-        digest, immutable_reference = registry_digest(published["repo_digests"], repository)
+        digest, immutable_reference = push_digest(
+            (pushed.stdout or "") + "\n" + (pushed.stderr or ""), repository
+        )
+        pulled = run_docker(
+            args.docker_bin, ["pull", immutable_reference], capture=True
+        )
+        if pulled.returncode != 0:
+            detail = (pulled.stderr or pulled.stdout).strip()
+            raise PublicationError(
+                f"docker pull of pushed immutable digest failed: "
+                f"{detail or f'exit {pulled.returncode}'}"
+            )
+        immutable = inspect_image(args.docker_bin, immutable_reference)
+        if immutable["id"] != reviewed_id:
+            raise PublicationError(
+                "pushed immutable digest does not resolve to reviewed image ID"
+            )
+        promoted = run_docker(
+            args.docker_bin,
+            [
+                "buildx",
+                "imagetools",
+                "create",
+                "--prefer-index=false",
+                "--tag",
+                args.registry_ref,
+                immutable_reference,
+            ],
+            capture=True,
+        )
+        if promoted.returncode != 0:
+            detail = (promoted.stderr or promoted.stdout).strip()
+            raise PublicationError(
+                f"registry digest promotion failed: "
+                f"{detail or f'exit {promoted.returncode}'}"
+            )
+        published_digest = inspect_remote_digest(args.docker_bin, args.registry_ref)
+        if published_digest != digest:
+            raise PublicationError(
+                "published tag digest differs from the reviewed staging digest"
+            )
         record = publication_record(
             evidence,
             args.review_evidence,
@@ -405,6 +499,7 @@ def main() -> int:
             tag,
             digest,
             immutable_reference,
+            staging_reference,
         )
         atomic_write_json(args.record, record)
         print(json.dumps(record, indent=2, sort_keys=True))

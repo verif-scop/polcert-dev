@@ -45,7 +45,10 @@ class ClaimEvidenceTests(unittest.TestCase):
             "driver/VerifiedParallelCompilerConfig.v": [
                 "compile_correct",
                 "compile_verified_correct",
+                "compile_unsupported_no_result",
             ],
+            "src/Extractor.v": ["extractor_correct"],
+            "src/PrepareCodegen.v": ["prepared_codegen_correct_general"],
             "src/TilingBandDirectRuntime.v": [
                 "checked_second_level_direct_band_check_correct",
                 "checked_tiling_sourceb_first_direct_band_check_outer_correct",
@@ -55,22 +58,31 @@ class ClaimEvidenceTests(unittest.TestCase):
                 "validate_two_instrs_pluto_band_component_direct_sound",
                 "check_pprog_pluto_permutable_tiling_bands_direct_sound_with_env_len",
                 "check_pinstr_list_pluto_componentwise_permutable_bands_direct_sound",
+                "pprog_pluto_permutable_tiling_bands_strong_implies_reordering_safe_wf_with_env_len",
+                "pprog_pluto_componentwise_permutable_bands_implies_reordering_safe_if_local_bridge",
                 "second_level_local_reversal_bridge_by_layout_wf_with_env_len",
             ],
             "driver/PolOptBandTiling.v": [
                 "Opt_band_with_iss_correct",
                 "Opt_identity_tiled_band_with_iss_correct",
                 "Opt_diamond_band_with_iss_correct",
+                "try_verified_diamond_after_phase_mid_band_correct",
+                "Opt_diamond_band_correct",
             ],
             "driver/ParallelPolOptCorrect.v": [
                 "Opt_parallel_current_correct",
+                "Opt_parallel_current_with_iss_correct",
                 "Opt_parallel_current_many_correct",
                 "Opt_parallel_current_many_with_iss_correct",
                 "Opt_vector_current_correct",
                 "Opt_vector_current_with_iss_correct",
             ],
             "src/ParallelCodegen.v": [
+                "checked_annotated_codegen_many_correct_general",
                 "checked_vector_annotated_codegen_correct_general"
+            ],
+            "driver/ExtractedPipelineCorrect.v": [
+                "extracted_parallel_compile_correct"
             ],
             "polygen/LoopStride.v": [
                 "stride_loop_stmt_semantics",

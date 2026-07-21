@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -19,6 +20,7 @@ from claim_evidence import ClaimEvidenceError, expected_outer_routes, verify_cla
 
 ROOT = Path("/polcert")
 ARTIFACT_ROOT = Path("/opt/polcert-artifact")
+IMAGE_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 @dataclass
@@ -194,9 +196,20 @@ def main() -> int:
     ):
         shutil.copy2(ARTIFACT_ROOT / "locks" / name, output / name)
 
+    artifact_image_id = os.environ.get("POLCERT_ARTIFACT_IMAGE_ID")
+    if not isinstance(artifact_image_id, str) or not IMAGE_ID_RE.fullmatch(
+        artifact_image_id
+    ):
+        print(
+            "POLCERT_ARTIFACT_IMAGE_ID must identify the immutable image being reviewed",
+            file=sys.stderr,
+        )
+        return 2
+
     environment = {
         "recorded_at": datetime.now(timezone.utc).isoformat(),
         "artifact_id": os.environ.get("POLCERT_ARTIFACT_ID"),
+        "artifact_image_id": artifact_image_id,
         "polcert_source_tag": os.environ.get("POLCERT_SOURCE_TAG"),
         "polcert_source_commit": os.environ.get("POLCERT_SOURCE_COMMIT"),
         "polcert_source_tree": os.environ.get("POLCERT_SOURCE_TREE"),
@@ -224,6 +237,7 @@ def main() -> int:
 
     summary = {
         "artifact_id": os.environ.get("POLCERT_ARTIFACT_ID"),
+        "artifact_image_id": artifact_image_id,
         "mode": args.mode,
         "output": str(output),
         "ok": all(result.ok for result in results),
