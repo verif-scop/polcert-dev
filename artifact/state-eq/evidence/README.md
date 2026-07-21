@@ -39,8 +39,9 @@ the v3 image is not publication-eligible.
 
 Schema-v2 is generated from an untouched raw result directory. It requires the
 exact 13 outer gates in order, including `dependency-lock` first, and preserves
-the existing zero-proof-hole, 22/22 artifact-check, 138 compatibility-check,
-62/62 strict-suite, and named suite assertions. It binds the candidate image
+the existing zero-proof-hole, 22/22 artifact-check, 81-row capability-surface,
+138 compatibility-check (112 success and 26 rejection expectation), 62/62
+strict-suite, and named suite assertions. It binds the candidate image
 reference and ID, build metadata, dependency lock SHA-256, every static input
 copied into the result bundle, selected structured result files, and a complete
 raw-directory tree digest. It also binds the SHA-256 of `claims.json` and the

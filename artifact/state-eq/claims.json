@@ -66,7 +66,15 @@
       "artifacts": [
         {
           "path": "artifact-check/second-level-suite.stdout.txt",
-          "text_assertions": [{"contains": "[SECOND-LEVEL-TILE] OK"}]
+          "text_assertions": [
+            {"contains": "[SECOND-LEVEL-TILE] OK"},
+            {
+              "contains": "second-level diamond route matrix: PASS (16 accepted parallel/hinted variants, 4 explicit vector rejections)"
+            },
+            {
+              "contains": "rejected tiling route: PASS (invalid witness, scalar-only early exit, four vector skips preserve their verified fallbacks, and eight explicit-current failures are explicit)"
+            }
+          ]
         }
       ]
     },
@@ -113,9 +121,7 @@
             {"pointer": "/second_level_manifest/permutable_band", "equals": 36},
             {"pointer": "/second_level_manifest/general_fallback", "equals": 17},
             {"pointer": "/second_level_manifest/negative", "equals": 5},
-            {"pointer": "/second_level_additional_runtime_matrix/verified", "equals": true},
-            {"pointer": "/second_level_additional_runtime_matrix/diamond_permutable_band", "equals": 16},
-            {"pointer": "/second_level_additional_runtime_matrix/diamond_explicit_vector_rejection", "equals": 4}
+            {"pointer": "/second_level_additional_runtime_matrix/verified", "equals": true}
           ]
         }
       ]
@@ -276,8 +282,30 @@
           "path": "artifact-check/capability-matrix.json",
           "json_assertions": [
             {
+              "pointer": "/summary/capability_rows",
+              "equals": 81
+            },
+            {
               "pointer": "/summary/compatibility_checks",
               "equals": 138
+            }
+          ],
+          "collection_assertions": [
+            {
+              "pointer": "/compatibility_checks",
+              "length_equals": 138
+            },
+            {
+              "pointer": "/compatibility_checks",
+              "item_pointer": "/expect",
+              "item_equals": "success",
+              "count_equals": 112
+            },
+            {
+              "pointer": "/compatibility_checks",
+              "item_pointer": "/expect",
+              "item_equals": "reject",
+              "count_equals": 26
             }
           ]
         }
@@ -287,7 +315,7 @@
   "claims": [
     {
       "id": "C1",
-      "claim": "The checked compiler routes exposed by the milestone refine the source program under State.eq.",
+      "claim": "The routes enumerated by VerifiedParallelCompilerConfig refine the source program under State.eq when their extracted validators accept.",
       "evidence": [
         "proof-build",
         "check-admitted",
@@ -316,6 +344,7 @@
         "TilingBandScheduleValidator.check_pinstr_list_pluto_componentwise_permutable_bands_direct_sound",
         "TilingBandScheduleValidator.second_level_local_reversal_bridge_by_layout_wf_with_env_len",
         "TilingBandDirectRuntime.checked_second_level_direct_band_check_correct",
+        "TilingBandDirectRuntime.checked_tiling_sourceb_first_direct_band_check_outer_correct",
         "TilingBandDirectRuntime.checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct"
       ]
     },
@@ -331,7 +360,11 @@
         "extended/iss-live-suite"
       ],
       "theorem_surface": [
-        "PolOptBandTiling.Opt_band_with_iss_correct"
+        "PolOptBandTiling.Opt_band_with_iss_correct",
+        "PolOptBandTiling.Opt_identity_tiled_band_with_iss_correct",
+        "PolOptBandTiling.Opt_diamond_band_with_iss_correct",
+        "ParallelPolOptCorrect.Opt_parallel_current_many_with_iss_correct",
+        "ParallelPolOptCorrect.Opt_vector_current_with_iss_correct"
       ]
     },
     {
@@ -346,6 +379,7 @@
       "theorem_surface": [
         "ParallelPolOptCorrect.Opt_parallel_current_correct",
         "ParallelPolOptCorrect.Opt_parallel_current_many_correct",
+        "ParallelPolOptCorrect.Opt_vector_current_correct",
         "ParallelCodegen.checked_vector_annotated_codegen_correct_general"
       ]
     },

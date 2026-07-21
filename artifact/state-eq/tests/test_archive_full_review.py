@@ -105,6 +105,7 @@ class ArchiveFullReviewTests(unittest.TestCase):
                     ],
                     "src/TilingBandDirectRuntime.v": [
                         "checked_second_level_direct_band_check_correct",
+                        "checked_tiling_sourceb_first_direct_band_check_outer_correct",
                         "checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct"
                     ],
                     "src/TilingBandScheduleValidator.v": [
@@ -113,10 +114,17 @@ class ArchiveFullReviewTests(unittest.TestCase):
                         "check_pinstr_list_pluto_componentwise_permutable_bands_direct_sound",
                         "second_level_local_reversal_bridge_by_layout_wf_with_env_len",
                     ],
-                    "driver/PolOptBandTiling.v": ["Opt_band_with_iss_correct"],
+                    "driver/PolOptBandTiling.v": [
+                        "Opt_band_with_iss_correct",
+                        "Opt_identity_tiled_band_with_iss_correct",
+                        "Opt_diamond_band_with_iss_correct",
+                    ],
                     "driver/ParallelPolOptCorrect.v": [
                         "Opt_parallel_current_correct",
                         "Opt_parallel_current_many_correct",
+                        "Opt_parallel_current_many_with_iss_correct",
+                        "Opt_vector_current_correct",
+                        "Opt_vector_current_with_iss_correct",
                     ],
                     "src/ParallelCodegen.v": [
                         "checked_vector_annotated_codegen_correct_general"
@@ -135,10 +143,6 @@ class ArchiveFullReviewTests(unittest.TestCase):
                     "src/LoopJamLower.v": ["try_jam_pair_exact_sound"],
                 },
             },
-        )
-        self.write_json(
-            "artifact-check/capability-matrix.json",
-            {"summary": {"compatibility_checks": 138}},
         )
         (self.results / "artifact-check/strict-loop-suite.stdout.txt").write_text(
             "[3/62] advect3d: ok changed=true time=148.80s\n"

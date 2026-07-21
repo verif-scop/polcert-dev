@@ -207,13 +207,21 @@ def _validate_artifacts(root: Path, artifacts: Any, evidence_id: str) -> list[di
                 f"evidence {evidence_id} artifact {relative} assertions must be a list"
             )
         assertion_results: list[dict[str, Any]] = []
-        if assertions:
+        collection_assertions = artifact.get("collection_assertions", [])
+        if not isinstance(collection_assertions, list):
+            raise ClaimEvidenceError(
+                f"evidence {evidence_id} artifact {relative} collection assertions "
+                "must be a list"
+            )
+        document: Any = None
+        if assertions or collection_assertions:
             try:
                 document = json.loads(path.read_text())
             except (OSError, json.JSONDecodeError) as exc:
                 raise ClaimEvidenceError(
                     f"evidence {evidence_id} artifact is not valid JSON: {relative}: {exc}"
                 ) from exc
+        if assertions:
             for assertion_position, raw_assertion in enumerate(assertions):
                 assertion = _require_object(
                     raw_assertion,
@@ -231,6 +239,91 @@ def _validate_artifacts(root: Path, artifacts: Any, evidence_id: str) -> list[di
                     f"evidence {evidence_id} artifact {relative} {pointer}",
                 )
                 assertion_results.append({"pointer": pointer, "ok": True})
+        collection_assertion_results: list[dict[str, Any]] = []
+        for assertion_position, raw_assertion in enumerate(collection_assertions):
+            assertion = _require_object(
+                raw_assertion,
+                f"evidence {evidence_id} artifact {relative} collection assertion "
+                f"{assertion_position}",
+            )
+            pointer = assertion.get("pointer")
+            collection = _json_pointer(
+                document,
+                pointer,
+                f"evidence {evidence_id} artifact {relative} collection pointer",
+            )
+            if not isinstance(collection, list):
+                raise ClaimEvidenceError(
+                    f"evidence {evidence_id} artifact {relative} {pointer} must be an array"
+                )
+            length_equals = assertion.get("length_equals")
+            has_count = any(
+                name in assertion
+                for name in ("item_pointer", "item_equals", "count_equals")
+            )
+            if length_equals is not None and has_count:
+                raise ClaimEvidenceError(
+                    f"evidence {evidence_id} artifact {relative} collection assertion "
+                    "cannot combine length and item-count operators"
+                )
+            if length_equals is not None:
+                if type(length_equals) is not int or length_equals < 0:
+                    raise ClaimEvidenceError(
+                        f"evidence {evidence_id} artifact {relative} length_equals "
+                        "must be a nonnegative integer"
+                    )
+                if len(collection) != length_equals:
+                    raise ClaimEvidenceError(
+                        f"evidence {evidence_id} artifact {relative} {pointer} expected "
+                        f"length {length_equals}, got {len(collection)}"
+                    )
+                collection_assertion_results.append(
+                    {"pointer": pointer, "length_equals": length_equals, "actual": len(collection)}
+                )
+                continue
+            if not all(
+                name in assertion
+                for name in ("item_pointer", "item_equals", "count_equals")
+            ):
+                raise ClaimEvidenceError(
+                    f"evidence {evidence_id} artifact {relative} collection assertion "
+                    "must declare length_equals or item_pointer/item_equals/count_equals"
+                )
+            item_pointer = assertion["item_pointer"]
+            count_equals = assertion["count_equals"]
+            if type(count_equals) is not int or count_equals < 0:
+                raise ClaimEvidenceError(
+                    f"evidence {evidence_id} artifact {relative} count_equals must be a "
+                    "nonnegative integer"
+                )
+            actual = 0
+            for item_position, item in enumerate(collection):
+                value = _json_pointer(
+                    item,
+                    item_pointer,
+                    f"evidence {evidence_id} artifact {relative} {pointer} item "
+                    f"{item_position}",
+                )
+                if (
+                    type(value) is type(assertion["item_equals"])
+                    and value == assertion["item_equals"]
+                ):
+                    actual += 1
+            if actual != count_equals:
+                raise ClaimEvidenceError(
+                    f"evidence {evidence_id} artifact {relative} {pointer} expected "
+                    f"{count_equals} items with {item_pointer}={assertion['item_equals']!r}, "
+                    f"got {actual}"
+                )
+            collection_assertion_results.append(
+                {
+                    "pointer": pointer,
+                    "item_pointer": item_pointer,
+                    "item_equals": assertion["item_equals"],
+                    "count_equals": count_equals,
+                    "actual": actual,
+                }
+            )
         text_assertions = artifact.get("text_assertions", [])
         if not isinstance(text_assertions, list):
             raise ClaimEvidenceError(
@@ -273,6 +366,7 @@ def _validate_artifacts(root: Path, artifacts: Any, evidence_id: str) -> list[di
                 "path": relative,
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                 "json_assertions": assertion_results,
+                "collection_assertions": collection_assertion_results,
                 "text_assertions": text_assertion_results,
             }
         )

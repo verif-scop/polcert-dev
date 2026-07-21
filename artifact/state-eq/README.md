@@ -251,8 +251,9 @@ The workflow performs these checks and actions:
 
 1. Require successful `full`, `network=none` review evidence.
 2. Require source tag/commit/tree to match `manifest.json`, zero proof holes,
-   22/22 artifact subchecks, 138 Pluto compatibility checks, 62/62 strict
-   cases, and passing ISS/parallel/vector/second-level/diamond suites.
+   22/22 artifact subchecks, an 81-row capability surface, 138 Pluto
+   compatibility checks (112 success and 26 rejection expectations), 62/62
+   strict cases, and passing ISS/parallel/vector/second-level/diamond suites.
 3. Recompute schema-v2 evidence from the untouched raw result directory.
 4. Require the local Docker image ID to equal the ID archived in that evidence.
 5. Run `docker tag` and `docker push` for the explicit registry tag.

@@ -48,6 +48,7 @@ class ClaimEvidenceTests(unittest.TestCase):
             ],
             "src/TilingBandDirectRuntime.v": [
                 "checked_second_level_direct_band_check_correct",
+                "checked_tiling_sourceb_first_direct_band_check_outer_correct",
                 "checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct"
             ],
             "src/TilingBandScheduleValidator.v": [
@@ -56,10 +57,17 @@ class ClaimEvidenceTests(unittest.TestCase):
                 "check_pinstr_list_pluto_componentwise_permutable_bands_direct_sound",
                 "second_level_local_reversal_bridge_by_layout_wf_with_env_len",
             ],
-            "driver/PolOptBandTiling.v": ["Opt_band_with_iss_correct"],
+            "driver/PolOptBandTiling.v": [
+                "Opt_band_with_iss_correct",
+                "Opt_identity_tiled_band_with_iss_correct",
+                "Opt_diamond_band_with_iss_correct",
+            ],
             "driver/ParallelPolOptCorrect.v": [
                 "Opt_parallel_current_correct",
                 "Opt_parallel_current_many_correct",
+                "Opt_parallel_current_many_with_iss_correct",
+                "Opt_vector_current_correct",
+                "Opt_vector_current_with_iss_correct",
             ],
             "src/ParallelCodegen.v": [
                 "checked_vector_annotated_codegen_correct_general"
@@ -222,6 +230,31 @@ class ClaimEvidenceTests(unittest.TestCase):
         self.write_json("artifact-check/proof-report.json", proof)
         with self.assertRaisesRegex(
             CLAIM_EVIDENCE.ClaimEvidenceError, "expected at least 1, got nan"
+        ):
+            self.verify()
+
+    def test_rejects_capability_expectation_distribution_drift(self) -> None:
+        path = self.results / "artifact-check/capability-matrix.json"
+        matrix = json.loads(path.read_text())
+        success = next(
+            item for item in matrix["compatibility_checks"] if item["expect"] == "success"
+        )
+        success["expect"] = "reject"
+        self.write_json("artifact-check/capability-matrix.json", matrix)
+        with self.assertRaisesRegex(
+            CLAIM_EVIDENCE.ClaimEvidenceError,
+            "expected 112 items.*got 111",
+        ):
+            self.verify()
+
+    def test_rejects_capability_array_length_drift(self) -> None:
+        path = self.results / "artifact-check/capability-matrix.json"
+        matrix = json.loads(path.read_text())
+        matrix["compatibility_checks"].pop()
+        self.write_json("artifact-check/capability-matrix.json", matrix)
+        with self.assertRaisesRegex(
+            CLAIM_EVIDENCE.ClaimEvidenceError,
+            "expected length 138, got 137",
         ):
             self.verify()
 

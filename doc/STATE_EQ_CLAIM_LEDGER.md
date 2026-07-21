@@ -89,9 +89,14 @@ band-checker acceptances. The exact-tag matrices currently report:
 - non-second-level: 90 cases, comprising 50 direct band acceptances, 34
   explicit general fallbacks, and 6 explicit vector-hint rejections;
 - second-level manifest: 58 checks, comprising 53 successful cases (36 direct
-  and 17 fallback) plus 5 negative cases;
+  and 17 fallback) plus 5 expected-failure cases; these five are malformed or
+  mismatched inputs, not five `route=rejected` observations;
 - additional diamond plus second-level runtime matrix: 16 direct acceptances
   and 4 explicit vector-hint rejections;
+- additional rejection probe: 2 explicit tiling-route rejections, 4 optional
+  vector skips that preserve verified fallback results, and 8 invalid explicit
+  current selections split between 4 tiling-route rejections and 4 vector-route
+  rejections;
 - direct-versus-general differential check: 5 cases, all passing with no solver
   alarms: 3 expected direct acceptances, 1 expected direct rejection accepted
   by the whole-program checker, and 1 expected rejection by all three scopes.
@@ -113,7 +118,7 @@ relaxation for earlier scalar dimensions inside a candidate band.
 | Direct permutable-band validation | `validate_two_instrs_pluto_band_component_direct_sound`; `check_pprog_pluto_permutable_tiling_bands_direct_sound_with_env_len`; `check_pinstr_list_pluto_componentwise_permutable_bands_direct_sound`; unified route theorem in `TilingBandDirectRuntime.v` | Direct/fallback/rejection ledgers, differential cases, ordinary and second-level suites | Passed with counts above |
 | Generic tiling fallback | `TilingValidator.checked_tiling_validate_poly_correct`; `checked_tiling_prepared_codegen_correct` | Explicit fallback labels plus witness positive/negative cases | Passed |
 | Ordinary and identity tiling | Structural tiling and code-generation bridge theorems | Strict, compatibility, identity, and route-classification cases | Passed |
-| Second-level / hierarchical tiling | `checked_second_level_direct_band_check_correct`; `second_level_local_reversal_bridge_by_layout_wf_with_env_len`; componentwise direct-check soundness; composed wrapper routes | Dedicated manifest and runtime matrix, including negative cases | Passed |
+| Second-level / hierarchical tiling | `checked_second_level_direct_band_check_correct`; `second_level_local_reversal_bridge_by_layout_wf_with_env_len`; componentwise direct-check soundness; composed wrapper routes | Dedicated manifest, runtime matrix, and explicit rejection/fallback probes | Passed |
 | Diamond and full-diamond routes | Diamond pipeline and route lemmas; final `compile_correct` composition | Direct accounting for the tiling leg, separately checked final affine leg, and second-level/ISS/parallel compositions | Passed; the final affine leg is not counted as a direct band check |
 | ISS structural generalization | `ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct`; ISS route lemmas | ISS-only and composed affine, tiling, diamond, and parallel cases | Passed in frozen dump suite; live suite is supplemental |
 | Checked parallel-current and multipar | Parallel validator/codegen soundness and single/many-current route theorems | Explicit-current and Pluto-hinted positive/negative cases | Passed |
@@ -133,7 +138,8 @@ command records all of the following for the same image ID:
 - clean proof build, extraction, `polcert`, and `polopt` builds;
 - zero admitted markers, aborted proofs, extraction axioms, and missing routes;
 - the 185-file, 27-route, 60-obligation proof report;
-- the 138-check generated Pluto capability and compatibility matrix;
+- the 81-row generated Pluto capability surface and 138-check compatibility
+  matrix, with 112 expected successes and 26 expected rejections;
 - the 62-case strict generated regression corpus;
 - five differential comparisons: three expected direct accepts, two expected
   direct rejects, and no solver alarms;
