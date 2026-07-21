@@ -1,10 +1,17 @@
 # Reproduction Timing
 
-This note records expected wall-clock time for the lock-v1 State.eq artifact.
-The authoritative machine-readable values are in
-`evidence/lock-v1-full-review.json`; this document explains how to use them.
+This note separates the current v3 measurement from the historical v2 planning
+baseline. Authoritative values come from schema-v2 evidence generated from an
+untouched raw review directory.
 
-## Recorded Baseline
+## Current v3 Status
+
+The v3 image has not yet completed its archived full offline review. Its total,
+proof-build, artifact-check, strict-suite, and `advect3d` times must be filled
+from `evidence/2026-07-21-v3-full-review.json`; historical values below must not
+be reported as v3 measurements.
+
+## Historical v2 Baseline
 
 The 2026-07-18 full review used
 `polcert-artifact:state-eq-lock-v1-candidate` with Docker networking disabled.

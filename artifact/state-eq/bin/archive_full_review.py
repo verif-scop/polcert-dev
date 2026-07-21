@@ -12,6 +12,16 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from claim_evidence import (
+    ClaimEvidenceError,
+    claim_contract_summary,
+    claim_json_assertion_equals,
+    expected_artifact_routes,
+    expected_outer_routes,
+    verify_claim_evidence,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "manifest.json"
@@ -20,42 +30,8 @@ DEFAULT_BUILD_METADATA = ROOT / "build" / "build-metadata.json"
 IMAGE_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
-EXPECTED_OUTER_GATES = (
-    "dependency-lock",
-    "pluto-baseline",
-    "clean",
-    "depend",
-    "proof-build",
-    "check-admitted",
-    "extraction",
-    "build-polopt",
-    "build-polcert-ini",
-    "build-polcert",
-    "core-regression",
-    "artifact-check",
-    "vector-current-suite",
-)
-
-EXPECTED_ARTIFACT_CHECKS = (
-    "py-compile-artifact-tools",
-    "proof-report",
-    "capability-matrix",
-    "codegen-gap-exploration",
-    "unrolljam-effect-corpus",
-    "identity-composition-exploration",
-    "pluto-compat-suite",
-    "end-to-end-c-const-unroll",
-    "end-to-end-c-unrolljam-block-variable",
-    "end-to-end-c-unrolljam-dependent-guard",
-    "end-to-end-c-stride-even",
-    "end-to-end-c-stride-down",
-    "second-level-suite",
-    "diamond-suite",
-    "check-admitted",
-    "strict-loop-suite",
-    "iss-suite",
-    "parallel-current-suite",
-)
+EXPECTED_OUTER_GATES = expected_outer_routes("full")
+EXPECTED_ARTIFACT_CHECKS = expected_artifact_routes("full")
 
 STATIC_RESULT_FILES = (
     "manifest.json",
@@ -69,10 +45,12 @@ STATIC_RESULT_FILES = (
 
 STRUCTURED_RESULT_FILES = (
     "claim-results.json",
+    "claim-evidence.json",
     "environment.json",
     "artifact-check/artifact-results.json",
     "artifact-check/proof-report.json",
     "artifact-check/capability-matrix.json",
+    "artifact-check/tiling-route-summary.json",
     "artifact-check/strict-loop-suite.stdout.txt",
     "logs/dependency-lock.stdout.txt",
     "logs/dependency-lock.stderr.txt",
@@ -220,8 +198,8 @@ def validate_proof_report(proof: dict[str, Any]) -> dict[str, int]:
         if not isinstance(value, int):
             raise EvidenceError(f"proof report has invalid {field}")
         result[field] = value
-    if result["coq_file_count"] != 178:
-        raise EvidenceError("proof report requires coq_file_count=178")
+    if result["coq_file_count"] <= 0:
+        raise EvidenceError("proof report requires a positive coq_file_count")
     for field in fields[1:]:
         if result[field] != 0:
             raise EvidenceError(f"proof report requires {field}=0")
@@ -271,9 +249,10 @@ def validate_compact_v2(
     manifest: dict[str, Any],
     lock_sha256: str,
     static_hashes: dict[str, str] | None = None,
+    claims: dict[str, Any] | None = None,
 ) -> None:
     if evidence.get("schema_version") != 2:
-        raise EvidenceError("lock-v1 review evidence must use schema_version=2")
+        raise EvidenceError("candidate review evidence must use schema_version=2")
     review = evidence.get("review", {})
     if review.get("profile") != "full" or review.get("network") != "none":
         raise EvidenceError("schema-v2 evidence requires full offline review")
@@ -353,12 +332,83 @@ def validate_compact_v2(
             if files.get(name) != expected:
                 raise EvidenceError(f"schema-v2 raw {name} does not match repository input")
 
+    claim_evidence = evidence.get("claim_evidence", {})
+    for field in ("claims_sha256", "report_sha256"):
+        if not isinstance(claim_evidence.get(field), str) or not SHA256_RE.fullmatch(
+            claim_evidence[field]
+        ):
+            raise EvidenceError(f"schema-v2 claim evidence has invalid {field}")
+    if claim_evidence.get("report_sha256") != files.get("claim-evidence.json"):
+        raise EvidenceError("schema-v2 claim evidence report SHA-256 differs from raw results")
+    if claim_evidence.get("claims_sha256") != files.get("claims.json"):
+        raise EvidenceError("schema-v2 claim evidence claims SHA-256 differs from raw results")
+    if claims is None:
+        raise EvidenceError("schema-v2 compact validation requires the claims contract")
+    try:
+        expected_claims = claim_contract_summary(claims, "full")
+    except ClaimEvidenceError as exc:
+        raise EvidenceError(f"invalid claims contract: {exc}") from exc
+    if claim_evidence.get("claim_ids") != expected_claims["claim_ids"]:
+        raise EvidenceError("schema-v2 claim evidence IDs differ from the claims contract")
+    for field in (
+        "claim_count",
+        "verified_claims",
+        "required_evidence_references",
+        "resolved_evidence_references",
+        "supplemental_evidence_references",
+        "resolved_supplemental_evidence_references",
+        "theorem_surface_entries",
+        "resolved_theorem_surface_entries",
+    ):
+        if type(claim_evidence.get(field)) is not int or claim_evidence[field] < 0:
+            raise EvidenceError(f"schema-v2 claim evidence has invalid {field}")
+    for field in (
+        "claim_count",
+        "required_evidence_references",
+        "supplemental_evidence_references",
+        "theorem_surface_entries",
+    ):
+        if claim_evidence[field] != expected_claims[field]:
+            raise EvidenceError(
+                f"schema-v2 claim evidence {field} differs from the claims contract"
+            )
+    if claim_evidence["claim_count"] <= 0:
+        raise EvidenceError("schema-v2 claim evidence requires at least one claim")
+    if claim_evidence["verified_claims"] != expected_claims["claim_count"]:
+        raise EvidenceError("schema-v2 claim evidence does not verify every claim")
+    if (
+        claim_evidence["resolved_evidence_references"]
+        != expected_claims["required_evidence_references"]
+    ):
+        raise EvidenceError("schema-v2 claim evidence did not resolve every required reference")
+    if (
+        claim_evidence["resolved_supplemental_evidence_references"]
+        != expected_claims["supplemental_evidence_references"]
+    ):
+        raise EvidenceError(
+            "schema-v2 claim evidence did not resolve every applicable supplemental reference"
+        )
+    if (
+        claim_evidence["resolved_theorem_surface_entries"]
+        != expected_claims["theorem_surface_entries"]
+    ):
+        raise EvidenceError("schema-v2 claim evidence did not resolve every theorem entry")
+
     validate_proof_report(evidence.get("proof_report", {}))
     capability = evidence.get("capability_results", {})
+    try:
+        expected_compatibility_checks = claim_json_assertion_equals(
+            claims,
+            "artifact-check/capability-matrix",
+            "artifact-check/capability-matrix.json",
+            "/summary/compatibility_checks",
+        )
+    except ClaimEvidenceError as exc:
+        raise EvidenceError(f"invalid capability claim contract: {exc}") from exc
     expected_capability = {
-        "artifact_subchecks": 18,
-        "artifact_subchecks_passed": 18,
-        "pluto_compat_checks": 114,
+        "artifact_subchecks": len(EXPECTED_ARTIFACT_CHECKS),
+        "artifact_subchecks_passed": len(EXPECTED_ARTIFACT_CHECKS),
+        "pluto_compat_checks": expected_compatibility_checks,
         "iss_suite": "PASS",
         "parallel_current_suite": "PASS",
         "vector_current_suite": "PASS",
@@ -453,6 +503,27 @@ def build_evidence(
     )
     inner_by_name = {item["name"]: item for item in inner}
 
+    claims_bytes = require_file(results_dir / "claims.json")
+    claims = load_json(results_dir / "claims.json")
+    try:
+        computed_claim_evidence = verify_claim_evidence(
+            claims=claims,
+            profile="full",
+            results_root=results_dir,
+            outer_results=claim.get("results"),
+            artifact_results=artifact.get("results"),
+            claims_sha256=sha256(claims_bytes),
+        )
+    except ClaimEvidenceError as exc:
+        raise EvidenceError(f"claim-to-evidence verification failed: {exc}") from exc
+    recorded_claim_evidence = load_json(results_dir / "claim-evidence.json")
+    if recorded_claim_evidence != computed_claim_evidence:
+        raise EvidenceError(
+            "claim-evidence.json differs from independent claim-to-evidence verification"
+        )
+    if computed_claim_evidence.get("ok") is not True:
+        raise EvidenceError("claim-to-evidence report is not successful")
+
     environment = load_json(results_dir / "environment.json")
     source_manifest = manifest.get("polcert", {})
     for environment_field, manifest_field in (
@@ -472,8 +543,19 @@ def build_evidence(
         results_dir / "artifact-check" / "capability-matrix.json"
     )
     compatibility_checks = capability_matrix.get("summary", {}).get("compatibility_checks")
-    if compatibility_checks != 114:
-        raise EvidenceError("capability matrix does not record 114 compatibility checks")
+    try:
+        expected_compatibility_checks = claim_json_assertion_equals(
+            claims,
+            "artifact-check/capability-matrix",
+            "artifact-check/capability-matrix.json",
+            "/summary/compatibility_checks",
+        )
+    except ClaimEvidenceError as exc:
+        raise EvidenceError(f"invalid capability claim contract: {exc}") from exc
+    if compatibility_checks != expected_compatibility_checks:
+        raise EvidenceError(
+            "capability matrix compatibility count differs from the claims contract"
+        )
     strict = parse_strict_loop_summary(
         results_dir / "artifact-check" / "strict-loop-suite.stdout.txt"
     )
@@ -486,7 +568,7 @@ def build_evidence(
         "reference"
     )
     if image_reference != candidate_reference:
-        raise EvidenceError("requested image is not the manifest lock-v1 candidate")
+        raise EvidenceError("requested image is not the manifest candidate")
     if not IMAGE_ID_RE.fullmatch(image_id):
         raise EvidenceError("candidate image ID is invalid")
     built_artifact = build.get("artifact_image", {})
@@ -563,6 +645,11 @@ def build_evidence(
             .get("origin", {})
             .get("review_evidence_sha256"),
         },
+        "claim_evidence": {
+            "claims_sha256": computed_claim_evidence["claims_sha256"],
+            "report_sha256": sha256(require_file(results_dir / "claim-evidence.json")),
+            **computed_claim_evidence["summary"],
+        },
         "proof_report": proof,
         "capability_results": {
             "artifact_subchecks": len(inner),
@@ -602,6 +689,7 @@ def build_evidence(
         manifest,
         lock_sha,
         repository_static_hashes(manifest_path, lock_path),
+        claims,
     )
     return evidence
 

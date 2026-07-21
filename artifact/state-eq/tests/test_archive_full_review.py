@@ -14,6 +14,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tests"))
+from claim_fixture import materialize_declared_artifacts  # noqa: E402
+
 SCRIPT = ROOT / "bin" / "archive_full_review.py"
 FAKE_DOCKER = ROOT / "tests" / "fixtures" / "fake_docker.py"
 SPEC = importlib.util.spec_from_file_location("archive_full_review", SCRIPT)
@@ -22,7 +25,7 @@ ARCHIVE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = ARCHIVE
 SPEC.loader.exec_module(ARCHIVE)
 
-CANDIDATE = "polcert-artifact:state-eq-lock-v1-candidate"
+CANDIDATE = "polcert-artifact:state-eq-2026-07-21-v3-candidate"
 IMAGE_ID = "sha256:" + "a" * 64
 
 
@@ -84,24 +87,73 @@ class ArchiveFullReviewTests(unittest.TestCase):
             "artifact-check/artifact-results.json",
             {"mode": "full", "ok": True, "results": inner},
         )
+        materialize_declared_artifacts(
+            self.results, json.loads((self.results / "claims.json").read_text())
+        )
         self.write_json(
             "artifact-check/proof-report.json",
             {
-                "coq_file_count": 178,
+                "coq_file_count": 185,
                 "admitted_count": 0,
                 "abort_count": 0,
                 "extraction_axiom_count": 0,
                 "missing_route_theorem_count": 0,
+                "theorem_index": {
+                    "driver/VerifiedParallelCompilerConfig.v": [
+                        "compile_correct",
+                        "compile_verified_correct",
+                    ],
+                    "src/TilingBandDirectRuntime.v": [
+                        "checked_second_level_direct_band_check_correct",
+                        "checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct"
+                    ],
+                    "src/TilingBandScheduleValidator.v": [
+                        "validate_two_instrs_pluto_band_component_direct_sound",
+                        "check_pprog_pluto_permutable_tiling_bands_direct_sound_with_env_len",
+                        "check_pinstr_list_pluto_componentwise_permutable_bands_direct_sound",
+                        "second_level_local_reversal_bridge_by_layout_wf_with_env_len",
+                    ],
+                    "driver/PolOptBandTiling.v": ["Opt_band_with_iss_correct"],
+                    "driver/ParallelPolOptCorrect.v": [
+                        "Opt_parallel_current_correct",
+                        "Opt_parallel_current_many_correct",
+                    ],
+                    "src/ParallelCodegen.v": [
+                        "checked_vector_annotated_codegen_correct_general"
+                    ],
+                    "polygen/LoopStride.v": [
+                        "stride_loop_stmt_semantics",
+                        "down_stride_loop_stmt_semantics",
+                    ],
+                    "polygen/LoopUnroll.v": [
+                        "const_unroll_correct",
+                        "block_unroll_correct",
+                    ],
+                    "src/LoopJamValidator.v": [
+                        "checked_loop_jam_pair_at_depth_sound"
+                    ],
+                    "src/LoopJamLower.v": ["try_jam_pair_exact_sound"],
+                },
             },
         )
         self.write_json(
             "artifact-check/capability-matrix.json",
-            {"summary": {"compatibility_checks": 114}},
+            {"summary": {"compatibility_checks": 138}},
         )
         (self.results / "artifact-check/strict-loop-suite.stdout.txt").write_text(
             "[3/62] advect3d: ok changed=true time=148.80s\n"
             "total=62\nok=62\nchanged=59\ndetected_tiled=39\n"
         )
+        claims_bytes = (self.results / "claims.json").read_bytes()
+        claim_evidence = ARCHIVE.verify_claim_evidence(
+            claims=json.loads(claims_bytes),
+            profile="full",
+            results_root=self.results,
+            outer_results=outer,
+            artifact_results=inner,
+            claims_sha256=ARCHIVE.sha256(claims_bytes),
+        )
+        self.write_json("claim-evidence.json", claim_evidence)
 
         self.build_metadata = self.directory / "build-metadata.json"
         self.build_metadata.write_text(
@@ -115,7 +167,7 @@ class ArchiveFullReviewTests(unittest.TestCase):
                         "id": manifest["pluto"]["base_image_digest"],
                     },
                     "source_image": {
-                        "reference": "polcert-artifact-source:13295e741ad6",
+                        "reference": f"polcert-artifact-source:{manifest['polcert']['commit'][:12]}",
                         "id": "sha256:" + "c" * 64,
                     },
                     "artifact_image": {
@@ -163,6 +215,22 @@ class ArchiveFullReviewTests(unittest.TestCase):
     def write_claim(self, claim: dict[str, object]) -> None:
         self.write_json("claim-results.json", claim)
 
+    def refresh_claim_evidence(self) -> None:
+        claims_bytes = (self.results / "claims.json").read_bytes()
+        outer = json.loads((self.results / "claim-results.json").read_text())["results"]
+        inner = json.loads(
+            (self.results / "artifact-check/artifact-results.json").read_text()
+        )["results"]
+        report = ARCHIVE.verify_claim_evidence(
+            claims=json.loads(claims_bytes),
+            profile="full",
+            results_root=self.results,
+            outer_results=outer,
+            artifact_results=inner,
+            claims_sha256=ARCHIVE.sha256(claims_bytes),
+        )
+        self.write_json("claim-evidence.json", report)
+
     def build(self) -> dict[str, object]:
         return ARCHIVE.build_evidence(
             self.results,
@@ -186,10 +254,13 @@ class ArchiveFullReviewTests(unittest.TestCase):
         self.assertEqual(first["timing"]["make_jobs"], 1)
         self.assertFalse(first["timing"]["parallel_make_requested"])
         self.assertEqual(first["timing"]["advect3d_seconds"], 148.8)
+        self.assertEqual(first["claim_evidence"]["claim_count"], 6)
+        self.assertEqual(first["claim_evidence"]["verified_claims"], 6)
         ARCHIVE.validate_compact_v2(
             first,
             json.loads(self.manifest.read_text()),
             ARCHIVE.sha256(self.lock.read_bytes()),
+            claims=json.loads((ROOT / "claims.json").read_text()),
         )
 
     def test_refuses_missing_or_reordered_dependency_lock_gate(self) -> None:
@@ -222,24 +293,30 @@ class ArchiveFullReviewTests(unittest.TestCase):
     def test_refuses_proof_inventory_or_strict_summary_drift(self) -> None:
         proof_path = self.results / "artifact-check/proof-report.json"
         proof = json.loads(proof_path.read_text())
-        proof["coq_file_count"] = 177
+        proof["coq_file_count"] = 0
         proof_path.write_text(json.dumps(proof))
-        with self.assertRaisesRegex(ARCHIVE.EvidenceError, "coq_file_count=178"):
+        with self.assertRaisesRegex(
+            ARCHIVE.EvidenceError, "coq_file_count.*expected at least 1"
+        ):
             self.build()
 
-        proof["coq_file_count"] = 178
+        proof["coq_file_count"] = 185
         proof_path.write_text(json.dumps(proof))
+        self.refresh_claim_evidence()
         (self.results / "artifact-check/strict-loop-suite.stdout.txt").write_text(
             "[3/62] advect3d: ok changed=true time=148.80s\n"
             "total=62\nok=62\nchanged=58\ndetected_tiled=39\n"
         )
-        with self.assertRaisesRegex(ARCHIVE.EvidenceError, "strict-loop summary mismatch"):
+        with self.assertRaisesRegex(
+            ARCHIVE.EvidenceError, "strict-loop-suite.*changed=59.*got 0"
+        ):
             self.build()
 
     def test_refuses_missing_advect3d_timing(self) -> None:
         (self.results / "artifact-check/strict-loop-suite.stdout.txt").write_text(
             "total=62\nok=62\nchanged=59\ndetected_tiled=39\n"
         )
+        self.refresh_claim_evidence()
         with self.assertRaisesRegex(ARCHIVE.EvidenceError, "advect3d"):
             self.build()
 
@@ -256,6 +333,16 @@ class ArchiveFullReviewTests(unittest.TestCase):
                 CANDIDATE,
                 IMAGE_ID,
             )
+
+    def test_refuses_claim_evidence_report_mutation(self) -> None:
+        report_path = self.results / "claim-evidence.json"
+        report = json.loads(report_path.read_text())
+        report["claims"][0]["status"] = "not-evaluated"
+        report_path.write_text(json.dumps(report))
+        with self.assertRaisesRegex(
+            ARCHIVE.EvidenceError, "independent claim-to-evidence verification"
+        ):
+            self.build()
 
     def test_cli_create_validate_and_refuse_overwrite(self) -> None:
         evidence = self.directory / "evidence.json"

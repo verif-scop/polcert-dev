@@ -25,16 +25,23 @@ class DependencyLockTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.lock_dir = self.root / "locks"
         self.manifest = self.root / "manifest.json"
+        self.evidence = self.root / "review-evidence.json"
+        origin_image = "local:image"
+        origin_image_id = "sha256:" + "i" * 64
         self.manifest.write_text(
             json.dumps(
                 {
                     "polcert": {"tag": "tag", "commit": "c" * 40, "tree": "t" * 40},
                     "pluto": {"base_image": "registry/base:v1", "base_image_digest": "sha256:" + "b" * 64},
+                    "images": {
+                        "dependency_lock_origin": {
+                            "reference": origin_image,
+                            "review_evidence": str(self.evidence),
+                        }
+                    },
                 }
             )
         )
-        self.evidence = self.root / "review-evidence.json"
-        self.evidence.write_text("review evidence\n")
         self.state = LOCK.DependencyState(
             apt_packages=b"a\t1\nb\t2\n",
             apt_filesystem_entries=20,
@@ -46,14 +53,20 @@ class DependencyLockTests(unittest.TestCase):
             opam_binary_sha256="a" * 64,
             os_release=b'ID=ubuntu\nVERSION_ID="20.04"\n',
         )
-        evidence = {"source": {"tag": "tag", "commit": "c" * 40, "tree": "t" * 40}}
+        evidence = {
+            "source": {"tag": "tag", "commit": "c" * 40, "tree": "t" * 40},
+            "images": {
+                "artifact": {"reference": origin_image, "id": origin_image_id}
+            },
+        }
+        self.evidence.write_text(json.dumps(evidence))
         lock, files = LOCK.create_lock(
             self.state,
             evidence,
             self.evidence,
             LOCK.sha256(self.evidence.read_bytes()),
-            "local:image",
-            "sha256:" + "i" * 64,
+            origin_image,
+            origin_image_id,
             json.loads(self.manifest.read_text()),
         )
         LOCK.atomic_write_lock_dir(self.lock_dir, lock, files)
@@ -89,9 +102,20 @@ class DependencyLockTests(unittest.TestCase):
         with self.assertRaisesRegex(LOCK.LockError, "review evidence checksum mismatch"):
             LOCK.verify_state(self.state, self.lock_path, self.manifest)
 
-    def test_manifest_source_and_base_mismatches_fail_closed(self) -> None:
+    def test_current_source_may_differ_from_lock_capture_source(self) -> None:
+        manifest = json.loads(self.manifest.read_text())
+        manifest["polcert"] = {
+            "tag": "new-tag",
+            "commit": "n" * 40,
+            "tree": "u" * 40,
+        }
+        path = self.root / "new-source.json"
+        path.write_text(json.dumps(manifest))
+        LOCK.verify_state(self.state, self.lock_path, path)
+
+    def test_manifest_origin_and_base_mismatches_fail_closed(self) -> None:
         for section, field, value in (
-            ("polcert", "commit", "x" * 40),
+            ("images", "dependency_lock_origin", {"reference": "wrong:image", "review_evidence": str(self.evidence)}),
             ("pluto", "base_image_digest", "sha256:" + "x" * 64),
         ):
             with self.subTest(section=section, field=field):
@@ -101,6 +125,13 @@ class DependencyLockTests(unittest.TestCase):
                 path.write_text(json.dumps(manifest))
                 with self.assertRaises(LOCK.LockError):
                     LOCK.verify_state(self.state, self.lock_path, path)
+
+    def test_lock_source_must_match_origin_evidence(self) -> None:
+        lock = json.loads(self.lock_path.read_text())
+        lock["source"]["commit"] = "x" * 40
+        self.lock_path.write_text(json.dumps(lock))
+        with self.assertRaisesRegex(LOCK.LockError, "origin evidence"):
+            LOCK.verify_state(self.state, self.lock_path, self.manifest)
 
     def test_lock_capture_refuses_existing_output(self) -> None:
         lock = json.loads(self.lock_path.read_text())

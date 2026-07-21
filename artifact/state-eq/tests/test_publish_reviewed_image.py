@@ -11,12 +11,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 from archive_full_review import (  # noqa: E402
+    EXPECTED_ARTIFACT_CHECKS,
     EXPECTED_OUTER_GATES,
     STATIC_RESULT_FILES,
     STRUCTURED_RESULT_FILES,
     repository_static_hashes,
     sha256,
 )
+from claim_evidence import claim_contract_summary  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,7 +28,7 @@ EVIDENCE = ROOT / "evidence" / "2026-07-18-full-review.json"
 REVIEWED_ID = "sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f"
 REGISTRY_DIGEST = "sha256:" + "a" * 64
 DESTINATION = "registry.example.test/polcert/state-eq:state-eq-2026-05-25-v2"
-CANDIDATE = "polcert-artifact:state-eq-lock-v1-candidate"
+CANDIDATE = "polcert-artifact:state-eq-2026-07-21-v3-candidate"
 
 
 class PublishReviewedImageTests(unittest.TestCase):
@@ -74,11 +76,19 @@ class PublishReviewedImageTests(unittest.TestCase):
 
     def schema_v2_evidence(self, image_id: str) -> dict[str, object]:
         evidence = json.loads(EVIDENCE.read_text())
+        manifest = json.loads((ROOT / "manifest.json").read_text())
+        claims = json.loads((ROOT / "claims.json").read_text())
         evidence["schema_version"] = 2
-        evidence["packaging_revision"] = "dependency-lock-v1"
+        evidence["artifact_id"] = manifest["artifact"]["id"]
+        evidence["packaging_revision"] = manifest["artifact"]["packaging_revision"]
+        evidence["source"] = manifest["polcert"]
         evidence["review"]["recorded_at"] = "2026-07-18T12:00:00+00:00"
         evidence["review"]["elapsed_seconds"] = 13.0
         evidence["images"]["artifact"] = {"reference": CANDIDATE, "id": image_id}
+        evidence["environment"]["artifact_id"] = manifest["artifact"]["id"]
+        evidence["environment"]["polcert_source_tag"] = manifest["polcert"]["tag"]
+        evidence["environment"]["polcert_source_commit"] = manifest["polcert"]["commit"]
+        evidence["environment"]["polcert_source_tree"] = manifest["polcert"]["tree"]
         evidence["environment"][
             "network_contract"
         ] = "review command is run with Docker --network none"
@@ -107,6 +117,30 @@ class PublishReviewedImageTests(unittest.TestCase):
                 **{name: "f" * 64 for name in STRUCTURED_RESULT_FILES},
             },
         }
+        evidence["claim_evidence"] = {
+            "claims_sha256": sha256((ROOT / "claims.json").read_bytes()),
+            "report_sha256": "f" * 64,
+            **claim_contract_summary(claims, "full"),
+        }
+        evidence["claim_evidence"]["verified_claims"] = evidence["claim_evidence"][
+            "claim_count"
+        ]
+        evidence["claim_evidence"]["resolved_evidence_references"] = evidence[
+            "claim_evidence"
+        ]["required_evidence_references"]
+        evidence["claim_evidence"]["resolved_supplemental_evidence_references"] = evidence[
+            "claim_evidence"
+        ]["supplemental_evidence_references"]
+        evidence["claim_evidence"]["resolved_theorem_surface_entries"] = evidence[
+            "claim_evidence"
+        ]["theorem_surface_entries"]
+        evidence["capability_results"]["artifact_subchecks"] = len(
+            EXPECTED_ARTIFACT_CHECKS
+        )
+        evidence["capability_results"]["artifact_subchecks_passed"] = len(
+            EXPECTED_ARTIFACT_CHECKS
+        )
+        evidence["capability_results"]["pluto_compat_checks"] = 138
         evidence["timing"] = {
             "make_jobs": 1,
             "parallel_make_requested": False,
@@ -163,14 +197,15 @@ class PublishReviewedImageTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)["reviewed_image_id"], new_id)
 
-    def test_valid_schema_v2_candidate_evidence_is_accepted(self) -> None:
+    def test_schema_v2_candidate_compact_only_is_refused(self) -> None:
         new_id = "sha256:" + "d" * 64
         path = self.directory / "lock-v1-full-review.json"
         path.write_text(json.dumps(self.schema_v2_evidence(new_id)))
         self.environment["FAKE_DOCKER_LOCAL_ID"] = new_id
         result = self.invoke("--dry-run", evidence=path)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout)["reviewed_image_id"], new_id)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("requires --review-results", result.stderr)
+        self.assertEqual(self.docker_log(), [])
 
     def test_refuses_schema_v1_candidate_even_when_image_id_matches(self) -> None:
         new_id = "sha256:" + "d" * 64
@@ -190,7 +225,7 @@ class PublishReviewedImageTests(unittest.TestCase):
             lambda item: item["top_level_results"].pop(0),
             lambda item: item["top_level_results"][0].update(returncode=2, ok=False),
             lambda item: item["dependency_lock"].update(sha256="0" * 64),
-            lambda item: item["proof_report"].update(coq_file_count=177),
+            lambda item: item["proof_report"].update(coq_file_count=0),
             lambda item: item["capability_results"]["strict_loop_suite"].update(
                 changed=58
             ),
@@ -198,6 +233,16 @@ class PublishReviewedImageTests(unittest.TestCase):
                 detected_tiled=38
             ),
             lambda item: item["timing"].update(proof_build_seconds=2.0),
+            lambda item: item["claim_evidence"].update(verified_claims=5),
+            lambda item: item["claim_evidence"].update(
+                claim_count=1,
+                claim_ids=["C1"],
+                verified_claims=1,
+                required_evidence_references=1,
+                resolved_evidence_references=1,
+            ),
+            lambda item: item["claim_evidence"].update(verified_claims=True),
+            lambda item: item["claim_evidence"].update(claims_sha256="0" * 64),
             lambda item: item["review"]["raw_results"]["required_files"].update(
                 {"manifest.json": "0" * 64}
             ),

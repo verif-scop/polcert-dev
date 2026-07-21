@@ -3,9 +3,9 @@
 This directory builds and runs a claim-oriented Docker artifact for the frozen
 PolCert milestone:
 
-- tag: `state-eq-polyhedral-verification-complete-2026-05-25-v2`
-- commit: `13295e741ad62173411882c6d900dd9dc57337a8`
-- tree: `8b83093929e54657c033fa09c5aae73b492c0b67`
+- tag: `state-eq-polyhedral-verification-complete-2026-07-21-v3`
+- commit: `4bc20817c32f2073221cf68475bf9b78c0bab74b`
+- tree: `5c21c31e54536dff78c376b4e861efdba3c0d4fb`
 - Pluto compiler baseline: `6f43860b6c4cddeeca09189bf3073f05b78b14a5`
 
 The scaffold lives in the host-side control repository so it does not modify
@@ -21,10 +21,9 @@ From this directory, with any clone that contains the annotated tag:
 make reproduce POLCERT_SOURCE=/path/to/PolCert
 ```
 
-This builds `polcert-artifact:state-eq-lock-v1-candidate` and runs the full
-claim suite with Docker networking disabled. The candidate tag is deliberately
-different from the existing reviewed image tag, so a build cannot overwrite
-the image named by the archived 2026-07-18 evidence. Results are written to
+This builds `polcert-artifact:state-eq-2026-07-21-v3-candidate` and runs the
+full claim suite with Docker networking disabled. The v3 candidate is distinct
+from the historical v2 dependency-lock origin image. Results are written to
 `results/`:
 
 - `manifest.json`: immutable source and toolchain pins;
@@ -33,9 +32,11 @@ the image named by the archived 2026-07-18 evidence. Results are written to
 - `dependency-lock.json`: the exact dpkg/opam state accepted by the reviewer;
 - `apt-packages.lock`, `opam-packages.lock`, and
   `opam-switch-full.export`: the companion dependency state records;
-- `claims.json`: claim-to-check map and explicit non-claims;
+- `claims.json`: claim-to-evidence catalog and explicit non-claims;
 - `environment.json`: observed tool versions;
 - `claim-results.json`: top-level command results;
+- `claim-evidence.json`: mechanically resolved claim IDs, passing routes,
+  concrete logs, and structured-result assertions;
 - `artifact-check/artifact-results.json`: implementation-level artifact report;
 - `logs/`: stdout and stderr for every top-level command.
 
@@ -53,18 +54,18 @@ previous generated results with `make clean-results`, before rerunning.
 
 ## Full Review Evidence
 
-The lock-v1 candidate uses schema-v2 review evidence. Do not summarize a run
-by hand. After one successful full offline review, create the compact evidence
+The v3 candidate uses schema-v2 review evidence. Do not summarize a run by
+hand. After one successful full offline review, create the compact evidence
 directly from its untouched raw result directory and matching build metadata:
 
 ```sh
 make archive-full-review \
-  POLCERT_REVIEW_RESULTS="$PWD/results-full-lock-v1" \
-  POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/lock-v1-full-review.json"
+  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21" \
+  POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/2026-07-21-v3-full-review.json"
 
 make review-evidence-validate \
-  POLCERT_REVIEW_RESULTS="$PWD/results-full-lock-v1" \
-  POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/lock-v1-full-review.json"
+  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21" \
+  POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/2026-07-21-v3-full-review.json"
 ```
 
 The archiver refuses an existing evidence path. It requires the exact 13 full
@@ -72,12 +73,19 @@ review gates in order, with `dependency-lock` first and every gate reporting
 `ok=true` and `returncode=0`. It also rechecks the proof and capability counts,
 binds the manifest candidate reference to its Docker image ID and build
 metadata, compares all copied lock/manifest inputs byte for byte, and records a
-deterministic SHA-256 tree digest over the complete raw result directory.
+deterministic SHA-256 tree digest over the complete raw result directory. It
+independently resolves every full-profile claim reference through the outer or
+nested result ledger, verifies the referenced stdout/stderr files and JSON
+assertions, and rejects unknown, missing, failed, or stale routes. The
+extended-only ISS-live reference is explicitly supplemental and recorded as
+unavailable in a full run; both required C3 references still resolve
+successfully.
 
 The raw directory remains excluded from Git and must be archived externally
 with the image. Its recorded tree digest, file count, byte count, and required
 file hashes allow the extracted archive to be verified later. Run the focused
-tests without starting a review using `make review-evidence-test`.
+tests without starting a review using `make review-evidence-test`. Use
+`make claim-evidence-test` for only the claim-reference contract tests.
 
 The shorter health check is:
 
@@ -90,23 +98,17 @@ artifact is meant to validate source, not merely replay precompiled binaries.
 
 ## Expected Review Time
 
-The recorded lock-v1 full review ran with Docker networking disabled and
-without make parallelism (`-j` was not requested and the image does not set
-`MAKEFLAGS`). On the recorded WSL2 x86-64 host it took 1,996.4 seconds, or
-33.3 minutes. Reviewers should budget 45 minutes for a comparable serial run;
-host load and Docker storage can change wall-clock time.
+The v3 full-review time will be recorded from its own raw evidence. Until that
+run completes, the only archived planning baseline is the historical v2
+network-disabled serial review: 1,996.4 seconds, or 33.3 minutes. Reviewers
+should provision at least 45 minutes on a comparable host.
 
-The two largest outer gates were the clean Coq proof build (748.8 seconds) and
-the nested full artifact check (1,097.0 seconds). Within the latter, the strict
-62-case loop suite took 355.4 seconds. Its known long-tail case is `advect3d`,
-which took 148.8 seconds in this run and 150.8 seconds in the preceding frozen
-baseline run. Existing profiling attributes almost all of that case's cost to
-the verified `CodeGen.codegen` path, not Pluto or validation. See
-`REPRODUCTION_TIMING.md` for the measured breakdown and interpretation.
-
-These numbers are a serial reproducibility baseline, not a claim that parallel
-builds require the same time. A parallel `make -jN` configuration has not yet
-been measured as archived review evidence.
+In that historical run, the clean Coq proof build took 748.8 seconds, the
+nested artifact check took 1,097.0 seconds, and the strict 62-case suite took
+355.4 seconds. The `advect3d` case took 148.8 seconds, dominated by verified
+`CodeGen.codegen`. These values are not yet v3 measurements. See
+`REPRODUCTION_TIMING.md` for the preserved baseline and the v3 measurement
+status.
 
 ## Clean-Tree Bootstrap
 
@@ -197,9 +199,9 @@ lock directory and requires that image ID to match strict full-review evidence.
 
 The origin evidence is copied into the candidate wrapper only so the first
 review gate can authenticate the dependency lock's provenance and checksum. It
-is not review evidence for the candidate wrapper. The candidate's separate
-successful full offline run is recorded in
-`evidence/lock-v1-full-review.json` and tied to its exact image ID.
+is not review evidence for the v3 wrapper. The v3 candidate requires a separate
+successful full offline run in
+`evidence/2026-07-21-v3-full-review.json`, tied to its exact image ID.
 
 After the image has been built or pulled, review is offline. `bin/run-image.sh`
 always uses `docker run --network none`; the proof build and all claim checks
@@ -210,24 +212,27 @@ The complete human-readable analysis and the bounded locking plan are in
 
 ## Reviewed Image Publication
 
-Publication is separate from building. By default it uses the schema-v2 full
-review evidence in `evidence/lock-v1-full-review.json`, which names the
-fully reviewed lock-v1 candidate. The schema-v1 evidence in
-`evidence/2026-07-18-full-review.json` remains the dependency-lock origin
-record. Publication refuses any local image whose Docker image ID differs from
-the ID in the selected evidence.
+Publication is separate from building. By default it expects the v3 schema-v2
+evidence in `evidence/2026-07-21-v3-full-review.json`. The historical
+`2026-07-18-full-review.json` and `lock-v1-full-review.json` records remain v2
+dependency provenance and review history; neither authorizes v3 publication.
+Publication refuses any local image whose Docker image ID differs from the ID
+in the selected evidence. It also requires the untouched raw result directory
+and recomputes the compact record from the raw ledgers, claim report, complete
+tree digest, and build metadata before tagging or pushing.
 
-Schema-v1 remains accepted for the existing reviewed pre-lock image. Evidence
-whose artifact reference is the lock-v1 candidate must use schema-v2; the
-publication guard independently rechecks its exact 13-gate ledger, dependency
-lock SHA-256, proof/capability assertions, and required raw file hashes.
+Schema-v1 remains accepted only for the historical reviewed pre-lock image.
+The v3 candidate must use schema-v2; the publication guard independently
+rechecks its exact 13-gate ledger, dependency-lock SHA-256,
+proof/capability/claim assertions, and required raw file hashes.
 
 First validate an explicit, versioned registry reference without tagging,
 pushing, or contacting the registry:
 
 ```sh
 make publication-validate \
-  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-05-25-v2
+  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-07-21-v3 \
+  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21"
 ```
 
 The reference must include a registry host, lowercase repository, and a
@@ -238,26 +243,27 @@ After authenticating Docker separately, publish with:
 
 ```sh
 make publish-reviewed-image \
-  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-05-25-v2
+  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-07-21-v3 \
+  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21"
 ```
 
 The workflow performs these checks and actions:
 
 1. Require successful `full`, `network=none` review evidence.
 2. Require source tag/commit/tree to match `manifest.json`, zero proof holes,
-   18/18 artifact subchecks, 114 Pluto compatibility checks, 62/62 strict
+   22/22 artifact subchecks, 138 Pluto compatibility checks, 62/62 strict
    cases, and passing ISS/parallel/vector/second-level/diamond suites.
-3. Require the local Docker image ID to equal the ID archived in that evidence.
-4. Run `docker tag` and `docker push` for the explicit registry tag.
-5. Read the matching registry digest from Docker `RepoDigests` after push.
-6. Atomically write `publication/publication-record.json`, binding the review
+3. Recompute schema-v2 evidence from the untouched raw result directory.
+4. Require the local Docker image ID to equal the ID archived in that evidence.
+5. Run `docker tag` and `docker push` for the explicit registry tag.
+6. Read the matching registry digest from Docker `RepoDigests` after push.
+7. Atomically write `publication/publication-record.json`, binding the review
    evidence checksum, local image ID, tag, and immutable `repository@digest`.
 
 The script never calls `docker login`. Registry credentials and authorization
-must already be configured. The lock-v1 candidate remains unpublished until a
-registry reference is provided and a push records its immutable registry
-digest. Its local full review and publication eligibility do not imply registry
-availability.
+must already be configured. The v3 candidate is not publication-eligible until
+its own full offline evidence exists, and remains unpublished until a registry
+reference is provided and a push records its immutable registry digest.
 
 The publication parser and refusal paths have a no-network fixture suite:
 

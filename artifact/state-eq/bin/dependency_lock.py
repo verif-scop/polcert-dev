@@ -419,10 +419,12 @@ def compare_bytes(name: str, expected: bytes, actual: bytes) -> None:
 
 def validate_lock_context(lock: dict[str, Any], lock_path: Path, manifest_path: Path) -> None:
     manifest = load_json(manifest_path)
-    expected_source = manifest["polcert"]
-    for field in ("tag", "commit", "tree"):
-        if lock.get("source", {}).get(field) != expected_source.get(field):
-            raise LockError(f"dependency lock source {field} does not match manifest")
+    manifest_origin = manifest.get("images", {}).get("dependency_lock_origin", {})
+    lock_origin = lock.get("origin", {})
+    if lock_origin.get("reviewed_image_reference") != manifest_origin.get("reference"):
+        raise LockError("dependency lock origin image does not match manifest")
+    if lock_origin.get("review_evidence") != manifest_origin.get("review_evidence"):
+        raise LockError("dependency lock origin evidence does not match manifest")
     if lock.get("base_image", {}).get("reference") != manifest["pluto"]["base_image"]:
         raise LockError("dependency lock base image reference does not match manifest")
     if lock.get("base_image", {}).get("registry_digest") != manifest["pluto"]["base_image_digest"]:
@@ -437,6 +439,17 @@ def validate_lock_context(lock: dict[str, Any], lock_path: Path, manifest_path: 
         raise LockError(f"dependency lock review evidence missing: {evidence_path}")
     if sha256(evidence_path.read_bytes()) != lock.get("origin", {}).get("review_evidence_sha256"):
         raise LockError("dependency lock review evidence checksum mismatch")
+    evidence = load_json(evidence_path)
+    for field in ("tag", "commit", "tree"):
+        if lock.get("source", {}).get(field) != evidence.get("source", {}).get(field):
+            raise LockError(
+                f"dependency lock source {field} does not match origin evidence"
+            )
+    artifact_image = evidence.get("images", {}).get("artifact", {})
+    if artifact_image.get("reference") != lock_origin.get("reviewed_image_reference"):
+        raise LockError("dependency lock origin image differs from review evidence")
+    if artifact_image.get("id") != lock_origin.get("reviewed_image_id"):
+        raise LockError("dependency lock origin image ID differs from review evidence")
     for key in ("apt_packages", "opam_packages", "opam_switch_export"):
         entry = lock.get("state", {}).get(key, {})
         path = lock_path.parent / entry.get("path", "")

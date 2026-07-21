@@ -2,7 +2,7 @@
 set -euo pipefail
 
 artifact_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-image="${POLCERT_ARTIFACT_IMAGE:-polcert-artifact:state-eq-lock-v1-candidate}"
+image="${POLCERT_ARTIFACT_IMAGE:-polcert-artifact:state-eq-2026-07-21-v3-candidate}"
 output_dir="${POLCERT_ARTIFACT_OUTPUT:-$artifact_root/results}"
 mode="full"
 

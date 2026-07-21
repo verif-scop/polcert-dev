@@ -1,32 +1,35 @@
 # State.eq Claim Ledger
 
-Updated: 2026-07-18
+Updated: 2026-07-21
 
-This ledger connects each intended paper claim to the exact implementation
-baseline, proof surface, executable route, and artifact evidence. It separates
-proofs present in the tagged source from checks reproduced on that exact tag.
+This ledger binds each intended paper claim to an immutable implementation
+revision, a proved theorem surface, executable routes, and artifact evidence.
+Source verification and Docker review are separate gates: passing one is not
+reported as evidence for the other.
 
 ## Frozen baseline
 
 - PolCert tag:
-  `state-eq-polyhedral-verification-complete-2026-05-25-v2`
-- PolCert commit: `13295e741ad62173411882c6d900dd9dc57337a8`
-- Pluto commit: `6f43860b6c4cddeeca09189bf3073f05b78b14a5`, verified in
-  both `tools/ci/pluto-baseline.env` and the frozen Dockerfile
-- Exact-tag source reproduction: passed on 2026-07-18; see
-  `doc/STATE_EQ_BASELINE_REPRODUCTION.md` and
-  `doc/evidence/state-eq-baseline-2026-07-18/`
-- Lock-v1 Docker image review: passed offline with Docker networking disabled;
-  all 13 top-level gates and 18 nested checks passed; local content ID
-  `sha256:fa4bcb4a6cc0b2694483fb8241238f900bb90f50577a5b2a6cdab3e917dea0c3`;
-  see `artifact/state-eq/evidence/lock-v1-full-review.json`. The earlier
-  `2026-07-18-full-review.json` remains the dependency-lock origin record.
-- Earlier full artifact evidence: commit `72deba1`; useful historical evidence,
-  but not sufficient evidence for the final tag because multipar code changed
-  after that run
+  `state-eq-polyhedral-verification-complete-2026-07-21-v3`
+- Annotated tag object: `1fe3bf79f14065dc24df7190cd6d6dc1d3ff9b5d`
+- Commit: `4bc20817c32f2073221cf68475bf9b78c0bab74b`
+- Tree: `5c21c31e54536dff78c376b4e861efdba3c0d4fb`
+- Pluto baseline: `6f43860b6c4cddeeca09189bf3073f05b78b14a5`
+- Exact-tag source verification: clean proof build, extraction, `polcert`, and
+  `polopt` builds passed. The generated proof report covers 185 Coq files, 27
+  top-level route entries, and 60 named theorem obligations, with zero admitted
+  markers, aborted proofs, extraction axioms, or missing route theorems.
+- Exact-tag route verification: the Pluto compatibility matrix passed 138
+  checks; dedicated ordinary, second-level, diamond, ISS, parallel, multipar,
+  vector, unroll/jam, stride, cleanup, and negative-route suites passed.
+- v3 Docker review: pending. No v3 image is publication-eligible until a fresh
+  network-disabled full run produces schema-v2 evidence for that exact image.
+- Historical dependency provenance: the v2 review records in
+  `artifact/state-eq/evidence/` authenticate the installed dependency lock and
+  provide a serial timing baseline. They are not review evidence for v3.
 
-The tag is immutable. Archival scripts or metadata added later require a new
-commit and annotated archival tag.
+The tag is immutable. Any implementation change requires a new commit and tag;
+artifact-control changes require a new packaging revision and fresh evidence.
 
 ## Headline correctness contract
 
@@ -38,108 +41,158 @@ compile : raw_config -> Loop.t -> imp ParallelLoop.t
 
 The main theorem is
 `driver/VerifiedParallelCompilerConfig.v:compile_correct`. For every accepted
-configuration and generated `ParallelLoop.t` execution, it produces a matching
-source `Loop.t` execution whose final state is related by `State.eq`.
+configuration and generated `ParallelLoop.t` execution, it constructs a
+matching source `Loop.t` execution whose final state is related by `State.eq`.
+Supporting wrappers include `compile_seq_verified_correct`,
+`compile_verified_correct`, `compile_unsupported_no_result`, and
+`checked_sequential_current_annotated_codegen_correct`.
 
-Supporting wrapper theorems at the frozen tag include:
+For tiling boundaries, the public route theorem is
+`TilingBandDirectRuntime.checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct`.
+A `permutable-band` result combines the direct semantic checker with the
+layout-specific reversal bridge. A successful legacy, canonical, or general
+validator is reported separately as `general-fallback`.
 
-- `compile_seq_verified_correct`
-- `compile_verified_correct`
-- `compile_unsupported_no_result`
-- `checked_sequential_current_annotated_codegen_correct`
-
-This is a verified loop-to-loop / loop-to-parallel-loop transformation claim.
-It does not verify Pluto's search heuristics, the C frontend, arbitrary C
+This is a verified loop-to-loop or loop-to-parallel-loop transformation claim.
+It does not verify Pluto's optimization search, a C frontend, arbitrary C
 backend behavior, or OpenMP runtime semantics.
+
+## Permutable-band contract
+
+The v3 direct tiling route checks a pointwise semantic formulation of Pluto's
+fully permutable-band condition. For two source-ordered dynamic instances, if
+their schedule prefix before the band is equal and a component in the band
+decreases, the checker proves that the instances commute. Operationally, it
+constructs the old-order, equal-prefix, and decreasing-component regions and
+requires their WW, WR, and RW conflict regions to be empty. RR pairs are
+irrelevant, as in dependence-based band legality.
+
+This is the contrapositive of Pluto's core condition: a dependence not already
+carried by the outer prefix cannot be negative in any band component. The
+direct route reuses the shared access-conflict and polyhedral-emptiness kernel;
+it does not call the complete affine-schedule validator.
+
+The proof then connects the local property to transformation correctness:
+
+1. Empty conflict regions imply semantic commutativity (`Permutable_ext`).
+2. Checking every component establishes the common permutable-band property.
+3. Structural bridge lemmas show that any order reversal introduced by a
+   supported ordinary or grouped/interleaved second-level tiling exposes such
+   a decreasing component.
+4. Safe reordering yields the final `State.eq` refinement theorem.
+
+Only a `DirectBandAccepted` / `permutable-band` result supports this claim.
+Other successful transformations are labeled `GeneralFallbackAccepted`; they
+remain verified by a more general proved route but are not counted as direct
+band-checker acceptances. The exact-tag matrices currently report:
+
+- non-second-level: 90 cases, comprising 50 direct band acceptances, 34
+  explicit general fallbacks, and 6 explicit vector-hint rejections;
+- second-level manifest: 58 checks, comprising 53 successful cases (36 direct
+  and 17 fallback) plus 5 negative cases;
+- additional diamond plus second-level runtime matrix: 16 direct acceptances
+  and 4 explicit vector-hint rejections;
+- direct-versus-general differential check: 5 cases, all passing with no solver
+  alarms: 3 expected direct acceptances, 1 expected direct rejection accepted
+  by the whole-program checker, and 1 expected rejection by all three scopes.
+
+The claim is about checking a supplied band. PolCert does not verify Pluto's
+ILP search, band discovery, maximality, or linear-independence detector, and it
+does not claim a formal equivalence between Pluto's dependence-graph
+construction and PolCert's pointwise access-conflict semantics. The direct
+checker is sound, not proved complete; unsupported shapes may fall back. The
+current checker also does not reconstruct Pluto's later implementation
+relaxation for earlier scalar dimensions inside a candidate band.
 
 ## Contribution ledger
 
-| Contribution | Proof surface at frozen tag | Executable evidence required | Exact-tag status |
+| Contribution | Principal proved surface | Required executable evidence | v3 source status |
 | --- | --- | --- | --- |
-| End-to-end verified compiler closure | `Extractor.extractor_correct`; `PrepareCodegen.prepared_codegen_correct_general`; `VerifiedParallelCompilerConfig.compile_correct` | Clean proof build, extraction, `polopt` build, representative source-to-output runs | Exact-tag proof/build, `artifact-check-full`, and `make test`: pass |
-| Inherited affine scheduling validation | `AffineValidator.v`; `PolOptCorrect.Affine_opt_prepared_correct` and `Opt_correct` | Affine-only positive and negative cases in strict and Pluto-compatible suites | Strict `62/62`; compatibility `114/114` |
-| Witness-centered generic tiling | `TilingValidator.checked_tiling_validate_poly_correct`; `checked_tiling_prepared_codegen_correct` | Ordinary and identity tiling cases, witness rejection cases, generated-code checks | Strict, compatibility, and identity-composition checks: pass |
-| Pluto-oriented band-aware tiling | `TilingBandScheduleValidator.checked_tiling_schedule_stripmined_validate_correct_same_ctxt_pluto_structured` | Default band-aware route plus legacy generic comparison and rejection cases | Strict and compatibility checks: pass |
-| Second-level / hierarchical tiling | Accepted `RawSeq` and checked route composition through `compile_seq_verified_correct` | Dedicated second-level suite and ISS/parallel composition cases | Second-level suite: pass; compatibility compositions: pass |
-| Diamond and full-diamond routes | `ParallelPolOptCorrect.try_diamond_phase_pipeline_from_source_pol_poly_correct` and diamond route lemmas; final composition through `compile_correct` | Diamond suite, full-diamond cases, ISS/parallel compositions, frontend versus validator rejection classification | Diamond suite and compatibility compositions: pass |
-| ISS structural generalization | `ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct`; ISS route lemmas in `PolOptCorrect.v` and `ParallelPolOptCorrect.v` | ISS-only, affine, tiled, second-level, diamond, and parallel compositions | Dump suite and live Pluto suite: pass |
-| Checked parallel-current | `ParallelValidator.checked_parallelize_current_sound`; `ParallelCodegen.checked_annotated_codegen_correct_general`; single-current route theorems in `ParallelPolOptCorrect.v` | Explicit-current and Pluto-hinted positive/negative cases; emitted `ParMode` output | Parallel-current and compatibility suites: pass |
-| Checked multipar | `ParallelCodegen.checked_annotated_codegen_many_correct_general`; `Opt_parallel_current_many_*_correct`; final `compile_correct` composition | Pluto-hinted multi-current cases, strict hint handling, unsupported plan rejection | Compatibility multipar and strict-hint cases: pass |
-| Checked vector annotations | `ParallelCodegen.checked_vector_annotated_codegen_correct_general`; `ParallelPolOpt.checked_vector_current_annotated_codegen_correct` | Explicit and Pluto-hinted vector cases using the documented doall certificate | Vector-current and compatibility vector cases: pass |
-| Checked unroll/jam subset | `LoopUnroll.const_unroll_correct`, `peel_unroll_correct`, `suffix_peel_unroll_correct`, and `block_unroll_correct` | Effect corpus and generated-C semantic checks for supported factors/shapes | Effect corpus and three generated-C checks: pass |
-| Literal stride lowering | `LoopStride.stride_loop_stmt_semantics` and `down_stride_loop_stmt_semantics` | Positive- and negative-literal stride generated-C cases | Both generated-C stride checks: pass |
-| Verified cleanup | `LoopCleanup.cleanup_correct`; `LoopSingletonCleanup.cleanup_correct` | Cleanup/singleton cases and downstream extraction/codegen checks | Exact-tag proof, extraction, strict, and core test gates: pass |
-
-The exact-tag proof report confirmed all 24 theorem-facing routes named by its
-route map. The ledger should remain checked against the generated report before
-paper freeze.
+| End-to-end verified compiler closure | `Extractor.extractor_correct`; `PrepareCodegen.prepared_codegen_correct_general`; `VerifiedParallelCompilerConfig.compile_correct` | Clean proof/extraction/executable builds and representative source-to-output runs | Passed |
+| Inherited affine scheduling validation | `AffineValidator.v`; `PolOptCorrect.Affine_opt_prepared_correct`; `PolOptCorrect.Opt_correct` | Affine positive/negative cases in strict and Pluto-compatible suites | Passed; affine proof cleanup frozen |
+| Direct permutable-band validation | `validate_two_instrs_pluto_band_component_direct_sound`; `check_pprog_pluto_permutable_tiling_bands_direct_sound_with_env_len`; `check_pinstr_list_pluto_componentwise_permutable_bands_direct_sound`; unified route theorem in `TilingBandDirectRuntime.v` | Direct/fallback/rejection ledgers, differential cases, ordinary and second-level suites | Passed with counts above |
+| Generic tiling fallback | `TilingValidator.checked_tiling_validate_poly_correct`; `checked_tiling_prepared_codegen_correct` | Explicit fallback labels plus witness positive/negative cases | Passed |
+| Ordinary and identity tiling | Structural tiling and code-generation bridge theorems | Strict, compatibility, identity, and route-classification cases | Passed |
+| Second-level / hierarchical tiling | `checked_second_level_direct_band_check_correct`; `second_level_local_reversal_bridge_by_layout_wf_with_env_len`; componentwise direct-check soundness; composed wrapper routes | Dedicated manifest and runtime matrix, including negative cases | Passed |
+| Diamond and full-diamond routes | Diamond pipeline and route lemmas; final `compile_correct` composition | Direct accounting for the tiling leg, separately checked final affine leg, and second-level/ISS/parallel compositions | Passed; the final affine leg is not counted as a direct band check |
+| ISS structural generalization | `ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct`; ISS route lemmas | ISS-only and composed affine, tiling, diamond, and parallel cases | Passed in frozen dump suite; live suite is supplemental |
+| Checked parallel-current and multipar | Parallel validator/codegen soundness and single/many-current route theorems | Explicit-current and Pluto-hinted positive/negative cases | Passed |
+| Checked vector annotations | `ParallelCodegen.checked_vector_annotated_codegen_correct_general`; vector-current route theorem | Innermost-only explicit and Pluto-hinted cases, with non-innermost hints rejected | Passed |
+| Checked unroll/jam subset | `LoopUnroll` and loop-jam validation/lowering soundness theorems | Effect corpus and generated-C semantic comparisons | Passed |
+| Literal stride lowering | `LoopStride.stride_loop_stmt_semantics`; `down_stride_loop_stmt_semantics` | Positive- and negative-literal stride comparisons | Passed |
+| Verified cleanup | `LoopCleanup.cleanup_correct`; `LoopSingletonCleanup.cleanup_correct` | Cleanup cases plus downstream extraction/codegen | Passed |
 
 ## Artifact acceptance matrix
 
-The Docker artifact is claim-complete only if one documented top-level command
-records all of the following:
+The v3 Docker artifact is claim-complete only when one documented top-level
+command records all of the following for the same image ID:
 
-- exact PolCert tag and commit;
-- exact Pluto commit and dirty-state check;
-- Coq, OCaml, opam, compiler, Python, and system dependency versions;
-- clean proof build and extraction;
-- admitted, abort, and unrealized extraction-axiom scans;
-- theorem-route proof report;
-- generated Pluto flag capability matrix;
-- comprehensive Pluto-compatible flag suite;
-- strict generated regression corpus;
-- ordinary, identity, second-level, diamond, full-diamond, and ISS tiling cases;
-- explicit-current parallel, Pluto-hinted parallel, and multipar cases;
-- vector, unroll/jam, stride, and cleanup cases;
-- expected rejection cases with stable reasons;
-- machine-readable result summary and human-readable report;
-- command exit status, runtime, and hardware assumptions.
+- exact PolCert tag object, commit, tree, and source-archive hash;
+- exact Pluto commit, base-image digest, and clean source state;
+- Coq, OCaml, opam, compiler, Python, OS, dpkg, and opam dependency state;
+- clean proof build, extraction, `polcert`, and `polopt` builds;
+- zero admitted markers, aborted proofs, extraction axioms, and missing routes;
+- the 185-file, 27-route, 60-obligation proof report;
+- the 138-check generated Pluto capability and compatibility matrix;
+- the 62-case strict generated regression corpus;
+- five differential comparisons: three expected direct accepts, two expected
+  direct rejects, and no solver alarms;
+- direct-band, ordinary, identity, second-level, diamond, full-diamond, and ISS
+  route checks with explicit direct/fallback/rejection results;
+- parallel-current, multipar, vector, unroll/jam, stride, and cleanup checks;
+- stable expected-rejection reasons;
+- a mechanically resolved C1-C6 claim-to-route/log/artifact report;
+- complete raw-result tree digest, command statuses, runtimes, and host context.
 
-An image build is not sufficient evidence by itself. The image must be tested
-from a fresh Docker environment and identified by an immutable digest.
+An image build is not evidence by itself. Publication additionally requires
+schema-v2 evidence recomputed from the untouched raw directory and an immutable
+registry digest.
 
 ## Claim boundaries
 
-The following are explicit non-claims for the current paper:
+The current paper does not claim:
 
 - scalar privatization, scalar expansion, array contraction, storage remapping,
-  and layout transformations that require a state relation beyond `State.eq`;
-- overlapped / flextended tiling;
+  or any transformation requiring a state relation beyond `State.eq`;
+- overlapped or flextended tiling;
 - reduction-aware parallelization;
-- full SIMD lowering and machine-level vector-code correctness;
+- full SIMD lowering or machine-level vector-code correctness;
 - diamond-tiling load-balance, concurrent-start, or maximal-parallelism
   properties;
-- correctness of Pluto's optimization heuristics or witness extraction glue;
+- completeness of the direct band checker;
+- necessity of the band condition for every possible fixed tiled target;
+- Pluto's later scalar-dimension relaxation inside a candidate band;
+- correctness of Pluto's optimization heuristics, band discovery, or witness
+  producer;
 - a verified C frontend, C printer, or OpenMP runtime.
 
-The checked witness/certificate is trusted only after validation; its producer
-remains outside the proof boundary.
+The witness producer is outside the proof boundary; every accepted witness is
+checked before use.
 
-## Paper contribution wording
-
-The contribution order should be:
+## Paper contribution order
 
 1. End-to-end closure of PolCert into a unified verified compiler whose
-   accepted routes all satisfy the `State.eq` refinement contract.
-2. Witness-centered validation and code-generation reuse for ordinary,
-   identity, hierarchical, diamond, and composed tiling routes.
-3. Semantic extensions for ISS and checked sequential/parallel/multipar target
-   generation.
-4. Adjacent checked routes for vector annotations, the supported unroll/jam
-   subset, literal stride lowering, and cleanup.
-5. A claim-oriented artifact that exercises the supported Pluto-facing surface
-   and reports unsupported storage-changing requests explicitly.
+   accepted routes satisfy one `State.eq` refinement contract.
+2. A direct validator for the semantic fully permutable-band property, plus
+   structural proofs connecting it to ordinary and hierarchical tiling and an
+   explicit verified fallback for shapes outside the direct route.
+3. Validation and composition of ISS, diamond tiling, and checked
+   sequential/parallel/multipar target generation in the same framework.
+4. Checked supporting routes for vector annotations, the documented
+   unroll/jam subset, literal stride lowering, and cleanup.
+5. A claim-oriented artifact that resolves every claim to theorem surfaces,
+   executable routes, logs, and structured results.
 
-Affine scheduling validation is the inherited baseline. The paper should not
-present it as a new contribution, although the end-to-end compiler continues to
-depend on it.
+Affine scheduling validation is the inherited baseline. Its bounded proof
+cleanup improves maintainability but is not a new correctness contribution.
 
 ## Freeze procedure
 
-1. Publish the Docker image, record its registry digest, and archive the full
-   result bundle with the published artifact.
-2. Generate paper capability tables from the archived machine-readable output.
-3. Cross-check abstract, introduction, correctness theorem, evaluation, and
-   conclusion against this ledger.
-4. If proof cleanup changes the paper artifact revision, repeat this process and
-   retain the original tag's image and report.
+1. Build and review the v3 Docker candidate with networking disabled.
+2. Archive raw results and schema-v2 evidence; record measured reproduction
+   time and the candidate image ID.
+3. Validate publication eligibility, then publish only under an immutable
+   versioned registry reference and record its digest.
+4. Generate paper capability tables from the archived machine-readable output.
+5. Cross-check abstract, introduction, correctness, evaluation, and conclusion
+   against this ledger and run the planned adversarial paper reviews.

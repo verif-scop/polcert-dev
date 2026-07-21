@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
   "artifact": {
-    "id": "polcert-state-eq-2026-05-25-v2",
+    "id": "polcert-state-eq-2026-07-21-v3",
     "description": "Reproduction envelope for the completed State.eq-preserving PolCert milestone",
-    "created": "2026-07-18",
-    "packaging_revision": "dependency-lock-v1"
+    "created": "2026-07-21",
+    "packaging_revision": "direct-band-claim-evidence-v3"
   },
   "images": {
     "default_candidate": {
-      "reference": "polcert-artifact:state-eq-lock-v1-candidate",
+      "reference": "polcert-artifact:state-eq-2026-07-21-v3-candidate",
       "review_status": "candidate; requires its own successful full offline review evidence before publication"
     },
     "dependency_lock_origin": {
@@ -20,10 +20,10 @@
   },
   "polcert": {
     "repository": "https://github.com/Hughshine/PolCert.git",
-    "tag": "state-eq-polyhedral-verification-complete-2026-05-25-v2",
-    "tag_object": "f9cc209ae597f58e98841a96e13f8b355ee75eb3",
-    "commit": "13295e741ad62173411882c6d900dd9dc57337a8",
-    "tree": "8b83093929e54657c033fa09c5aae73b492c0b67"
+    "tag": "state-eq-polyhedral-verification-complete-2026-07-21-v3",
+    "tag_object": "1fe3bf79f14065dc24df7190cd6d6dc1d3ff9b5d",
+    "commit": "4bc20817c32f2073221cf68475bf9b78c0bab74b",
+    "tree": "5c21c31e54536dff78c376b4e861efdba3c0d4fb"
   },
   "pluto": {
     "repository": "https://github.com/verif-scop/pluto.git",
@@ -44,6 +44,6 @@
     "dependency_lock_audit": "dependency-lock-audit.json",
     "dependency_state_lock": "locks/dependency-lock.json",
     "dependency_state_enforcement": "fail-closed after image resolution and again at offline review startup",
-    "dependency_lock_note": "PolCert, Pluto, and the Pluto base registry digest are immutable pins. The dpkg and opam state was captured from the separately identified full-reviewed dependency-lock origin image. The lock-v1 candidate verifies that state after build and at review startup, but the origin evidence does not review the candidate wrapper. Apt repositories and opam source archives remain external, so resolution can fail or drift before the post-build check rejects it."
+    "dependency_lock_note": "PolCert, Pluto, and the Pluto base registry digest are immutable pins. The dpkg and opam state was captured from the separately identified v2 full-reviewed dependency-lock origin image. The v3 candidate verifies that historical state after build and at review startup; the origin evidence does not review the v3 wrapper. Apt repositories and opam source archives remain external, so resolution can fail or drift before the post-build check rejects it."
   }
 }

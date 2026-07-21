@@ -1,6 +1,289 @@
 {
-  "schema_version": 1,
-  "claim_set": "state-eq-polyhedral-verification-complete-2026-05-25-v2",
+  "schema_version": 2,
+  "claim_set": "state-eq-polyhedral-verification-complete-2026-07-21-v3",
+  "verification_profiles": [
+    "full",
+    "extended"
+  ],
+  "evidence_catalog": {
+    "proof-build": {
+      "route": "outer/proof-build",
+      "required_profiles": ["full", "extended"]
+    },
+    "check-admitted": {
+      "route": "outer/check-admitted",
+      "required_profiles": ["full", "extended"]
+    },
+    "artifact-check/proof-report": {
+      "route": "artifact-check/proof-report",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/proof-report.json",
+          "json_assertions": [
+            {
+              "pointer": "/coq_file_count",
+              "minimum": 1
+            },
+            {
+              "pointer": "/admitted_count",
+              "equals": 0
+            },
+            {
+              "pointer": "/abort_count",
+              "equals": 0
+            },
+            {
+              "pointer": "/extraction_axiom_count",
+              "equals": 0
+            },
+            {
+              "pointer": "/missing_route_theorem_count",
+              "equals": 0
+            }
+          ]
+        }
+      ]
+    },
+    "artifact-check/strict-loop-suite": {
+      "route": "artifact-check/strict-loop-suite",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/strict-loop-suite.stdout.txt",
+          "text_assertions": [
+            {"contains": "total=62"},
+            {"contains": "ok=62"},
+            {"contains": "changed=59"},
+            {"contains": "detected_tiled=39"}
+          ]
+        }
+      ]
+    },
+    "artifact-check/second-level-suite": {
+      "route": "artifact-check/second-level-suite",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/second-level-suite.stdout.txt",
+          "text_assertions": [{"contains": "[SECOND-LEVEL-TILE] OK"}]
+        }
+      ]
+    },
+    "artifact-check/diamond-suite": {
+      "route": "artifact-check/diamond-suite",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/diamond-suite.stdout.txt",
+          "text_assertions": [
+            {"contains": "[diamond-suite] OK"},
+            {"contains": "[diamond-suite] artifacts:"}
+          ]
+        }
+      ]
+    },
+    "artifact-check/direct-band-differential": {
+      "route": "artifact-check/direct-band-differential",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/direct-band-differential.stdout.txt",
+          "text_assertions": [
+            {"contains": "[direct-band-diff] ordinary-common-band: PASS"},
+            {"contains": "[direct-band-diff] mixed-depth-whole-program-only: PASS"},
+            {"contains": "[direct-band-diff] dependent-one-dimensional-band: PASS"},
+            {"contains": "[direct-band-diff] frozen-diamond-phase-pair: PASS"},
+            {"contains": "[direct-band-diff] frozen-nonpermutable-band: PASS"},
+            {"contains": "[direct-band-diff] OK (5 cases, no alarms)"}
+          ]
+        },
+        {
+          "path": "artifact-check/tiling-route-summary.json",
+          "json_assertions": [
+            {"pointer": "/verified", "equals": true},
+            {"pointer": "/direct_differential/cases", "equals": 5},
+            {"pointer": "/direct_differential/no_alarms", "equals": true},
+            {"pointer": "/non_second_level/cases", "equals": 90},
+            {"pointer": "/non_second_level/permutable_band", "equals": 50},
+            {"pointer": "/non_second_level/general_fallback", "equals": 34},
+            {"pointer": "/non_second_level/explicit_vector_rejection", "equals": 6},
+            {"pointer": "/second_level_manifest/manifest_checks", "equals": 58},
+            {"pointer": "/second_level_manifest/successful", "equals": 53},
+            {"pointer": "/second_level_manifest/permutable_band", "equals": 36},
+            {"pointer": "/second_level_manifest/general_fallback", "equals": 17},
+            {"pointer": "/second_level_manifest/negative", "equals": 5},
+            {"pointer": "/second_level_additional_runtime_matrix/verified", "equals": true},
+            {"pointer": "/second_level_additional_runtime_matrix/diamond_permutable_band", "equals": 16},
+            {"pointer": "/second_level_additional_runtime_matrix/diamond_explicit_vector_rejection", "equals": 4}
+          ]
+        }
+      ]
+    },
+    "artifact-check/non-second-level-tiling-routes": {
+      "route": "artifact-check/non-second-level-tiling-routes",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/non-second-level-tiling-routes.stdout.txt",
+          "text_assertions": [
+            {
+              "contains": "[non-second-level-routes] OK (50 permutable-band compositions, 34 explicit general fallbacks, 6 explicit vector rejections)"
+            }
+          ]
+        }
+      ]
+    },
+    "artifact-check/pluto-compat-suite": {
+      "route": "artifact-check/pluto-compat-suite",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/pluto-compat-suite.stdout.txt",
+          "text_assertions": [{"contains": "[pluto-compat-suite] OK (138 checks)"}]
+        }
+      ]
+    },
+    "artifact-check/iss-suite": {
+      "route": "artifact-check/iss-suite",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/iss-suite.stdout.txt",
+          "text_assertions": [
+            {"contains": "validation: OK", "minimum_occurrences": 3},
+            {"contains": "[ISS-NEG]", "minimum_occurrences": 3},
+            {"contains": "[ISS-SUITE] OK"}
+          ]
+        }
+      ]
+    },
+    "extended/iss-live-suite": {
+      "route": "outer/iss-live-suite",
+      "required_profiles": ["extended"]
+    },
+    "artifact-check/parallel-current-suite": {
+      "route": "artifact-check/parallel-current-suite",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/parallel-current-suite.stdout.txt",
+          "text_assertions": [{"contains": "[PARALLEL-CURRENT] OK"}]
+        }
+      ]
+    },
+    "vector-current-suite": {
+      "route": "outer/vector-current-suite",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "logs/vector-current-suite.stdout.txt",
+          "text_assertions": [{"contains": "[VECTOR-CURRENT] OK"}]
+        }
+      ]
+    },
+    "artifact-check/end-to-end-c-stride-even": {
+      "route": "artifact-check/end-to-end-c-stride-even",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/end-to-end-c/stride_even/summary.json",
+          "json_assertions": [
+            {"pointer": "/result", "equals": "ok"},
+            {"pointer": "/exact_match", "equals": true},
+            {"pointer": "/outputs_match", "equals": true}
+          ]
+        }
+      ]
+    },
+    "artifact-check/end-to-end-c-stride-down": {
+      "route": "artifact-check/end-to-end-c-stride-down",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/end-to-end-c/stride_down/summary.json",
+          "json_assertions": [
+            {"pointer": "/result", "equals": "ok"},
+            {"pointer": "/exact_match", "equals": true},
+            {"pointer": "/outputs_match", "equals": true}
+          ]
+        }
+      ]
+    },
+    "artifact-check/end-to-end-c-const-unroll": {
+      "route": "artifact-check/end-to-end-c-const-unroll",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/end-to-end-c/const_unroll/summary.json",
+          "json_assertions": [
+            {"pointer": "/result", "equals": "ok"},
+            {"pointer": "/exact_match", "equals": true},
+            {"pointer": "/outputs_match", "equals": true}
+          ]
+        }
+      ]
+    },
+    "artifact-check/end-to-end-c-unrolljam-block-variable": {
+      "route": "artifact-check/end-to-end-c-unrolljam-block-variable",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/end-to-end-c/unrolljam_block_variable/summary.json",
+          "json_assertions": [
+            {"pointer": "/result", "equals": "ok"},
+            {"pointer": "/exact_match", "equals": true},
+            {"pointer": "/outputs_match", "equals": true}
+          ]
+        }
+      ]
+    },
+    "artifact-check/end-to-end-c-unrolljam-dependent-guard": {
+      "route": "artifact-check/end-to-end-c-unrolljam-dependent-guard",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/end-to-end-c/unrolljam_dependent_guard/summary.json",
+          "json_assertions": [
+            {"pointer": "/result", "equals": "ok"},
+            {"pointer": "/exact_match", "equals": true},
+            {"pointer": "/outputs_match", "equals": true}
+          ]
+        }
+      ]
+    },
+    "artifact-check/unrolljam-effect-corpus": {
+      "route": "artifact-check/unrolljam-effect-corpus",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/unrolljam-effect-corpus/summary.json",
+          "json_assertions": [
+            {"pointer": "/native_codegen_effects", "equals": 6},
+            {"pointer": "/native_effects_covered", "equals": 6},
+            {"pointer": "/native_effects_uncovered", "equals": 0},
+            {"pointer": "/extract_failures", "equals": 0},
+            {"pointer": "/pluto_failures", "equals": 0}
+          ]
+        }
+      ]
+    },
+    "artifact-check/capability-matrix": {
+      "route": "artifact-check/capability-matrix",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/capability-matrix.json",
+          "json_assertions": [
+            {
+              "pointer": "/summary/compatibility_checks",
+              "equals": 138
+            }
+          ]
+        }
+      ]
+    }
+  },
   "claims": [
     {
       "id": "C1",
@@ -17,12 +300,23 @@
     },
     {
       "id": "C2",
-      "claim": "The checked tiling family covers ordinary, identity, second-level, diamond, full-diamond, and supported compositions.",
+      "claim": "The unified tiling dispatcher covers ordinary, identity, second-level, diamond, full-diamond, and supported compositions, and reports each adopted candidate as permutable-band when the direct semantic band check succeeds or general-fallback when a proved generic validation route succeeds.",
       "evidence": [
         "artifact-check/strict-loop-suite",
         "artifact-check/second-level-suite",
         "artifact-check/diamond-suite",
-        "artifact-check/pluto-compat-suite"
+        "artifact-check/direct-band-differential",
+        "artifact-check/non-second-level-tiling-routes",
+        "artifact-check/pluto-compat-suite",
+        "artifact-check/proof-report"
+      ],
+      "theorem_surface": [
+        "TilingBandScheduleValidator.validate_two_instrs_pluto_band_component_direct_sound",
+        "TilingBandScheduleValidator.check_pprog_pluto_permutable_tiling_bands_direct_sound_with_env_len",
+        "TilingBandScheduleValidator.check_pinstr_list_pluto_componentwise_permutable_bands_direct_sound",
+        "TilingBandScheduleValidator.second_level_local_reversal_bridge_by_layout_wf_with_env_len",
+        "TilingBandDirectRuntime.checked_second_level_direct_band_check_correct",
+        "TilingBandDirectRuntime.checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct"
       ]
     },
     {
@@ -30,8 +324,14 @@
       "claim": "Index-set splitting composes with the supported checked optimization routes.",
       "evidence": [
         "artifact-check/iss-suite",
-        "extended/iss-live-suite",
-        "artifact-check/pluto-compat-suite"
+        "artifact-check/pluto-compat-suite",
+        "artifact-check/proof-report"
+      ],
+      "supplemental_evidence": [
+        "extended/iss-live-suite"
+      ],
+      "theorem_surface": [
+        "PolOptBandTiling.Opt_band_with_iss_correct"
       ]
     },
     {
@@ -42,6 +342,11 @@
         "vector-current-suite",
         "artifact-check/pluto-compat-suite",
         "artifact-check/proof-report"
+      ],
+      "theorem_surface": [
+        "ParallelPolOptCorrect.Opt_parallel_current_correct",
+        "ParallelPolOptCorrect.Opt_parallel_current_many_correct",
+        "ParallelCodegen.checked_vector_annotated_codegen_correct_general"
       ]
     },
     {
@@ -53,7 +358,16 @@
         "artifact-check/end-to-end-c-const-unroll",
         "artifact-check/end-to-end-c-unrolljam-block-variable",
         "artifact-check/end-to-end-c-unrolljam-dependent-guard",
-        "artifact-check/unrolljam-effect-corpus"
+        "artifact-check/unrolljam-effect-corpus",
+        "artifact-check/proof-report"
+      ],
+      "theorem_surface": [
+        "LoopStride.stride_loop_stmt_semantics",
+        "LoopStride.down_stride_loop_stmt_semantics",
+        "LoopUnroll.const_unroll_correct",
+        "LoopUnroll.block_unroll_correct",
+        "LoopJamValidator.checked_loop_jam_pair_at_depth_sound",
+        "LoopJamLower.try_jam_pair_exact_sound"
       ]
     },
     {

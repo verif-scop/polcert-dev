@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import platform
@@ -12,6 +13,8 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+
+from claim_evidence import ClaimEvidenceError, expected_outer_routes, verify_claim_evidence
 
 
 ROOT = Path("/polcert")
@@ -168,6 +171,16 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
+    planned_checks = checks(args.mode, output)
+    planned_names = tuple(name for name, _, _ in planned_checks)
+    expected_names = expected_outer_routes(args.mode)
+    if planned_names != expected_names:
+        print(
+            "[claim-suite] outer route plan drift: "
+            f"expected {list(expected_names)}, got {list(planned_names)}",
+            file=sys.stderr,
+        )
+        return 2
     for name in ("manifest.json", "claims.json", "dependency-lock-audit.json"):
         shutil.copy2(ARTIFACT_ROOT / name, output / name)
     shutil.copy2(
@@ -200,7 +213,7 @@ def main() -> int:
     )
 
     results: list[Result] = []
-    for name, command, timeout in checks(args.mode, output):
+    for name, command, timeout in planned_checks:
         print(f"[claim-suite] {name}: running", flush=True)
         result = run(name, command, output, timeout)
         results.append(result)
@@ -214,10 +227,41 @@ def main() -> int:
         "mode": args.mode,
         "output": str(output),
         "ok": all(result.ok for result in results),
+        "claim_evidence_path": str(output / "claim-evidence.json"),
         "results": [dict(asdict(result), ok=result.ok) for result in results],
     }
     summary_path = output / "claim-results.json"
     summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+    if summary["ok"]:
+        try:
+            claims_path = output / "claims.json"
+            claims_bytes = claims_path.read_bytes()
+            claims = json.loads(claims_bytes)
+            artifact_results = json.loads(
+                (output / "artifact-check" / "artifact-results.json").read_text()
+            )
+            claim_evidence = verify_claim_evidence(
+                claims=claims,
+                profile=args.mode,
+                results_root=output,
+                outer_results=summary["results"],
+                artifact_results=artifact_results.get("results"),
+                claims_sha256=hashlib.sha256(claims_bytes).hexdigest(),
+            )
+            (output / "claim-evidence.json").write_text(
+                json.dumps(claim_evidence, indent=2, sort_keys=True) + "\n"
+            )
+            print(
+                "[claim-suite] claim evidence: "
+                f"{claim_evidence['summary']['verified_claims']}/"
+                f"{claim_evidence['summary']['claim_count']} verified",
+                flush=True,
+            )
+        except (ClaimEvidenceError, OSError, json.JSONDecodeError) as exc:
+            summary["ok"] = False
+            summary["claim_evidence_error"] = str(exc)
+            summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+            print(f"[claim-suite] claim evidence: FAIL: {exc}", file=sys.stderr)
     print(f"[claim-suite] summary: {summary_path}", flush=True)
     return 0 if summary["ok"] else 1
 

@@ -8,9 +8,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CANDIDATE = "polcert-artifact:state-eq-lock-v1-candidate"
+CANDIDATE = "polcert-artifact:state-eq-2026-07-21-v3-candidate"
 REVIEWED = "polcert-artifact:state-eq-2026-05-25-v2"
 EVIDENCE = "evidence/2026-07-18-full-review.json"
+LOCK_CAPTURE_CANDIDATE = "polcert-artifact:state-eq-lock-v1-candidate"
 
 
 class CandidateBoundaryTests(unittest.TestCase):
@@ -51,8 +52,11 @@ class CandidateBoundaryTests(unittest.TestCase):
         self.assertEqual(lock["origin"]["reviewed_image_reference"], REVIEWED)
         self.assertEqual(lock["origin"]["review_evidence"], EVIDENCE)
         self.assertEqual(evidence["images"]["artifact"]["reference"], REVIEWED)
-        self.assertEqual(audit["candidate_wrapper"]["default_reference"], CANDIDATE)
+        self.assertEqual(
+            audit["candidate_wrapper"]["default_reference"], LOCK_CAPTURE_CANDIDATE
+        )
         self.assertIsNone(audit["candidate_wrapper"]["review_evidence"])
+        self.assertNotEqual(LOCK_CAPTURE_CANDIDATE, CANDIDATE)
         self.assertNotEqual(CANDIDATE, REVIEWED)
 
     def test_lock_origin_evidence_is_not_candidate_review_evidence(self) -> None:

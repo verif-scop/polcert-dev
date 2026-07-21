@@ -4,7 +4,7 @@ set -euo pipefail
 artifact_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 manifest="$artifact_root/manifest.json"
 source_repo="${POLCERT_SOURCE:-}"
-image="${POLCERT_ARTIFACT_IMAGE:-polcert-artifact:state-eq-lock-v1-candidate}"
+image="${POLCERT_ARTIFACT_IMAGE:-polcert-artifact:state-eq-2026-07-21-v3-candidate}"
 source_image="${POLCERT_ARTIFACT_SOURCE_IMAGE:-}"
 output_dir="${POLCERT_ARTIFACT_BUILD_OUTPUT:-$artifact_root/build}"
 validate_only=0
@@ -59,6 +59,7 @@ source_commit="$(read_manifest polcert.commit)"
 source_tag="$(read_manifest polcert.tag)"
 source_tree="$(read_manifest polcert.tree)"
 artifact_id="$(read_manifest artifact.id)"
+packaging_revision="$(read_manifest artifact.packaging_revision)"
 pluto_commit="$(read_manifest pluto.commit)"
 if [[ -z "$source_image" ]]; then
   source_image="polcert-artifact-source:${source_commit:0:12}"
@@ -113,6 +114,7 @@ docker build \
   --file "$artifact_root/Dockerfile" \
   --build-arg "POLCERT_SOURCE_IMAGE=$source_image" \
   --build-arg "POLCERT_ARTIFACT_ID=$artifact_id" \
+  --build-arg "POLCERT_PACKAGING_REVISION=$packaging_revision" \
   --build-arg "POLCERT_SOURCE_TAG=$source_tag" \
   --build-arg "POLCERT_SOURCE_COMMIT=$source_commit" \
   --build-arg "POLCERT_SOURCE_TREE=$source_tree" \

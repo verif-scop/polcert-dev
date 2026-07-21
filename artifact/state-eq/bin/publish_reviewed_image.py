@@ -15,14 +15,20 @@ from typing import Any
 
 from archive_full_review import (
     EvidenceError,
+    EXPECTED_ARTIFACT_CHECKS,
+    DEFAULT_BUILD_METADATA,
+    DEFAULT_LOCK,
+    DEFAULT_MANIFEST,
     repository_static_hashes,
     sha256,
     validate_compact_v2,
+    validate_evidence_against_raw,
 )
+from claim_evidence import ClaimEvidenceError, claim_json_assertion_equals
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_EVIDENCE = ROOT / "evidence" / "lock-v1-full-review.json"
+DEFAULT_EVIDENCE = ROOT / "evidence" / "2026-07-21-v3-full-review.json"
 DEFAULT_RECORD = ROOT / "publication" / "publication-record.json"
 MANIFEST = ROOT / "manifest.json"
 IMAGE_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -85,9 +91,13 @@ def load_review_evidence(path: Path) -> tuple[dict[str, Any], str]:
         raise PublicationError("review evidence must record an offline network=none run")
     try:
         manifest = json.loads(MANIFEST.read_text())
+        claims = json.loads((ROOT / "claims.json").read_text())
+        lock = json.loads((ROOT / "locks" / "dependency-lock.json").read_text())
     except (OSError, json.JSONDecodeError) as exc:
-        raise PublicationError(f"cannot read artifact manifest {MANIFEST}: {exc}") from exc
-    expected_source = manifest.get("polcert", {})
+        raise PublicationError(f"cannot read artifact publication inputs: {exc}") from exc
+    expected_source = (
+        lock.get("source", {}) if schema_version == 1 else manifest.get("polcert", {})
+    )
     source = evidence.get("source", {})
     for field in ("tag", "commit", "tree"):
         if source.get(field) != expected_source.get(field):
@@ -107,12 +117,35 @@ def load_review_evidence(path: Path) -> tuple[dict[str, Any], str]:
             raise PublicationError(f"review evidence proof report requires {field}=0")
 
     capability = evidence.get("capability_results", {})
-    if capability.get("artifact_subchecks") != 18:
-        raise PublicationError("review evidence must record artifact_subchecks=18")
-    if capability.get("artifact_subchecks_passed") != 18:
-        raise PublicationError("review evidence must record artifact_subchecks_passed=18")
-    if capability.get("pluto_compat_checks") != 114:
-        raise PublicationError("review evidence must record pluto_compat_checks=114")
+    expected_artifact_subchecks = (
+        18 if schema_version == 1 else len(EXPECTED_ARTIFACT_CHECKS)
+    )
+    if capability.get("artifact_subchecks") != expected_artifact_subchecks:
+        raise PublicationError(
+            f"review evidence must record artifact_subchecks={expected_artifact_subchecks}"
+        )
+    if capability.get("artifact_subchecks_passed") != expected_artifact_subchecks:
+        raise PublicationError(
+            "review evidence must record "
+            f"artifact_subchecks_passed={expected_artifact_subchecks}"
+        )
+    if schema_version == 1:
+        expected_compatibility_checks = 114
+    else:
+        try:
+            expected_compatibility_checks = claim_json_assertion_equals(
+                claims,
+                "artifact-check/capability-matrix",
+                "artifact-check/capability-matrix.json",
+                "/summary/compatibility_checks",
+            )
+        except ClaimEvidenceError as exc:
+            raise PublicationError(f"invalid capability claim contract: {exc}") from exc
+    if capability.get("pluto_compat_checks") != expected_compatibility_checks:
+        raise PublicationError(
+            "review evidence must record "
+            f"pluto_compat_checks={expected_compatibility_checks}"
+        )
     strict = capability.get("strict_loop_suite", {})
     if strict.get("total") != 62 or strict.get("passed") != 62:
         raise PublicationError("review evidence must record strict_loop_suite passed=total=62")
@@ -134,11 +167,18 @@ def load_review_evidence(path: Path) -> tuple[dict[str, Any], str]:
     local_reference = image.get("reference")
     if not isinstance(local_reference, str) or not local_reference:
         raise PublicationError("review evidence has no local artifact image reference")
-    candidate_reference = manifest.get("images", {}).get("default_candidate", {}).get(
-        "reference"
-    )
+    candidate_reference = manifest.get("images", {}).get("default_candidate", {}).get("reference")
     if local_reference == candidate_reference and schema_version != 2:
-        raise PublicationError("lock-v1 candidate review evidence must use schema_version=2")
+        raise PublicationError("candidate review evidence must use schema_version=2")
+    expected_reference = (
+        manifest.get("images", {}).get("dependency_lock_origin", {}).get("reference")
+        if schema_version == 1
+        else candidate_reference
+    )
+    if local_reference != expected_reference:
+        raise PublicationError(
+            "review evidence image reference does not match its manifest role"
+        )
     if schema_version == 2:
         try:
             validate_compact_v2(
@@ -148,6 +188,7 @@ def load_review_evidence(path: Path) -> tuple[dict[str, Any], str]:
                 repository_static_hashes(
                     ROOT / "manifest.json", ROOT / "locks" / "dependency-lock.json"
                 ),
+                claims,
             )
         except (EvidenceError, OSError) as exc:
             raise PublicationError(str(exc)) from exc
@@ -269,6 +310,14 @@ def main() -> int:
     )
     parser.add_argument("--registry-ref", required=True)
     parser.add_argument("--review-evidence", type=Path, default=DEFAULT_EVIDENCE)
+    parser.add_argument(
+        "--review-results",
+        type=Path,
+        help="Untouched raw full-review directory; mandatory for schema-v2 publication",
+    )
+    parser.add_argument(
+        "--build-metadata", type=Path, default=DEFAULT_BUILD_METADATA
+    )
     parser.add_argument("--local-image", help="Override the evidence's local reference; the image ID must still match")
     parser.add_argument("--record", type=Path, default=DEFAULT_RECORD)
     parser.add_argument("--docker-bin", default="docker", help=argparse.SUPPRESS)
@@ -278,6 +327,11 @@ def main() -> int:
     try:
         _, repository, tag = parse_registry_reference(args.registry_ref)
         evidence, evidence_sha256 = load_review_evidence(args.review_evidence)
+        if evidence.get("schema_version") == 2 and args.review_results is None:
+            raise PublicationError(
+                "schema-v2 publication requires --review-results so compact evidence "
+                "is recomputed from the raw bundle"
+            )
         reviewed = evidence["images"]["artifact"]
         reviewed_id = reviewed["id"]
         local_reference = args.local_image or reviewed["reference"]
@@ -289,11 +343,29 @@ def main() -> int:
                 "local image ID does not match review evidence: "
                 f"expected {reviewed_id}, got {local['id']}"
             )
+        if evidence.get("schema_version") == 2:
+            try:
+                validate_evidence_against_raw(
+                    evidence,
+                    args.review_results,
+                    DEFAULT_MANIFEST,
+                    DEFAULT_LOCK,
+                    args.build_metadata,
+                    reviewed["reference"],
+                    reviewed_id,
+                )
+            except (EvidenceError, OSError) as exc:
+                raise PublicationError(
+                    f"raw review bundle validation failed: {exc}"
+                ) from exc
 
         plan = {
             "dry_run": args.dry_run,
             "review_evidence": str(args.review_evidence.resolve()),
             "review_evidence_sha256": evidence_sha256,
+            "review_results": (
+                str(args.review_results.resolve()) if args.review_results else None
+            ),
             "local_reference": local_reference,
             "reviewed_image_id": reviewed_id,
             "registry_tag_reference": args.registry_ref,
