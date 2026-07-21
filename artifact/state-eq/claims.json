@@ -265,11 +265,11 @@
         {
           "path": "artifact-check/unrolljam-effect-corpus/summary.json",
           "json_assertions": [
-            {"pointer": "/native_codegen_effects", "equals": 6},
-            {"pointer": "/native_effects_covered", "equals": 6},
-            {"pointer": "/native_effects_uncovered", "equals": 0},
-            {"pointer": "/extract_failures", "equals": 0},
-            {"pointer": "/pluto_failures", "equals": 0}
+            {"pointer": "/summary/native_codegen_effects", "equals": 6},
+            {"pointer": "/summary/native_effects_covered", "equals": 6},
+            {"pointer": "/summary/native_effects_uncovered", "equals": 0},
+            {"pointer": "/summary/extract_failures", "equals": 0},
+            {"pointer": "/summary/pluto_failures", "equals": 0}
           ]
         }
       ]

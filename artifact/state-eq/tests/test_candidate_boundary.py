@@ -87,6 +87,24 @@ class CandidateBoundaryTests(unittest.TestCase):
         self.assertIn("required_source_files", builder)
         self.assertIn("test -f /polcert/$path", builder)
         self.assertIn("test ! -e /polcert/Dockerfile.dockerignore", builder)
+        self.assertIn("reviewer Python compatibility passed", builder)
+        self.assertIn("import claim_evidence as c", builder)
+
+    def test_unrolljam_claim_uses_generated_summary_schema(self) -> None:
+        claims = json.loads((ROOT / "claims.json").read_text())
+        artifact = claims["evidence_catalog"][
+            "artifact-check/unrolljam-effect-corpus"
+        ]["artifacts"][0]
+        self.assertEqual(
+            [assertion["pointer"] for assertion in artifact["json_assertions"]],
+            [
+                "/summary/native_codegen_effects",
+                "/summary/native_effects_covered",
+                "/summary/native_effects_uncovered",
+                "/summary/extract_failures",
+                "/summary/pluto_failures",
+            ],
+        )
 
 
 if __name__ == "__main__":

@@ -111,7 +111,8 @@ def result_tree_digest(root: Path) -> dict[str, Any]:
 def result_path(root: Path, recorded: Any, label: str) -> Path:
     if not isinstance(recorded, str) or not recorded.startswith("/artifact-results/"):
         raise EvidenceError(f"{label} has invalid archived path: {recorded!r}")
-    relative = recorded.removeprefix("/artifact-results/")
+    prefix = "/artifact-results/"
+    relative = recorded[len(prefix) :]
     path = root / relative
     try:
         path.resolve().relative_to(root.resolve())

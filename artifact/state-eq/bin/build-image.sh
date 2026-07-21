@@ -158,6 +158,10 @@ docker build \
   --tag "$image" \
   "$artifact_root"
 
+docker run --rm --network none --entrypoint python3 "$image" -c \
+  'import sys; sys.path.insert(0, "/opt/polcert-artifact"); import claim_evidence as c; assert len(c.expected_outer_routes("full")) == 13; assert len(c.expected_artifact_routes("full")) == 22'
+echo "[artifact-build] reviewer Python compatibility passed"
+
 python3 "$artifact_root/bin/write_build_metadata.py" \
   --image "$image" \
   --source-image "$source_image" \

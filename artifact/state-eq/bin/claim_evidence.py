@@ -126,7 +126,7 @@ def _recorded_path(root: Path, recorded: Any, label: str) -> str:
     prefix = "/artifact-results/"
     if not recorded.startswith(prefix):
         raise ClaimEvidenceError(f"{label} has invalid result path: {recorded}")
-    relative = recorded.removeprefix(prefix)
+    relative = recorded[len(prefix) :]
     _bundle_path(root, relative, label)
     return relative
 
