@@ -4,7 +4,7 @@
     "id": "polcert-state-eq-2026-07-21-v3",
     "description": "Reproduction envelope for the completed State.eq-preserving PolCert milestone",
     "created": "2026-07-21",
-    "packaging_revision": "direct-band-claim-evidence-v3"
+    "packaging_revision": "direct-band-claim-evidence-v3-fixtures1"
   },
   "images": {
     "default_candidate": {
@@ -44,6 +44,12 @@
     "dependency_lock_audit": "dependency-lock-audit.json",
     "dependency_state_lock": "locks/dependency-lock.json",
     "dependency_state_enforcement": "fail-closed after image resolution and again at offline review startup",
-    "dependency_lock_note": "PolCert, Pluto, and the Pluto base registry digest are immutable pins. The dpkg and opam state was captured from the separately identified v2 full-reviewed dependency-lock origin image. The v3 candidate verifies that historical state after build and at review startup; the origin evidence does not review the v3 wrapper. Apt repositories and opam source archives remain external, so resolution can fail or drift before the post-build check rejects it."
+    "dependency_lock_note": "PolCert, Pluto, and the Pluto base registry digest are immutable pins. The dpkg and opam state was captured from the separately identified v2 full-reviewed dependency-lock origin image. The v3 candidate verifies that historical state after build and at review startup; the origin evidence does not review the v3 wrapper. Apt repositories and opam source archives remain external, so resolution can fail or drift before the post-build check rejects it.",
+    "source_context_required_files": [
+      "tools/tiling_routes/fixtures/diamond-tile-example.midtransform.scop",
+      "tools/tiling_routes/fixtures/diamond-tile-example.posttile.scop",
+      "tools/tiling_routes/fixtures/nonpermutable-band.midtransform.scop",
+      "tools/tiling_routes/fixtures/nonpermutable-band.posttile.scop"
+    ]
   }
 }

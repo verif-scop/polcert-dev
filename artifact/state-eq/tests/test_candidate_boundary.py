@@ -74,6 +74,20 @@ class CandidateBoundaryTests(unittest.TestCase):
         self.assertIn('io.polcert.publication.status="candidate"', dockerfile)
         self.assertNotIn("io.polcert.review.network", dockerfile)
 
+    def test_source_context_includes_tracked_differential_fixtures(self) -> None:
+        manifest = json.loads((ROOT / "manifest.json").read_text())
+        paths = manifest["reproducibility"]["source_context_required_files"]
+        self.assertEqual(len(paths), 4)
+        self.assertEqual(len(set(paths)), 4)
+        self.assertTrue(all(path.startswith("tools/tiling_routes/fixtures/") for path in paths))
+        self.assertTrue(all(path.endswith(".scop") for path in paths))
+
+        builder = (ROOT / "bin" / "build-image.sh").read_text()
+        self.assertIn("Dockerfile.dockerignore", builder)
+        self.assertIn("required_source_files", builder)
+        self.assertIn("test -f /polcert/$path", builder)
+        self.assertIn("test ! -e /polcert/Dockerfile.dockerignore", builder)
+
 
 if __name__ == "__main__":
     unittest.main()

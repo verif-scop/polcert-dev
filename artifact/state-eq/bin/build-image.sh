@@ -93,6 +93,35 @@ git -C "$source_repo" archive --format=tar --output="$archive" "$source_commit"
 tar -xf "$archive" -C "$context"
 archive_sha256="$(sha256sum "$archive" | awk '{print $1}')"
 
+mapfile -t required_source_files < <(
+  python3 - "$manifest" <<'PY'
+import json
+import sys
+
+manifest = json.load(open(sys.argv[1]))
+for path in manifest["reproducibility"]["source_context_required_files"]:
+    print(path)
+PY
+)
+if [[ "${#required_source_files[@]}" -eq 0 ]]; then
+  echo "manifest source_context_required_files must not be empty" >&2
+  exit 1
+fi
+
+# The frozen source .dockerignore excludes generated *.scop files globally.
+# These four tracked differential fixtures are source inputs, so use a
+# Dockerfile-specific ignore file to admit only the manifest-listed paths.
+source_ignore="$context/Dockerfile.dockerignore"
+cp "$context/.dockerignore" "$source_ignore"
+printf '\n# Artifact-required tracked source fixtures\nDockerfile.dockerignore\n' >> "$source_ignore"
+for path in "${required_source_files[@]}"; do
+  if [[ "$path" = /* || "$path" == *".."* || ! -f "$context/$path" ]]; then
+    echo "invalid or missing required source-context file: $path" >&2
+    exit 1
+  fi
+  printf '!%s\n' "$path" >> "$source_ignore"
+done
+
 echo "[artifact-build] building exact source image $source_image"
 docker build \
   --pull=false \
@@ -101,6 +130,13 @@ docker build \
   --label "io.polcert.source.archive.sha256=$archive_sha256" \
   --tag "$source_image" \
   "$context"
+
+fixture_check='test ! -e /polcert/Dockerfile.dockerignore'
+for path in "${required_source_files[@]}"; do
+  fixture_check+=" && test -f /polcert/$path"
+done
+docker run --rm --network none --entrypoint sh "$source_image" -eu -c "$fixture_check"
+echo "[artifact-build] required tracked source fixtures are present"
 
 echo "[artifact-build] verifying captured dependency closure"
 python3 "$artifact_root/bin/dependency_lock.py" verify-image \

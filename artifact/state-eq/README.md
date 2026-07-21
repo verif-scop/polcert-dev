@@ -13,6 +13,13 @@ the frozen implementation tag. It exports the tagged commit with `git archive`,
 uses that archive as the only PolCert build context, and adds the reviewer
 entry point in a final image layer.
 
+The frozen source `.dockerignore` excludes generated `*.scop` files. Four
+tracked differential fixtures also use that suffix, so the builder creates a
+temporary Dockerfile-specific ignore file that admits exactly the four paths
+listed in `manifest.json`. It then checks that all four are present in the
+source image and that the temporary ignore file was not copied. The source
+archive itself remains byte-for-byte the tagged Git archive.
+
 ## Reviewer Command
 
 From this directory, with any clone that contains the annotated tag:
