@@ -22,8 +22,14 @@ reported as evidence for the other.
 - Exact-tag route verification: the Pluto compatibility matrix passed 138
   checks; dedicated ordinary, second-level, diamond, ISS, parallel, multipar,
   vector, unroll/jam, stride, cleanup, and negative-route suites passed.
-- v3 Docker review: pending. No v3 image is publication-eligible until a fresh
-  network-disabled full run produces schema-v2 evidence for that exact image.
+- v3 Docker review: passed all 13 outer gates and all 22 nested subchecks with
+  networking disabled. The reviewed image ID is
+  `sha256:38d1df0a35de3fa9e2f5af9b925c8978564e1731cd095caca94c3f3eeba5e304`.
+  Schema-v2 evidence is archived at
+  `artifact/state-eq/evidence/2026-07-21-v3-full-review.json` with SHA-256
+  `c4a0d4607cfa774f0754d18a45cad95bb19e6bc3ac9236ce8e602a5df6a37f54`.
+  It resolves all 6 claims, 26 required evidence references, and 34 theorem
+  surface entries.
 - Historical dependency provenance: the v2 review records in
   `artifact/state-eq/evidence/` authenticate the installed dependency lock and
   provide a serial timing baseline. They are not review evidence for v3.
@@ -129,8 +135,8 @@ relaxation for earlier scalar dimensions inside a candidate band.
 
 ## Artifact acceptance matrix
 
-The v3 Docker artifact is claim-complete only when one documented top-level
-command records all of the following for the same image ID:
+The archived v3 Docker review records all of the following for the same image
+ID:
 
 - exact PolCert tag object, commit, tree, and source-archive hash;
 - exact Pluto commit, base-image digest, and clean source state;
@@ -150,9 +156,10 @@ command records all of the following for the same image ID:
 - a mechanically resolved C1-C6 claim-to-route/log/artifact report;
 - complete raw-result tree digest, command statuses, runtimes, and host context.
 
-An image build is not evidence by itself. Publication additionally requires
-schema-v2 evidence recomputed from the untouched raw directory and an immutable
-registry digest.
+All listed checks passed. The full review took 4,531.8 seconds (75.5 minutes)
+in serial mode. An image build is not evidence by itself. Publication
+additionally requires schema-v2 evidence recomputed from the untouched raw
+directory and an immutable registry digest.
 
 ## Claim boundaries
 
@@ -194,11 +201,13 @@ cleanup improves maintainability but is not a new correctness contribution.
 
 ## Freeze procedure
 
-1. Build and review the v3 Docker candidate with networking disabled.
-2. Archive raw results and schema-v2 evidence; record measured reproduction
-   time and the candidate image ID.
-3. Validate publication eligibility, then publish only under an immutable
-   versioned registry reference and record its digest.
-4. Generate paper capability tables from the archived machine-readable output.
-5. Cross-check abstract, introduction, correctness, evaluation, and conclusion
-   against this ledger and run the planned adversarial paper reviews.
+1. Complete: build and review the v3 Docker candidate with networking disabled.
+2. Complete: archive raw results and schema-v2 evidence; record the measured
+   75.5-minute reproduction time and exact image ID.
+3. Complete locally: validate publication eligibility with a versioned,
+   image-derived reference. Pending external action: push to a configured
+   registry and record its immutable digest.
+4. Next: generate paper capability tables from the archived machine-readable
+   output.
+5. Next: cross-check the rewritten paper against this ledger and run five
+   isolated adversarial review and revision rounds.

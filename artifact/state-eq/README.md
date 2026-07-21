@@ -67,11 +67,11 @@ directly from its untouched raw result directory and matching build metadata:
 
 ```sh
 make archive-full-review \
-  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21" \
+  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21-r3" \
   POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/2026-07-21-v3-full-review.json"
 
 make review-evidence-validate \
-  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21" \
+  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21-r3" \
   POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/2026-07-21-v3-full-review.json"
 ```
 
@@ -105,17 +105,19 @@ artifact is meant to validate source, not merely replay precompiled binaries.
 
 ## Expected Review Time
 
-The v3 full-review time will be recorded from its own raw evidence. Until that
-run completes, the only archived planning baseline is the historical v2
-network-disabled serial review: 1,996.4 seconds, or 33.3 minutes. Reviewers
-should provision at least 45 minutes on a comparable host.
+The reviewed v3 run took 4,531.8 seconds, or 75.5 minutes, in serial mode with
+Docker networking disabled. The clean Coq proof build took 1,447.0 seconds,
+the nested 22-check artifact run took 2,838.0 seconds, and the strict 62-case
+suite took 585.5 seconds. The `advect3d` case took 80.2 seconds, dominated by
+verified `CodeGen.codegen`. Reviewers should provision at least 90 minutes on
+a comparable host. Image construction is separate and is not included.
 
-In that historical run, the clean Coq proof build took 748.8 seconds, the
-nested artifact check took 1,097.0 seconds, and the strict 62-case suite took
-355.4 seconds. The `advect3d` case took 148.8 seconds, dominated by verified
-`CodeGen.codegen`. These values are not yet v3 measurements. See
-`REPRODUCTION_TIMING.md` for the preserved baseline and the v3 measurement
-status.
+The exact reviewed image ID is
+`sha256:38d1df0a35de3fa9e2f5af9b925c8978564e1731cd095caca94c3f3eeba5e304`.
+The compact evidence is `evidence/2026-07-21-v3-full-review.json`, with SHA-256
+`c4a0d4607cfa774f0754d18a45cad95bb19e6bc3ac9236ce8e602a5df6a37f54`.
+See `REPRODUCTION_TIMING.md` for the full v3 table and preserved historical v2
+baseline.
 
 ## Clean-Tree Bootstrap
 
@@ -208,7 +210,8 @@ The origin evidence is copied into the candidate wrapper only so the first
 review gate can authenticate the dependency lock's provenance and checksum. It
 is not review evidence for the v3 wrapper. The v3 candidate requires a separate
 successful full offline run in
-`evidence/2026-07-21-v3-full-review.json`, tied to its exact image ID.
+`evidence/2026-07-21-v3-full-review.json`, tied to its exact image ID; that run
+has now completed.
 
 After the image has been built or pulled, review is offline. `bin/run-image.sh`
 first resolves the candidate tag to a Docker image ID, then runs that immutable
@@ -243,7 +246,7 @@ pushing, or contacting the registry:
 REVIEWED_IMAGE_HEX=38d1df0a35de3fa9e2f5af9b925c8978564e1731cd095caca94c3f3eeba5e304
 make publication-validate \
   POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-07-21-v3-${REVIEWED_IMAGE_HEX} \
-  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21"
+  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21-r3"
 ```
 
 The reference must include a registry host, lowercase repository, and a
@@ -256,7 +259,7 @@ After authenticating Docker separately, publish with:
 REVIEWED_IMAGE_HEX=38d1df0a35de3fa9e2f5af9b925c8978564e1731cd095caca94c3f3eeba5e304
 make publish-reviewed-image \
   POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-07-21-v3-${REVIEWED_IMAGE_HEX} \
-  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21"
+  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21-r3"
 ```
 
 For schema-v2 evidence, set `REVIEWED_IMAGE_HEX` to all 64 hexadecimal
@@ -281,9 +284,9 @@ The workflow performs these checks and actions:
    evidence checksum, local image ID, tag, and immutable `repository@digest`.
 
 The script never calls `docker login`. Registry credentials and authorization
-must already be configured. The v3 candidate is not publication-eligible until
-its own full offline evidence exists, and remains unpublished until a registry
-reference is provided and a push records its immutable registry digest.
+must already be configured. The v3 candidate has passed the local publication
+eligibility check and remains unpublished until a registry reference is
+provided and a push records its immutable registry digest.
 
 The publication parser and refusal paths have a no-network fixture suite:
 
