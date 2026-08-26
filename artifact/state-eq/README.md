@@ -1,20 +1,23 @@
 # PolCert State.eq Artifact Scaffold
 
-This directory builds and runs a claim-oriented Docker artifact for the frozen
+This directory builds and runs a claim-oriented Docker artifact for the v9
 PolCert milestone:
 
-- tag: `state-eq-polyhedral-verification-complete-2026-07-21-v3`
-- commit: `4bc20817c32f2073221cf68475bf9b78c0bab74b`
-- tree: `5c21c31e54536dff78c376b4e861efdba3c0d4fb`
-- Pluto compiler baseline: `6f43860b6c4cddeeca09189bf3073f05b78b14a5`
+- tag: `state-eq-polyhedral-verification-complete-2026-08-26-v9`
+- tag object: `66a632f44b231d4e210d115529619d8f761a7840`
+- commit: `604587ecfec9ff3bf6be655dd66e25af6178d604`
+- tree: `3e1daad0f8d05ac0b41c5cb0d50094d45662c121`
+- source archive SHA-256:
+  `d53b7232a707d33a0af9404b201b9ab1cf35a49ca0a45d7b02460d53c5d253ca`
+- Pluto compiler baseline: `488ea2f0c3b7d5e7f6b849809f312aa4a6bcad02`
 
 The scaffold lives in the host-side control repository so it does not modify
-the frozen implementation tag. It exports the tagged commit with `git archive`,
-uses that archive as the only PolCert build context, and adds the reviewer
-entry point in a final image layer.
+the implementation tag. It exports the tagged commit with `git archive`, uses
+that archive as the only PolCert build context, and adds the reviewer entry
+point in a final image layer.
 
-The frozen source `.dockerignore` excludes generated `*.scop` files. Four
-tracked differential fixtures also use that suffix, so the builder creates a
+The source `.dockerignore` excludes generated `*.scop` files. Four tracked
+tiling-route fixtures also use that suffix, so the builder creates a
 temporary Dockerfile-specific ignore file that admits exactly the four paths
 listed in `manifest.json`. It then checks that all four are present in the
 source image and that the temporary ignore file was not copied. The source
@@ -28,10 +31,10 @@ From this directory, with any clone that contains the annotated tag:
 make reproduce POLCERT_SOURCE=/path/to/PolCert
 ```
 
-This builds `polcert-artifact:state-eq-2026-07-21-v3-candidate` and runs the
-full claim suite with Docker networking disabled. The v3 candidate is distinct
-from the historical v2 dependency-lock origin image. Results are written to
-`results/`:
+This builds `polcert-artifact:state-eq-2026-08-26-v9-candidate` and runs the
+full claim suite with Docker networking disabled. The v9 candidate is distinct
+from the historical v2 dependency-lock origin and reviewed v3 images. Results
+are written to `results/`:
 
 - `manifest.json`: immutable source and toolchain pins;
 - `dependency-lock-audit.json`: build dependency classifications and observed
@@ -61,18 +64,18 @@ previous generated results with `make clean-results`, before rerunning.
 
 ## Full Review Evidence
 
-The v3 candidate uses schema-v2 review evidence. Do not summarize a run by
+The v9 candidate uses schema-v2 review evidence. Do not summarize a run by
 hand. After one successful full offline review, create the compact evidence
 directly from its untouched raw result directory and matching build metadata:
 
 ```sh
 make archive-full-review \
-  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21-r3" \
-  POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/2026-07-21-v3-full-review.json"
+  POLCERT_REVIEW_RESULTS="$PWD/results-v9-2026-08-26-r3" \
+  POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/2026-08-26-v9-full-review.json"
 
 make review-evidence-validate \
-  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21-r3" \
-  POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/2026-07-21-v3-full-review.json"
+  POLCERT_REVIEW_RESULTS="$PWD/results-v9-2026-08-26-r3" \
+  POLCERT_REVIEW_EVIDENCE_OUTPUT="$PWD/evidence/2026-08-26-v9-full-review.json"
 ```
 
 The archiver refuses an existing evidence path. It requires the exact 13 full
@@ -103,21 +106,34 @@ make smoke
 `smoke` still performs a clean proof and executable bootstrap because the
 artifact is meant to validate source, not merely replay precompiled binaries.
 
-## Expected Review Time
+## Measured Review Time
 
-The reviewed v3 run took 4,531.8 seconds, or 75.5 minutes, in serial mode with
-Docker networking disabled. The clean Coq proof build took 1,447.0 seconds,
-the nested 22-check artifact run took 2,838.0 seconds, and the strict 62-case
-suite took 585.5 seconds. The `advect3d` case took 80.2 seconds, dominated by
-verified `CodeGen.codegen`. Reviewers should provision at least 90 minutes on
-a comparable host. Image construction is separate and is not included.
+The completed serial, network-disabled v9 review took 5,173.2 seconds
+(86.2 minutes). Its largest top-level gates were the 2,153.0-second nested
+29-check artifact run, the 1,473.2-second extraction gate, and the
+1,396.8-second clean proof build. The strict 62-case loop suite, which runs
+inside the artifact gate, took 252.7 seconds; its slowest case was `advect3d`
+at 80.0 seconds. Nested rows overlap with the total and must not be summed.
 
-The exact reviewed image ID is
-`sha256:38d1df0a35de3fa9e2f5af9b925c8978564e1731cd095caca94c3f3eeba5e304`.
-The compact evidence is `evidence/2026-07-21-v3-full-review.json`, with SHA-256
-`c4a0d4607cfa774f0754d18a45cad95bb19e6bc3ac9236ce8e602a5df6a37f54`.
-See `REPRODUCTION_TIMING.md` for the full v3 table and preserved historical v2
-baseline.
+The extraction target rebuilt nearly the complete proof dependency graph even
+though the preceding clean proof gate had succeeded. This explains most of the
+serial review's long wall time and is a build-graph optimization opportunity,
+not a proof or artifact failure. The recorded run used one make job.
+
+The exact v9 source commit passed the optimized seven-shard GitHub Actions run
+in 46 minutes 17 seconds. That run is useful capacity evidence but is not the
+network-disabled artifact review: it builds a CI image and distributes test
+shards across separate jobs. Reviewers should provision about 90 minutes for a
+serial run on a comparable host. Image construction is separate.
+
+The v9 compact evidence is
+`evidence/2026-08-26-v9-full-review.json` (SHA-256
+`80b7ed282e622ca8ff844eba899f9c70c4a8853195ea9753247fb66ed90389ec`).
+It binds image ID
+`sha256:554ee8822bf7eca53e76b537e1e8f999787b1824a6b060d2e953dccf9b3476fc`
+and raw-result tree SHA-256
+`3ea78f4bc97822cd33d51cb05885aa76ad7a5c2d86016cb5793e24be335b2a42`.
+See `REPRODUCTION_TIMING.md` for the detailed v9, v3, and v2 records.
 
 ## Clean-Tree Bootstrap
 
@@ -148,50 +164,53 @@ make extended
 
 ## Provenance Checks
 
-Before building, `bin/validate_source.py` checks:
+Before construction, `bin/validate_source.py` checks:
 
 - annotated tag object, commit, and tree IDs;
 - Pluto remote, commit, and image values in `tools/ci/pluto-baseline.env`;
 - matching Pluto defaults in the frozen `Dockerfile`;
-- the registry digest of the locally resolved Pluto base image.
+- the registry digest of the locally resolved Pluto base image;
+- the exact local image ID of the full-reviewed dependency origin.
 
 The build writes `build/build-metadata.json` with the source archive SHA-256,
 Docker image IDs/digests, and OCI labels. The published artifact should retain
 this file alongside the image digest.
 
-After validating the local Pluto base digest, the build uses Docker with
-`--pull=false`. This prevents a moved registry tag from replacing the already
-verified base between validation and image construction.
+After validating both image identities, the build uses Docker with
+`--pull=false`. The dependency origin is addressed by the exact local image ID
+recorded in the manifest, while the Pluto base is addressed by registry digest.
 
 ## Network Boundary
 
-Image construction is not offline: the frozen Dockerfile installs apt/opam
-packages and fetches the pinned Pluto commit. The lock status is not uniform:
+Image construction fetches and rebuilds the pinned Pluto commit, but it does
+not resolve apt or opam packages again. The artifact-specific
+`source-image.Dockerfile` starts from the full-reviewed v2 dependency origin,
+whose local image ID is checked before construction. It then replaces the old
+PolCert tree with the exact v9 archive and reconfigures the source tree.
 
-- PolCert source, Pluto source, and the Pluto base registry digest are
-  immutable content pins checked before the build.
-- OCaml `4.13.1`, Coq `8.13.2`, and the opam executable `2.0.8` are explicit
-  version selections, but their repository state or downloaded bytes are not
-  all enforced by immutable checks in the frozen Dockerfile.
-- apt package requests have no `=version` constraints and use moving Ubuntu
-  Focal repositories.
-- `zarith`, `glpk`, `menhir`, and `stdlib-shims` have no version constraints;
-  their transitive opam dependencies are also resolved from an unpinned opam
-  repository snapshot.
+- The v9 PolCert source is pinned by its annotated tag object, commit, and tree
+  IDs. Pluto source and the Pluto base registry digest are also pinned.
+- The 684-package apt state, 22-package opam state, OCaml `4.13.1`, Coq
+  `8.13.2`, and opam `2.0.8` are inherited byte-for-byte from the authenticated
+  origin instead of being redownloaded for v9.
+- The origin image is not yet published. A source rebuild therefore requires
+  importing the exact image recorded in `manifest.json`; the final v9 image can
+  be replayed independently after it is exported or published by digest.
 
 [`dependency-lock-audit.json`](./dependency-lock-audit.json) records the exact
 versions observed in the full-reviewed dependency-lock origin image and
-classifies each dependency. An observed version is evidence about that image,
-not a guarantee that a future networked rebuild will resolve the same bytes.
+classifies the original networked Dockerfile. The 2026-08-26 update in
+`DEPENDENCY_LOCK_AUDIT.md` records why v9 construction now reuses those bytes
+instead of re-resolving the moving repositories.
 
 The generated [`locks/dependency-lock.json`](./locks/dependency-lock.json)
 strengthens this boundary. It covers the full 684-package dpkg closure, the
 dpkg database and installed package file contents, the 22-package opam closure,
 the complete opam switch export and switch filesystem contents, the opam
 executable SHA-256, and the OS release. `build-image.sh` verifies it after
-building the frozen source image and before adding the reviewer layer. The same
-verification is the first offline review gate. Resolution or installed-content
-drift therefore fails closed.
+building the v9 source image and before adding the reviewer layer. The same
+verification is the first offline review gate. Dependency-origin substitution
+or installed-content drift therefore fails closed.
 
 Capture and verification commands are:
 
@@ -208,10 +227,10 @@ lock directory and requires that image ID to match strict full-review evidence.
 
 The origin evidence is copied into the candidate wrapper only so the first
 review gate can authenticate the dependency lock's provenance and checksum. It
-is not review evidence for the v3 wrapper. The v3 candidate requires a separate
-successful full offline run in
-`evidence/2026-07-21-v3-full-review.json`, tied to its exact image ID; that run
-has now completed.
+is not review evidence for the v9 wrapper. The reviewed v3 record
+`evidence/2026-07-21-v3-full-review.json` is also historical. The v9 candidate
+requires its own successful full offline run in
+`evidence/2026-08-26-v9-full-review.json`, tied to its exact image ID.
 
 After the image has been built or pulled, review is offline. `bin/run-image.sh`
 first resolves the candidate tag to a Docker image ID, then runs that immutable
@@ -225,17 +244,19 @@ The complete human-readable analysis and the bounded locking plan are in
 
 ## Reviewed Image Publication
 
-Publication is separate from building. By default it expects the v3 schema-v2
-evidence in `evidence/2026-07-21-v3-full-review.json`. The historical
-`2026-07-18-full-review.json` and `lock-v1-full-review.json` records remain v2
-dependency provenance and review history; neither authorizes v3 publication.
+Publication is separate from building and review. The v9 schema-v2 record is
+`evidence/2026-08-26-v9-full-review.json`; it authorizes publication only when
+the local image ID and untouched raw result directory reproduce that record.
+The historical `2026-07-18-full-review.json`, `lock-v1-full-review.json`, and
+`2026-07-21-v3-full-review.json` records retain v2/v3 provenance and review
+history; none authorizes v9 publication.
 Publication refuses any local image whose Docker image ID differs from the ID
 in the selected evidence. It also requires the untouched raw result directory
 and recomputes the compact record from the raw ledgers, claim report, complete
 tree digest, and build metadata before tagging or pushing.
 
 Schema-v1 remains accepted only for the historical reviewed pre-lock image.
-The v3 candidate must use schema-v2; the publication guard independently
+The v9 candidate must use schema-v2; the publication guard independently
 rechecks its exact 13-gate ledger, dependency-lock SHA-256,
 proof/capability/claim assertions, and required raw file hashes.
 
@@ -243,10 +264,12 @@ First validate an explicit, versioned registry reference without tagging,
 pushing, or contacting the registry:
 
 ```sh
-REVIEWED_IMAGE_HEX=38d1df0a35de3fa9e2f5af9b925c8978564e1731cd095caca94c3f3eeba5e304
+REVIEWED_IMAGE_ID="$(docker image inspect \
+  polcert-artifact:state-eq-2026-08-26-v9-candidate --format '{{.Id}}')"
+REVIEWED_IMAGE_HEX="${REVIEWED_IMAGE_ID#sha256:}"
 make publication-validate \
-  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-07-21-v3-${REVIEWED_IMAGE_HEX} \
-  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21-r3"
+  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-08-26-v9-${REVIEWED_IMAGE_HEX} \
+  POLCERT_REVIEW_RESULTS="$PWD/results-v9-2026-08-26-r3"
 ```
 
 The reference must include a registry host, lowercase repository, and a
@@ -256,10 +279,12 @@ There is no default registry.
 After authenticating Docker separately, publish with:
 
 ```sh
-REVIEWED_IMAGE_HEX=38d1df0a35de3fa9e2f5af9b925c8978564e1731cd095caca94c3f3eeba5e304
+REVIEWED_IMAGE_ID="$(docker image inspect \
+  polcert-artifact:state-eq-2026-08-26-v9-candidate --format '{{.Id}}')"
+REVIEWED_IMAGE_HEX="${REVIEWED_IMAGE_ID#sha256:}"
 make publish-reviewed-image \
-  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-07-21-v3-${REVIEWED_IMAGE_HEX} \
-  POLCERT_REVIEW_RESULTS="$PWD/results-v3-2026-07-21-r3"
+  POLCERT_PUBLICATION_REF=ghcr.io/example/polcert:state-eq-2026-08-26-v9-${REVIEWED_IMAGE_HEX} \
+  POLCERT_REVIEW_RESULTS="$PWD/results-v9-2026-08-26-r3"
 ```
 
 For schema-v2 evidence, set `REVIEWED_IMAGE_HEX` to all 64 hexadecimal
@@ -270,7 +295,7 @@ The workflow performs these checks and actions:
 
 1. Require successful `full`, `network=none` review evidence.
 2. Require source tag/commit/tree to match `manifest.json`, zero proof holes,
-   22/22 artifact subchecks, an 81-row capability surface, 138 Pluto
+   29/29 artifact subchecks, an 81-row capability surface, 138 Pluto
    compatibility checks (112 success and 26 rejection expectations), 62/62
    strict cases, and passing ISS/parallel/vector/second-level/diamond suites.
 3. Recompute schema-v2 evidence from the untouched raw result directory.
@@ -284,9 +309,9 @@ The workflow performs these checks and actions:
    evidence checksum, local image ID, tag, and immutable `repository@digest`.
 
 The script never calls `docker login`. Registry credentials and authorization
-must already be configured. The v3 candidate has passed the local publication
-eligibility check and remains unpublished until a registry reference is
-provided and a push records its immutable registry digest.
+must already be configured. The local v9 candidate now has matching schema-v2
+evidence, but it has not been pushed and therefore is not yet a published
+artifact.
 
 The publication parser and refusal paths have a no-network fixture suite:
 

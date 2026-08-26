@@ -4,7 +4,7 @@ set -euo pipefail
 artifact_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 manifest="$artifact_root/manifest.json"
 source_repo="${POLCERT_SOURCE:-}"
-image="${POLCERT_ARTIFACT_IMAGE:-polcert-artifact:state-eq-2026-07-21-v3-candidate}"
+image="${POLCERT_ARTIFACT_IMAGE:-polcert-artifact:state-eq-2026-08-26-v9-candidate}"
 source_image="${POLCERT_ARTIFACT_SOURCE_IMAGE:-}"
 output_dir="${POLCERT_ARTIFACT_BUILD_OUTPUT:-$artifact_root/build}"
 validate_only=0
@@ -55,15 +55,23 @@ PY
 
 base_image="$(read_manifest pluto.base_image)"
 expected_base_digest="$(read_manifest pluto.base_image_digest)"
+pluto_remote="$(read_manifest pluto.repository)"
 source_commit="$(read_manifest polcert.commit)"
+expected_archive_sha256="$(read_manifest polcert.archive_sha256)"
 source_tag="$(read_manifest polcert.tag)"
 source_tree="$(read_manifest polcert.tree)"
 artifact_id="$(read_manifest artifact.id)"
 packaging_revision="$(read_manifest artifact.packaging_revision)"
 pluto_commit="$(read_manifest pluto.commit)"
+dependency_image="$(read_manifest images.dependency_lock_origin.reference)"
+expected_dependency_image_id="$(read_manifest images.dependency_lock_origin.local_image_id)"
 if [[ -z "$source_image" ]]; then
   source_image="polcert-artifact-source:${source_commit:0:12}"
 fi
+
+python3 "$artifact_root/bin/validate_route_contract.py" \
+  --source "$source_repo" \
+  --commit "$source_commit"
 
 if ! docker image inspect "$base_image" >/dev/null 2>&1; then
   echo "[artifact-build] pulling missing Pluto base image $base_image" >&2
@@ -75,6 +83,19 @@ if [[ "$actual_base_digests" != *"@$expected_base_digest"* ]]; then
   echo "Pluto base image digest mismatch" >&2
   echo "  expected: $expected_base_digest" >&2
   echo "  actual:   $actual_base_digests" >&2
+  exit 1
+fi
+
+if ! docker image inspect "$dependency_image" >/dev/null 2>&1; then
+  echo "reviewed dependency origin image is missing: $dependency_image" >&2
+  echo "import the image recorded by manifest.json before building" >&2
+  exit 1
+fi
+actual_dependency_image_id="$(docker image inspect "$dependency_image" --format '{{.Id}}')"
+if [[ "$actual_dependency_image_id" != "$expected_dependency_image_id" ]]; then
+  echo "reviewed dependency origin image ID mismatch" >&2
+  echo "  expected: $expected_dependency_image_id" >&2
+  echo "  actual:   $actual_dependency_image_id" >&2
   exit 1
 fi
 
@@ -92,6 +113,12 @@ mkdir -p "$context"
 git -C "$source_repo" archive --format=tar --output="$archive" "$source_commit"
 tar -xf "$archive" -C "$context"
 archive_sha256="$(sha256sum "$archive" | awk '{print $1}')"
+if [[ "$archive_sha256" != "$expected_archive_sha256" ]]; then
+  echo "PolCert source archive SHA-256 mismatch" >&2
+  echo "  expected: $expected_archive_sha256" >&2
+  echo "  actual:   $archive_sha256" >&2
+  exit 1
+fi
 
 mapfile -t required_source_files < <(
   python3 - "$manifest" <<'PY'
@@ -108,12 +135,15 @@ if [[ "${#required_source_files[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-# The frozen source .dockerignore excludes generated *.scop files globally.
-# These four tracked differential fixtures are source inputs, so use a
-# Dockerfile-specific ignore file to admit only the manifest-listed paths.
-source_ignore="$context/Dockerfile.dockerignore"
+# The source .dockerignore excludes generated *.scop files globally. These four
+# tracked tiling-route fixtures are source inputs, so put the artifact-specific
+# Dockerfile and its matching ignore file in the temporary context and admit
+# only the manifest-listed paths.
+source_dockerfile="$context/ArtifactSource.Dockerfile"
+source_ignore="$source_dockerfile.dockerignore"
+cp "$artifact_root/source-image.Dockerfile" "$source_dockerfile"
 cp "$context/.dockerignore" "$source_ignore"
-printf '\n# Artifact-required tracked source fixtures\nDockerfile.dockerignore\n' >> "$source_ignore"
+printf '\n# Artifact build controls are not source inputs\nArtifactSource.Dockerfile\nArtifactSource.Dockerfile.dockerignore\n' >> "$source_ignore"
 for path in "${required_source_files[@]}"; do
   if [[ "$path" = /* || "$path" == *".."* || ! -f "$context/$path" ]]; then
     echo "invalid or missing required source-context file: $path" >&2
@@ -125,13 +155,28 @@ done
 echo "[artifact-build] building exact source image $source_image"
 docker build \
   --pull=false \
+  --file "$source_dockerfile" \
+  --target development \
+  --build-arg "POLCERT_DEPENDENCY_IMAGE=$dependency_image" \
+  --build-arg "PLUTO_IMAGE=$base_image" \
+  --build-arg "PLUTO_GIT_REMOTE=$pluto_remote" \
+  --build-arg "PLUTO_GIT_COMMIT=$pluto_commit" \
+  --build-arg "POLCERT_GIT_COMMIT=$source_commit" \
+  --label "com.plutoverif.commit=$pluto_commit" \
+  --label "com.plutoverif.remote=$pluto_remote" \
+  --label "org.opencontainers.image.version=$source_tag" \
   --label "org.opencontainers.image.revision=$source_commit" \
+  --label "io.polcert.artifact.id=$artifact_id" \
+  --label "io.polcert.packaging.revision=$packaging_revision" \
+  --label "io.polcert.publication.status=source-stage" \
   --label "io.polcert.source.tree=$source_tree" \
   --label "io.polcert.source.archive.sha256=$archive_sha256" \
+  --label "io.polcert.pluto.revision=$pluto_commit" \
+  --label "io.polcert.review.required.network=none" \
   --tag "$source_image" \
   "$context"
 
-fixture_check='test ! -e /polcert/Dockerfile.dockerignore'
+fixture_check='test ! -e /polcert/ArtifactSource.Dockerfile && test ! -e /polcert/ArtifactSource.Dockerfile.dockerignore'
 for path in "${required_source_files[@]}"; do
   fixture_check+=" && test -f /polcert/$path"
 done
@@ -159,13 +204,14 @@ docker build \
   "$artifact_root"
 
 docker run --rm --network none --entrypoint python3 "$image" -c \
-  'import sys; sys.path.insert(0, "/opt/polcert-artifact"); import claim_evidence as c; assert len(c.expected_outer_routes("full")) == 13; assert len(c.expected_artifact_routes("full")) == 22'
+  'import sys; sys.path.insert(0, "/opt/polcert-artifact"); import claim_evidence as c; assert len(c.expected_outer_routes("full")) == 13; assert len(c.expected_artifact_routes("full")) == 29; assert len(c.expected_artifact_routes("extended")) == 30'
 echo "[artifact-build] reviewer Python compatibility passed"
 
 python3 "$artifact_root/bin/write_build_metadata.py" \
   --image "$image" \
   --source-image "$source_image" \
   --pluto-base-image "$base_image" \
+  --dependency-origin-image "$dependency_image" \
   --source-archive-sha256 "$archive_sha256" \
   --manifest "$manifest" \
   --output "$output_dir/build-metadata.json"

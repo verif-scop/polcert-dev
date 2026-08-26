@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -50,6 +51,15 @@ def main() -> int:
     check("tag commit", git(source, "rev-parse", f"{expected['tag']}^{{commit}}"), expected["commit"])
     check("tag object", git(source, "rev-parse", f"{expected['tag']}^{{tag}}"), expected["tag_object"])
     check("commit tree", git(source, "rev-parse", f"{expected['commit']}^{{tree}}"), expected["tree"])
+    archive = subprocess.check_output(
+        ["git", "-C", str(source), "archive", "--format=tar", expected["commit"]],
+        stderr=subprocess.STDOUT,
+    )
+    check(
+        "source archive SHA-256",
+        hashlib.sha256(archive).hexdigest(),
+        expected["archive_sha256"],
+    )
 
     baseline_text = git(source, "show", f"{expected['commit']}:tools/ci/pluto-baseline.env")
     baseline = parse_env(baseline_text)

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "claim_set": "state-eq-polyhedral-verification-complete-2026-07-21-v3",
+  "claim_set": "state-eq-polyhedral-verification-complete-2026-08-26-v9",
   "verification_profiles": [
     "full",
     "extended"
@@ -13,6 +13,38 @@
     "check-admitted": {
       "route": "outer/check-admitted",
       "required_profiles": ["full", "extended"]
+    },
+    "artifact-check/manifest-runner-fail-closed-unit": {
+      "route": "artifact-check/manifest-runner-fail-closed-unit",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/manifest-runner-fail-closed-unit.stdout.txt",
+          "text_assertions": [
+            {
+              "contains": "[manifest-runner] OK (failed commands cannot emit optimized results)"
+            }
+          ]
+        }
+      ]
+    },
+    "artifact-check/unrolljam-route-guard-unit": {
+      "route": "artifact-check/unrolljam-route-guard-unit",
+      "required_profiles": ["full", "extended"]
+    },
+    "artifact-check/extracted-zero-fallback-gate": {
+      "route": "artifact-check/extracted-zero-fallback-gate",
+      "required_profiles": ["full", "extended"],
+      "artifacts": [
+        {
+          "path": "artifact-check/extracted-zero-fallback-gate.stdout.txt",
+          "text_assertions": [
+            {
+              "contains": "[extracted-zero-fallback] OK (6 direct extracted API rejection paths)"
+            }
+          ]
+        }
+      ]
     },
     "artifact-check/proof-report": {
       "route": "artifact-check/proof-report",
@@ -55,7 +87,7 @@
             {"contains": "total=62"},
             {"contains": "ok=62"},
             {"contains": "changed=59"},
-            {"contains": "detected_tiled=39"}
+            {"contains": "detected_tiled=46"}
           ]
         }
       ]
@@ -72,7 +104,7 @@
               "contains": "second-level diamond route matrix: PASS (16 accepted parallel/hinted variants, 4 explicit vector rejections)"
             },
             {
-              "contains": "rejected tiling route: PASS (invalid witness, scalar-only early exit, four vector skips preserve their verified fallbacks, and eight explicit-current failures are explicit)"
+              "contains": "rejected tiling route: PASS (16 malformed tilings fail closed, scalar-only fails closed, one integrated nonpermutable candidate reaches the direct checker and is rejected once, four vector skips preserve verified tilings, 12 consumer failures do not alter the tiling outcome, 16 malformed producer/consumer combinations preserve the producer rejection, 18 malformed producer/hinted-consumer combinations preserve the producer rejection, and 48 final-affine failures preserve the successful tiling-leg route and fail closed)"
             }
           ]
         }
@@ -91,35 +123,38 @@
         }
       ]
     },
-    "artifact-check/direct-band-differential": {
-      "route": "artifact-check/direct-band-differential",
+    "artifact-check/direct-only-tiling-route-smoke": {
+      "route": "artifact-check/direct-only-tiling-route-smoke",
       "required_profiles": ["full", "extended"],
       "artifacts": [
         {
-          "path": "artifact-check/direct-band-differential.stdout.txt",
+          "path": "artifact-check/direct-only-tiling-route-smoke.stdout.txt",
           "text_assertions": [
-            {"contains": "[direct-band-diff] ordinary-common-band: PASS"},
-            {"contains": "[direct-band-diff] mixed-depth-whole-program-only: PASS"},
-            {"contains": "[direct-band-diff] dependent-one-dimensional-band: PASS"},
-            {"contains": "[direct-band-diff] frozen-diamond-phase-pair: PASS"},
-            {"contains": "[direct-band-diff] frozen-nonpermutable-band: PASS"},
-            {"contains": "[direct-band-diff] OK (5 cases, no alarms)"}
+            {"contains": "[direct-route] ordinary-common-band: PASS"},
+            {"contains": "[direct-route] ordinary-phase-separated-mixed-depth: PASS"},
+            {"contains": "[direct-route] ordinary-phase-separated-mixed-depth-iss: PASS"},
+            {"contains": "[direct-route] mixed-depth-semantic-band: PASS"},
+            {"contains": "[direct-route] dependent-one-dimensional-band: PASS"},
+            {"contains": "[direct-route] frozen-diamond-phase-pair: PASS"},
+            {"contains": "[direct-route] frozen-nonpermutable-band: PASS"},
+            {"contains": "[direct-route] OK (20 cases, zero fallbacks)"}
           ]
         },
         {
           "path": "artifact-check/tiling-route-summary.json",
           "json_assertions": [
             {"pointer": "/verified", "equals": true},
-            {"pointer": "/direct_differential/cases", "equals": 5},
-            {"pointer": "/direct_differential/no_alarms", "equals": true},
+            {"pointer": "/zero_tiling_validation_fallbacks", "equals": true},
+            {"pointer": "/direct_route_smoke/cases", "equals": 20},
+            {"pointer": "/direct_route_smoke/zero_fallbacks", "equals": true},
             {"pointer": "/non_second_level/cases", "equals": 90},
-            {"pointer": "/non_second_level/permutable_band", "equals": 50},
-            {"pointer": "/non_second_level/general_fallback", "equals": 34},
+            {"pointer": "/non_second_level/permutable_band", "equals": 84},
+            {"pointer": "/non_second_level/validation_fallback", "equals": 0},
             {"pointer": "/non_second_level/explicit_vector_rejection", "equals": 6},
             {"pointer": "/second_level_manifest/manifest_checks", "equals": 58},
             {"pointer": "/second_level_manifest/successful", "equals": 53},
-            {"pointer": "/second_level_manifest/permutable_band", "equals": 36},
-            {"pointer": "/second_level_manifest/general_fallback", "equals": 17},
+            {"pointer": "/second_level_manifest/permutable_band", "equals": 53},
+            {"pointer": "/second_level_manifest/validation_fallback", "equals": 0},
             {"pointer": "/second_level_manifest/negative", "equals": 5},
             {"pointer": "/second_level_additional_runtime_matrix/verified", "equals": true}
           ]
@@ -134,7 +169,7 @@
           "path": "artifact-check/non-second-level-tiling-routes.stdout.txt",
           "text_assertions": [
             {
-              "contains": "[non-second-level-routes] OK (50 permutable-band compositions, 34 explicit general fallbacks, 6 explicit vector rejections)"
+              "contains": "[non-second-level-routes] OK (84 permutable-band compositions, 0 validation fallbacks, 6 explicit vector rejections)"
             }
           ]
         }
@@ -269,7 +304,8 @@
             {"pointer": "/summary/native_effects_covered", "equals": 6},
             {"pointer": "/summary/native_effects_uncovered", "equals": 0},
             {"pointer": "/summary/extract_failures", "equals": 0},
-            {"pointer": "/summary/pluto_failures", "equals": 0}
+            {"pointer": "/summary/pluto_failures", "equals": 0},
+            {"pointer": "/summary/polopt_tiling_route_reports", "equals": 0}
           ]
         }
       ]
@@ -322,7 +358,7 @@
         "artifact-check/proof-report"
       ],
       "theorem_surface": [
-        "Extractor.extractor_correct",
+        "ExtractorCorrect.extractor_correct",
         "PrepareCodegen.prepared_codegen_correct_general",
         "VerifiedParallelCompilerConfig.compile_correct",
         "VerifiedParallelCompilerConfig.compile_verified_correct",
@@ -331,12 +367,14 @@
     },
     {
       "id": "C2",
-      "claim": "The unified tiling dispatcher is used at supported ordinary, identity, second-level, diamond, full-diamond, and composed tiling boundaries. It reports an accepted candidate as permutable-band only when direct semantic band validation succeeds, or as general-fallback when a proved legacy, canonical, or general validator succeeds; solver alarms do not fall back.",
+      "claim": "The unified tiling dispatcher is used at supported ordinary, phase-separated mixed-depth, identity, second-level, diamond, full-diamond, and composed tiling boundaries. Every accepted tiling is certified by a proved direct semantic permutable-band check; malformed, unsupported, or nonpermutable candidates are rejected without emitting an optimized result. A later affine reschedule in the diamond pipeline is a separate checked transformation, not a tiling-validation fallback.",
       "evidence": [
+        "artifact-check/manifest-runner-fail-closed-unit",
+        "artifact-check/extracted-zero-fallback-gate",
         "artifact-check/strict-loop-suite",
         "artifact-check/second-level-suite",
         "artifact-check/diamond-suite",
-        "artifact-check/direct-band-differential",
+        "artifact-check/direct-only-tiling-route-smoke",
         "artifact-check/non-second-level-tiling-routes",
         "artifact-check/pluto-compat-suite",
         "artifact-check/proof-report"
@@ -348,8 +386,12 @@
         "TilingBandScheduleValidator.pprog_pluto_permutable_tiling_bands_strong_implies_reordering_safe_wf_with_env_len",
         "TilingBandScheduleValidator.pprog_pluto_componentwise_permutable_bands_implies_reordering_safe_if_local_bridge",
         "TilingBandScheduleValidator.second_level_local_reversal_bridge_by_layout_wf_with_env_len",
+        "TilingBandMixedSecondValidator.phase_separated_ordinary_reversal_same_class",
+        "TilingBandMixedSecondValidator.phase_class_ordinary_local_reversal_bridge_wf_with_env_len",
+        "TilingBandMixedSecondValidator.check_pprog_phase_separated_ordinary_direct_true_inv",
+        "TilingBandMixedSecondValidator.check_pprog_phase_separated_ordinary_direct_correct_same_ctxt",
         "TilingBandDirectRuntime.checked_second_level_direct_band_check_correct",
-        "TilingBandDirectRuntime.checked_tiling_sourceb_first_direct_band_check_outer_correct",
+        "TilingBandDirectRuntime.checked_tiling_sourceb_complete_direct_band_check_outer_correct",
         "TilingBandDirectRuntime.checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct",
         "PolOptBandTiling.try_verified_diamond_after_phase_mid_band_correct",
         "PolOptBandTiling.Opt_diamond_band_correct"
@@ -357,7 +399,7 @@
     },
     {
       "id": "C3",
-      "claim": "Index-set splitting composes with the supported checked optimization routes.",
+      "claim": "The checked index-set-splitting validator establishes an exact semantic partition of the original instances, and this refinement composes with the supported checked optimization routes.",
       "evidence": [
         "artifact-check/iss-suite",
         "artifact-check/pluto-compat-suite",
@@ -367,6 +409,7 @@
         "extended/iss-live-suite"
       ],
       "theorem_surface": [
+        "ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct",
         "PolOptBandTiling.Opt_band_with_iss_correct",
         "PolOptBandTiling.Opt_identity_tiled_band_with_iss_correct",
         "PolOptBandTiling.Opt_diamond_band_with_iss_correct",
@@ -377,7 +420,7 @@
     },
     {
       "id": "C4",
-      "claim": "Explicit-current and untrusted Pluto-hinted parallel, multiparallel, and innermost-vector candidates enter checked compilation routes and verified code generation; non-innermost vector selections are rejected.",
+      "claim": "The annotation filter soundly establishes pairwise permutability for accepted coordinates; explicit-current and untrusted Pluto-hinted parallel, multiparallel, and innermost-vector candidates then enter checked compilation routes and verified code generation, while non-innermost vector selections are rejected. End-to-end annotation refinement is stated only for the restricted formal target semantics and does not claim external-runtime or SIMD adequacy.",
       "evidence": [
         "artifact-check/parallel-current-suite",
         "vector-current-suite",
@@ -385,18 +428,20 @@
         "artifact-check/proof-report"
       ],
       "theorem_surface": [
+        "ParallelValidator.check_pprog_parallel_currentb_sound",
         "ParallelPolOptCorrect.Opt_parallel_current_correct",
         "ParallelPolOptCorrect.Opt_parallel_current_many_correct",
         "ParallelPolOptCorrect.Opt_vector_current_correct",
-        "ParallelCodegen.checked_annotated_codegen_many_correct_general",
-        "ParallelCodegen.checked_vector_annotated_codegen_correct_general",
+        "ParallelCodegenCorrect.checked_annotated_codegen_many_correct_general",
+        "ParallelCodegenCorrect.checked_vector_annotated_codegen_correct_general",
         "ExtractedPipelineCorrect.extracted_parallel_compile_correct"
       ]
     },
     {
       "id": "C5",
-      "claim": "The milestone includes checked literal-stride lowering and the documented checked subset of unroll-and-jam post-passes.",
+      "claim": "The milestone includes checked literal-stride lowering and the documented checked subset of unroll-and-jam post-passes. The unroll-and-jam corpus isolates the checked post-pass on the --notile affine-validated route: all six native Pluto effects are covered and no checked run reports a tiling-validation route.",
       "evidence": [
+        "artifact-check/unrolljam-route-guard-unit",
         "artifact-check/end-to-end-c-stride-even",
         "artifact-check/end-to-end-c-stride-down",
         "artifact-check/end-to-end-c-const-unroll",
@@ -424,7 +469,7 @@
     }
   ],
   "profiles": {
-    "smoke": "Clean bootstrap plus the frozen implementation's smoke artifact check.",
+    "smoke": "Clean bootstrap plus the candidate implementation's smoke artifact check.",
     "full": "Default reviewer gate: clean bootstrap, core regression, full artifact check, and explicit vector-current coverage.",
     "extended": "Full profile plus the live Pluto-backed ISS suite; retained as additional evidence rather than a default gate because of its cost and larger integration surface."
   },

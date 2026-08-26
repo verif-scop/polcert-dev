@@ -35,12 +35,19 @@ EXTENDED_OUTER_ROUTES = FULL_OUTER_ROUTES + ("iss-live-suite",)
 
 BASE_ARTIFACT_ROUTES = (
     "py-compile-artifact-tools",
+    "artifact-runner-timeout-unit",
+    "release-provenance-unit",
+    "manifest-runner-fail-closed-unit",
+    "tiling-route-telemetry-unit",
+    "unrolljam-route-guard-unit",
+    "extracted-zero-fallback-gate",
     "proof-report",
     "capability-matrix",
     "codegen-gap-exploration",
     "unrolljam-effect-corpus",
     "identity-composition-exploration",
-    "direct-band-differential",
+    "direct-only-tiling-route-smoke",
+    "scalar-interleaved-tiling-route",
     "non-second-level-tiling-routes",
     "pluto-compat-suite",
     "end-to-end-c-const-unroll",
@@ -59,6 +66,7 @@ FULL_ARTIFACT_ROUTES = BASE_ARTIFACT_ROUTES + (
     "parallel-current-suite",
     "vector-current-suite",
 )
+EXTENDED_ARTIFACT_ROUTES = FULL_ARTIFACT_ROUTES + ("flag-effect-exploration",)
 
 
 class ClaimEvidenceError(RuntimeError):
@@ -76,6 +84,8 @@ def canonical_route_profiles() -> dict[str, tuple[str, ...]]:
         routes[f"artifact-check/{name}"] = PROFILES
     for name in set(FULL_ARTIFACT_ROUTES) - set(BASE_ARTIFACT_ROUTES):
         routes[f"artifact-check/{name}"] = ("full", "extended")
+    for name in set(EXTENDED_ARTIFACT_ROUTES) - set(FULL_ARTIFACT_ROUTES):
+        routes[f"artifact-check/{name}"] = ("extended",)
     return routes
 
 
@@ -92,8 +102,10 @@ def expected_outer_routes(profile: str) -> tuple[str, ...]:
 def expected_artifact_routes(profile: str) -> tuple[str, ...]:
     if profile == "smoke":
         return BASE_ARTIFACT_ROUTES
-    if profile in VERIFICATION_PROFILES:
+    if profile == "full":
         return FULL_ARTIFACT_ROUTES
+    if profile == "extended":
+        return EXTENDED_ARTIFACT_ROUTES
     raise ClaimEvidenceError(f"unsupported review profile: {profile}")
 
 

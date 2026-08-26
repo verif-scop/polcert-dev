@@ -47,11 +47,11 @@ class ClaimEvidenceTests(unittest.TestCase):
                 "compile_verified_correct",
                 "compile_unsupported_no_result",
             ],
-            "src/Extractor.v": ["extractor_correct"],
+            "src/ExtractorCorrect.v": ["extractor_correct"],
             "src/PrepareCodegen.v": ["prepared_codegen_correct_general"],
             "src/TilingBandDirectRuntime.v": [
                 "checked_second_level_direct_band_check_correct",
-                "checked_tiling_sourceb_first_direct_band_check_outer_correct",
+                "checked_tiling_sourceb_complete_direct_band_check_outer_correct",
                 "checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct"
             ],
             "src/TilingBandScheduleValidator.v": [
@@ -61,6 +61,15 @@ class ClaimEvidenceTests(unittest.TestCase):
                 "pprog_pluto_permutable_tiling_bands_strong_implies_reordering_safe_wf_with_env_len",
                 "pprog_pluto_componentwise_permutable_bands_implies_reordering_safe_if_local_bridge",
                 "second_level_local_reversal_bridge_by_layout_wf_with_env_len",
+            ],
+            "src/TilingBandMixedSecondValidator.v": [
+                "phase_separated_ordinary_reversal_same_class",
+                "phase_class_ordinary_local_reversal_bridge_wf_with_env_len",
+                "check_pprog_phase_separated_ordinary_direct_true_inv",
+                "check_pprog_phase_separated_ordinary_direct_correct_same_ctxt",
+            ],
+            "src/ISSValidatorCorrect.v": [
+                "checked_iss_complete_cut_shape_validate_semantics_correct"
             ],
             "driver/PolOptBandTiling.v": [
                 "Opt_band_with_iss_correct",
@@ -77,7 +86,10 @@ class ClaimEvidenceTests(unittest.TestCase):
                 "Opt_vector_current_correct",
                 "Opt_vector_current_with_iss_correct",
             ],
-            "src/ParallelCodegen.v": [
+            "src/ParallelValidator.v": [
+                "check_pprog_parallel_currentb_sound"
+            ],
+            "src/ParallelCodegenCorrect.v": [
                 "checked_annotated_codegen_many_correct_general",
                 "checked_vector_annotated_codegen_correct_general"
             ],
@@ -159,6 +171,9 @@ class ClaimEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(CLAIM_EVIDENCE.ClaimEvidenceError, "route plan mismatch"):
             self.verify(profile="extended")
         self.outer.append(self.result("outer", "iss-live-suite"))
+        self.artifact.append(
+            self.result("artifact-check", "flag-effect-exploration")
+        )
         report = self.verify(profile="extended")
         extended = [
             item
@@ -225,6 +240,17 @@ class ClaimEvidenceTests(unittest.TestCase):
         proof["admitted_count"] = 1
         self.write_json("artifact-check/proof-report.json", proof)
         with self.assertRaisesRegex(CLAIM_EVIDENCE.ClaimEvidenceError, "expected 0, got 1"):
+            self.verify()
+
+    def test_rejects_unrolljam_run_that_reports_a_tiling_route(self) -> None:
+        relative = "artifact-check/unrolljam-effect-corpus/summary.json"
+        summary = json.loads((self.results / relative).read_text())
+        summary["summary"]["polopt_tiling_route_reports"] = 1
+        self.write_json(relative, summary)
+        with self.assertRaisesRegex(
+            CLAIM_EVIDENCE.ClaimEvidenceError,
+            "polopt_tiling_route_reports.*expected 0, got 1",
+        ):
             self.verify()
 
     def test_structured_equals_is_type_strict(self) -> None:

@@ -1,6 +1,6 @@
 {
   "base_image": {
-    "reference": "hughshine/pluto-verif:polcert-pluto-iss-bridge-ac5ea83",
+    "reference": "hughshine/pluto-verif@sha256:0e15a7614af280b02ab0dc31f110c3ee3f7a1fe3ee3d1b503cc3400d87b4f4ce",
     "registry_digest": "sha256:0e15a7614af280b02ab0dc31f110c3ee3f7a1fe3ee3d1b503cc3400d87b4f4ce"
   },
   "captured_at": "2026-07-18T08:54:57.508267+00:00",

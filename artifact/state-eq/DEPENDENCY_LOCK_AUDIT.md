@@ -13,6 +13,26 @@ The classification record is
 [`dependency-lock-audit.json`](./dependency-lock-audit.json). The enforced
 content lock is [`locks/dependency-lock.json`](./locks/dependency-lock.json).
 
+## v9 Construction Update
+
+On 2026-08-26, a fresh execution of the historical source Dockerfile resolved
+`conf-pkg-config 5` instead of the locked version 4. The post-build lock rejected
+that image before the reviewer wrapper was created. This is the repository-drift
+case the original audit anticipated.
+
+The v9 builder no longer resolves apt or opam dependencies. It requires the
+full-reviewed v2 origin image at the exact local image ID recorded in
+`manifest.json`, verifies that ID, and uses the origin as the dependency base in
+`source-image.Dockerfile`. It replaces only the PolCert source tree, rebuilds the
+pinned Pluto commit, and configures the v9 tree. The complete dependency state
+is then verified again before the reviewer layer is added and at offline review
+startup.
+
+This closes package-resolution drift for the v9 image construction available on
+this machine. It does not make the origin independently downloadable: until the
+origin or final v9 image is exported or published by digest, another machine
+must import that exact authenticated image before rebuilding.
+
 ## Lock Status
 
 | Component | Status | Current enforcement |

@@ -1,15 +1,15 @@
 POLCERT_SOURCE ?=
-POLCERT_ARTIFACT_IMAGE ?= polcert-artifact:state-eq-2026-07-21-v3-candidate
+POLCERT_ARTIFACT_IMAGE ?= polcert-artifact:state-eq-2026-08-26-v9-candidate
 POLCERT_ARTIFACT_OUTPUT ?= $(CURDIR)/results
 POLCERT_PUBLICATION_REF ?=
-POLCERT_REVIEW_EVIDENCE ?= $(CURDIR)/evidence/2026-07-21-v3-full-review.json
+POLCERT_REVIEW_EVIDENCE ?= $(CURDIR)/evidence/2026-08-26-v9-full-review.json
 POLCERT_PUBLICATION_RECORD ?= $(CURDIR)/publication/publication-record.json
 POLCERT_DEPENDENCY_LOCK_DIR ?= $(CURDIR)/locks
 POLCERT_DEPENDENCY_LOCK_ORIGIN_IMAGE ?= polcert-artifact:state-eq-2026-05-25-v2
 POLCERT_DEPENDENCY_LOCK_ORIGIN_EVIDENCE ?= $(CURDIR)/evidence/2026-07-18-full-review.json
 POLCERT_REVIEW_RESULTS ?= $(POLCERT_ARTIFACT_OUTPUT)
 POLCERT_BUILD_METADATA ?= $(CURDIR)/build/build-metadata.json
-POLCERT_REVIEW_EVIDENCE_OUTPUT ?= $(CURDIR)/evidence/2026-07-21-v3-full-review.json
+POLCERT_REVIEW_EVIDENCE_OUTPUT ?= $(CURDIR)/evidence/2026-08-26-v9-full-review.json
 
 .PHONY: validate build smoke review extended reproduce archive-full-review review-evidence-validate review-evidence-test claim-evidence-test dependency-lock-capture dependency-lock-verify dependency-lock-test publication-test publication-validate publish-reviewed-image clean-results
 

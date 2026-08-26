@@ -29,7 +29,7 @@ EVIDENCE = ROOT / "evidence" / "2026-07-18-full-review.json"
 REVIEWED_ID = "sha256:573831494258848d553801ee244b9d49ee8f84c2d39716255637b2c8970bfd6f"
 REGISTRY_DIGEST = "sha256:" + "a" * 64
 DESTINATION = "registry.example.test/polcert/state-eq:state-eq-2026-05-25-v2"
-CANDIDATE = "polcert-artifact:state-eq-2026-07-21-v3-candidate"
+CANDIDATE = "polcert-artifact:state-eq-2026-08-26-v9-candidate"
 
 
 class PublishReviewedImageTests(unittest.TestCase):
@@ -76,7 +76,7 @@ class PublishReviewedImageTests(unittest.TestCase):
         return [json.loads(line) for line in self.log.read_text().splitlines()]
 
     def test_parses_realistic_docker_push_digest_line(self) -> None:
-        output = f"state-eq-v3: digest: {REGISTRY_DIGEST} size: 856\n"
+        output = f"state-eq-v5: digest: {REGISTRY_DIGEST} size: 856\n"
         repository = DESTINATION.rsplit(":", 1)[0]
         self.assertEqual(
             push_digest(output, repository),
@@ -95,11 +95,18 @@ class PublishReviewedImageTests(unittest.TestCase):
         evidence["review"]["executed_image_id"] = image_id
         evidence["review"]["elapsed_seconds"] = 13.0
         evidence["images"]["artifact"] = {"reference": CANDIDATE, "id": image_id}
+        evidence["images"]["dependency_origin"] = {
+            "reference": manifest["images"]["dependency_lock_origin"]["reference"],
+            "id": manifest["images"]["dependency_lock_origin"]["local_image_id"],
+        }
         evidence["environment"]["artifact_id"] = manifest["artifact"]["id"]
         evidence["environment"]["artifact_image_id"] = image_id
         evidence["environment"]["polcert_source_tag"] = manifest["polcert"]["tag"]
         evidence["environment"]["polcert_source_commit"] = manifest["polcert"]["commit"]
         evidence["environment"]["polcert_source_tree"] = manifest["polcert"]["tree"]
+        evidence["environment"]["pluto"] = (
+            f"PLUTO version {manifest['pluto']['commit'][:7]}"
+        )
         evidence["environment"][
             "network_contract"
         ] = "review command is run with Docker --network none"
@@ -145,6 +152,15 @@ class PublishReviewedImageTests(unittest.TestCase):
         evidence["claim_evidence"]["resolved_theorem_surface_entries"] = evidence[
             "claim_evidence"
         ]["theorem_surface_entries"]
+        evidence["tiling_validation"] = {
+            "gate_version": 2,
+            "exact_direct_only_schema_gate": True,
+            "recursive_zero_fallback_gate": True,
+            "all_accepted_tilings_direct_permutable_band": True,
+            "summary_sha256": evidence["review"]["raw_results"]["required_files"][
+                "artifact-check/tiling-route-summary.json"
+            ],
+        }
         evidence["capability_results"]["artifact_subchecks"] = len(
             EXPECTED_ARTIFACT_CHECKS
         )
@@ -152,6 +168,12 @@ class PublishReviewedImageTests(unittest.TestCase):
             EXPECTED_ARTIFACT_CHECKS
         )
         evidence["capability_results"]["pluto_compat_checks"] = 138
+        evidence["capability_results"]["strict_loop_suite"] = {
+            "total": 62,
+            "passed": 62,
+            "changed": 59,
+            "detected_tiled": 46,
+        }
         evidence["timing"] = {
             "make_jobs": 1,
             "parallel_make_requested": False,

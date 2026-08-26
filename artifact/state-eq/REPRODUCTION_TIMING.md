@@ -1,8 +1,53 @@
 # Reproduction Timing
 
-This note records the measured v3 review and retains the historical v2 planning
-baseline for comparison. Authoritative v3 values come from schema-v2 evidence
-generated from the untouched raw review directory.
+This note records the completed v9 measurement and retains the measured v3 and
+v2 baselines. Authoritative values come only from schema-v2 evidence generated
+from an untouched raw review directory.
+
+## Reviewed v9 Measurement
+
+The 2026-08-26 review ran immutable image
+`sha256:554ee8822bf7eca53e76b537e1e8f999787b1824a6b060d2e953dccf9b3476fc`
+with Docker networking disabled. The 13 outer gates and all 29 nested checks
+passed. Both the outer review and nested builds were serial (`make_jobs=1`).
+
+| Scope | Time |
+|---|---:|
+| Full 13-gate review | 5,173.2 s (86.2 min) |
+| Clean Coq proof build | 1,396.8 s (23.3 min) |
+| Extraction | 1,473.2 s (24.6 min) |
+| `polopt` build | 81.1 s |
+| `polcert` build | 1.5 s |
+| Core regression | 52.1 s |
+| Nested 29-check artifact run | 2,153.0 s (35.9 min) |
+| Strict 62-case loop suite | 252.7 s (4.2 min) |
+| `advect3d` strict case | 80.0 s (1.3 min) |
+
+Nested rows overlap with the full review and must not be summed. Extraction
+rebuilt nearly the complete proof dependency graph after the clean proof gate,
+so it took slightly longer than proof checking itself. This is the main
+remaining build-time optimization opportunity; it does not weaken the review.
+
+The compact record is `evidence/2026-08-26-v9-full-review.json`; its SHA-256 is
+`80b7ed282e622ca8ff844eba899f9c70c4a8853195ea9753247fb66ed90389ec`.
+It binds a 2,069-file, 6,777,749-byte raw result tree with SHA-256
+`3ea78f4bc97822cd33d51cb05885aa76ad7a5c2d86016cb5793e24be335b2a42`.
+Image construction was separate and is not included.
+
+## Exact v9 Remote CI Measurement
+
+The exact v9 source commit completed GitHub Actions run
+[`32958239151`](https://github.com/Hughshine/PolCert/actions/runs/32958239151)
+in 46 minutes 17 seconds. The clean proof build took 997 seconds, extraction
+152 seconds, `polcert` 27 seconds, and `polopt` 21 seconds. The seven test
+shards completed within a 21-minute-32-second critical window.
+
+This is not artifact review evidence. The CI constructs a shared image and
+runs seven independent jobs, whereas the artifact review executes one exact
+candidate image with Docker networking disabled and produces a bound raw
+result tree. The CI timing therefore establishes that the source commit passes
+the project workflow on a GitHub-hosted runner; it does not replace the
+schema-v2 artifact record above.
 
 ## Reviewed v3 Measurement
 
@@ -25,8 +70,8 @@ serial (`make_jobs=1`); no parallel make was requested.
 Nested rows overlap with the full review and must not be summed. The compact
 record is `evidence/2026-07-21-v3-full-review.json`; its SHA-256 is
 `c4a0d4607cfa774f0754d18a45cad95bb19e6bc3ac9236ce8e602a5df6a37f54`.
-Reviewers should reserve at least 90 minutes on a comparable host. Image
-construction is separate, requires network access, and is not included.
+This is a historical v3 measurement. Image construction was separate, required
+network access, and was not included.
 
 ## Historical v2 Baseline
 
@@ -46,8 +91,8 @@ the observed build was serial.
 | Strict 62-case loop suite | 355.4 s (5.9 min) |
 | `advect3d` strict case | 148.8 s (2.5 min) |
 
-This older run is not a v3 measurement and should not be used as the current
-review budget.
+This older run is neither a v3 nor v9 measurement and should not be used as the
+current review budget.
 
 ## Known Long Tail
 
@@ -65,9 +110,8 @@ the `lock-v1-full-review.json` schema-v2 result-tree digest.
 
 ## Parallel Runs
 
-Neither the 75.5-minute v3 review nor the 33.3-minute historical review is a
-parallel-build result. A future `-j4` or `-j$(nproc)` review may reduce
-proof-build time, but much of the nested suite consists of sequential compiler
-invocations. Do not quote a parallel estimate until it has been measured with
-a fresh result directory and archived alongside its job count and host CPU
-allocation.
+The 86.2-minute v9, 75.5-minute v3, and 33.3-minute v2 reviews are all serial.
+A future measured v9 `-j4` or `-j$(nproc)` review may reduce proof-build time,
+but much of the nested suite consists of sequential compiler invocations. Do
+not quote a parallel estimate until it has been measured with a fresh result
+directory and archived alongside its job count and host CPU allocation.

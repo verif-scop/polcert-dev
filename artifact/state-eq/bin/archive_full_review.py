@@ -32,6 +32,50 @@ SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 EXPECTED_OUTER_GATES = expected_outer_routes("full")
 EXPECTED_ARTIFACT_CHECKS = expected_artifact_routes("full")
+EXPECTED_TILING_ROUTE_SUMMARY = {
+    "schema_version": 1,
+    "verified": True,
+    "zero_tiling_validation_fallbacks": True,
+    "required_runtime_checks": {
+        "direct-only-tiling-route-smoke": "pass",
+        "non-second-level-tiling-routes": "pass",
+        "second-level-suite": "pass",
+        "pluto-compat-suite": "pass",
+        "scalar-interleaved-tiling-route": "pass",
+    },
+    "direct_route_smoke": {
+        "cases": 20,
+        "zero_fallbacks": True,
+    },
+    "non_second_level": {
+        "cases": 90,
+        "permutable_band": 84,
+        "validation_fallback": 0,
+        "explicit_vector_rejection": 6,
+    },
+    "second_level_manifest": {
+        "manifest_checks": 58,
+        "successful": 53,
+        "permutable_band": 53,
+        "validation_fallback": 0,
+        "negative": 5,
+    },
+    "second_level_additional_runtime_matrix": {
+        "standalone_phase_aligned": "permutable-band",
+        "standalone_source_like": "permutable-band",
+        "standalone_trailing_zero_normalized": "permutable-band",
+        "diamond_permutable_band": 16,
+        "diamond_explicit_vector_rejection": 4,
+        "verified": True,
+    },
+    "strict_loop_corpus": {
+        "run": True,
+        "permutable_band": 61,
+        "not_applicable_no_loop": 1,
+        "validation_fallback": 0,
+        "verified": True,
+    },
+}
 
 STATIC_RESULT_FILES = (
     "manifest.json",
@@ -51,6 +95,7 @@ STRUCTURED_RESULT_FILES = (
     "artifact-check/proof-report.json",
     "artifact-check/capability-matrix.json",
     "artifact-check/tiling-route-summary.json",
+    "artifact-check/unrolljam-effect-corpus/summary.json",
     "artifact-check/strict-loop-suite.stdout.txt",
     "logs/dependency-lock.stdout.txt",
     "logs/dependency-lock.stderr.txt",
@@ -158,7 +203,7 @@ def parse_strict_loop_summary(path: Path) -> dict[str, int]:
                 values[key] = int(value)
             except ValueError as exc:
                 raise EvidenceError(f"invalid strict-loop summary line: {line!r}") from exc
-    expected = {"total": 62, "ok": 62, "changed": 59, "detected_tiled": 39}
+    expected = {"total": 62, "ok": 62, "changed": 59, "detected_tiled": 46}
     if values != expected:
         raise EvidenceError(f"strict-loop summary mismatch: expected {expected}, got {values}")
     return {
@@ -205,6 +250,15 @@ def validate_proof_report(proof: dict[str, Any]) -> dict[str, int]:
         if result[field] != 0:
             raise EvidenceError(f"proof report requires {field}=0")
     return result
+
+
+def validate_zero_tiling_fallbacks(summary: dict[str, Any]) -> None:
+    """Require every accepted tiling route to use direct band validation."""
+
+    if summary != EXPECTED_TILING_ROUTE_SUMMARY:
+        raise EvidenceError(
+            "tiling route summary does not match the exact direct-only schema"
+        )
 
 
 def required_file_hashes(results_dir: Path) -> dict[str, str]:
@@ -293,10 +347,32 @@ def validate_compact_v2(
         raise EvidenceError("schema-v2 evidence artifact reference is not the manifest candidate")
     if not isinstance(image.get("id"), str) or not IMAGE_ID_RE.fullmatch(image["id"]):
         raise EvidenceError("schema-v2 evidence has invalid candidate image ID")
+    dependency_origin = evidence.get("images", {}).get("dependency_origin", {})
+    expected_dependency_origin = manifest.get("images", {}).get(
+        "dependency_lock_origin", {}
+    )
+    if dependency_origin != {
+        "reference": expected_dependency_origin.get("reference"),
+        "id": expected_dependency_origin.get("local_image_id"),
+    }:
+        raise EvidenceError("schema-v2 dependency origin differs from manifest")
     if evidence.get("packaging_revision") != manifest.get("artifact", {}).get(
         "packaging_revision"
     ):
         raise EvidenceError("schema-v2 packaging revision does not match manifest")
+
+    source = evidence.get("source", {})
+    source_manifest = manifest.get("polcert", {})
+    expected_source = {
+        field: source_manifest.get(field)
+        for field in ("tag", "tag_object", "commit", "tree", "archive_sha256")
+    }
+    if not isinstance(source, dict) or {
+        field: source.get(field) for field in expected_source
+    } != expected_source:
+        raise EvidenceError(
+            "schema-v2 source identity or archive differs from manifest"
+        )
 
     environment = evidence.get("environment", {})
     toolchain = manifest.get("toolchain", {})
@@ -342,6 +418,20 @@ def validate_compact_v2(
         for name, expected in static_hashes.items():
             if files.get(name) != expected:
                 raise EvidenceError(f"schema-v2 raw {name} does not match repository input")
+
+    tiling_validation = evidence.get("tiling_validation", {})
+    expected_tiling_validation = {
+        "gate_version": 2,
+        "exact_direct_only_schema_gate": True,
+        "recursive_zero_fallback_gate": True,
+        "all_accepted_tilings_direct_permutable_band": True,
+        "summary_sha256": files.get("artifact-check/tiling-route-summary.json"),
+    }
+    if tiling_validation != expected_tiling_validation:
+        raise EvidenceError(
+            "schema-v2 tiling validation does not certify the recursive "
+            "direct-permutable-band gate"
+        )
 
     claim_evidence = evidence.get("claim_evidence", {})
     for field in ("claims_sha256", "report_sha256"):
@@ -434,12 +524,12 @@ def validate_compact_v2(
         "total": 62,
         "passed": 62,
         "changed": 59,
-        "detected_tiled": 39,
+        "detected_tiled": 46,
     }
     if any(strict.get(field) != expected for field, expected in expected_strict.items()):
         raise EvidenceError(
             "schema-v2 strict-loop result requires "
-            "total=62, passed=62, changed=59, detected_tiled=39"
+            "total=62, passed=62, changed=59, detected_tiled=46"
         )
 
     timing = evidence.get("timing", {})
@@ -554,6 +644,11 @@ def build_evidence(
     proof = validate_proof_report(
         load_json(results_dir / "artifact-check" / "proof-report.json")
     )
+    tiling_summary_path = (
+        results_dir / "artifact-check" / "tiling-route-summary.json"
+    )
+    tiling_summary = load_json(tiling_summary_path)
+    validate_zero_tiling_fallbacks(tiling_summary)
     capability_matrix = load_json(
         results_dir / "artifact-check" / "capability-matrix.json"
     )
@@ -596,12 +691,22 @@ def build_evidence(
         "packaging_revision"
     ):
         raise EvidenceError("candidate packaging label differs from manifest")
+    dependency_origin = manifest.get("images", {}).get("dependency_lock_origin", {})
+    built_dependency_origin = build.get("dependency_origin_image", {})
+    if (
+        built_dependency_origin.get("reference") != dependency_origin.get("reference")
+        or built_dependency_origin.get("id") != dependency_origin.get("local_image_id")
+    ):
+        raise EvidenceError("build metadata dependency origin differs from manifest")
     source_archive_sha256 = build.get("source_archive_sha256")
     if not isinstance(source_archive_sha256, str) or not SHA256_RE.fullmatch(
         source_archive_sha256
     ):
         raise EvidenceError("build metadata has invalid source archive SHA-256")
+    if source_archive_sha256 != source_manifest.get("archive_sha256"):
+        raise EvidenceError("build metadata source archive differs from manifest")
     for label, expected in (
+        ("org.opencontainers.image.version", source_manifest.get("tag")),
         ("org.opencontainers.image.revision", source_manifest.get("commit")),
         ("io.polcert.source.tree", source_manifest.get("tree")),
         ("io.polcert.source.archive.sha256", source_archive_sha256),
@@ -641,6 +746,10 @@ def build_evidence(
                 "reference": build.get("source_image", {}).get("reference"),
                 "id": build.get("source_image", {}).get("id"),
             },
+            "dependency_origin": {
+                "reference": built_dependency_origin.get("reference"),
+                "id": built_dependency_origin.get("id"),
+            },
             "artifact": {"reference": image_reference, "id": image_id},
         },
         "environment": environment,
@@ -665,6 +774,13 @@ def build_evidence(
             "claims_sha256": computed_claim_evidence["claims_sha256"],
             "report_sha256": sha256(require_file(results_dir / "claim-evidence.json")),
             **computed_claim_evidence["summary"],
+        },
+        "tiling_validation": {
+            "gate_version": 2,
+            "exact_direct_only_schema_gate": True,
+            "recursive_zero_fallback_gate": True,
+            "all_accepted_tilings_direct_permutable_band": True,
+            "summary_sha256": sha256(require_file(tiling_summary_path)),
         },
         "proof_report": proof,
         "capability_results": {

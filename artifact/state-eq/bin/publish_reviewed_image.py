@@ -29,7 +29,7 @@ from claim_evidence import ClaimEvidenceError, claim_json_assertion_equals
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_EVIDENCE = ROOT / "evidence" / "2026-07-21-v3-full-review.json"
+DEFAULT_EVIDENCE = ROOT / "evidence" / "2026-08-26-v9-full-review.json"
 DEFAULT_RECORD = ROOT / "publication" / "publication-record.json"
 MANIFEST = ROOT / "manifest.json"
 IMAGE_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -99,7 +99,12 @@ def load_review_evidence(path: Path) -> tuple[dict[str, Any], str]:
         lock.get("source", {}) if schema_version == 1 else manifest.get("polcert", {})
     )
     source = evidence.get("source", {})
-    for field in ("tag", "commit", "tree"):
+    source_fields = (
+        ("tag", "commit", "tree")
+        if schema_version == 1
+        else ("tag", "tag_object", "commit", "tree", "archive_sha256")
+    )
+    for field in source_fields:
         if source.get(field) != expected_source.get(field):
             raise PublicationError(
                 f"review evidence source {field} does not match the State.eq manifest"

@@ -25,6 +25,7 @@ def main() -> int:
     parser.add_argument("--image", required=True)
     parser.add_argument("--source-image", required=True)
     parser.add_argument("--pluto-base-image", required=True)
+    parser.add_argument("--dependency-origin-image", required=True)
     parser.add_argument("--source-archive-sha256", required=True)
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
@@ -35,6 +36,7 @@ def main() -> int:
         "manifest": json.loads(args.manifest.read_text()),
         "source_archive_sha256": args.source_archive_sha256,
         "pluto_base_image": inspect(args.pluto_base_image),
+        "dependency_origin_image": inspect(args.dependency_origin_image),
         "source_image": inspect(args.source_image),
         "artifact_image": inspect(args.image),
     }

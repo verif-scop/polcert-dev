@@ -25,7 +25,7 @@ ARCHIVE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = ARCHIVE
 SPEC.loader.exec_module(ARCHIVE)
 
-CANDIDATE = "polcert-artifact:state-eq-2026-07-21-v3-candidate"
+CANDIDATE = "polcert-artifact:state-eq-2026-08-26-v9-candidate"
 IMAGE_ID = "sha256:" + "a" * 64
 
 
@@ -64,7 +64,7 @@ class ArchiveFullReviewTests(unittest.TestCase):
             "ocaml": "4.13.1",
             "coq": "The Coq Proof Assistant, version 8.13.2",
             "python": "3.8.10",
-            "pluto": "PLUTO version 6f43860",
+            "pluto": f"PLUTO version {manifest['pluto']['commit'][:7]}",
             "network_contract": "review command is run with Docker --network none",
         }
         self.write_json("environment.json", environment)
@@ -93,6 +93,10 @@ class ArchiveFullReviewTests(unittest.TestCase):
             self.results, json.loads((self.results / "claims.json").read_text())
         )
         self.write_json(
+            "artifact-check/tiling-route-summary.json",
+            copy.deepcopy(ARCHIVE.EXPECTED_TILING_ROUTE_SUMMARY),
+        )
+        self.write_json(
             "artifact-check/proof-report.json",
             {
                 "coq_file_count": 185,
@@ -106,13 +110,13 @@ class ArchiveFullReviewTests(unittest.TestCase):
                         "compile_verified_correct",
                         "compile_unsupported_no_result",
                     ],
-                    "src/Extractor.v": ["extractor_correct"],
+                    "src/ExtractorCorrect.v": ["extractor_correct"],
                     "src/PrepareCodegen.v": [
                         "prepared_codegen_correct_general",
                     ],
                     "src/TilingBandDirectRuntime.v": [
                         "checked_second_level_direct_band_check_correct",
-                        "checked_tiling_sourceb_first_direct_band_check_outer_correct",
+                        "checked_tiling_sourceb_complete_direct_band_check_outer_correct",
                         "checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct"
                     ],
                     "src/TilingBandScheduleValidator.v": [
@@ -122,6 +126,15 @@ class ArchiveFullReviewTests(unittest.TestCase):
                         "pprog_pluto_permutable_tiling_bands_strong_implies_reordering_safe_wf_with_env_len",
                         "pprog_pluto_componentwise_permutable_bands_implies_reordering_safe_if_local_bridge",
                         "second_level_local_reversal_bridge_by_layout_wf_with_env_len",
+                    ],
+                    "src/TilingBandMixedSecondValidator.v": [
+                        "phase_separated_ordinary_reversal_same_class",
+                        "phase_class_ordinary_local_reversal_bridge_wf_with_env_len",
+                        "check_pprog_phase_separated_ordinary_direct_true_inv",
+                        "check_pprog_phase_separated_ordinary_direct_correct_same_ctxt",
+                    ],
+                    "src/ISSValidatorCorrect.v": [
+                        "checked_iss_complete_cut_shape_validate_semantics_correct"
                     ],
                     "driver/PolOptBandTiling.v": [
                         "Opt_band_with_iss_correct",
@@ -138,7 +151,10 @@ class ArchiveFullReviewTests(unittest.TestCase):
                         "Opt_vector_current_correct",
                         "Opt_vector_current_with_iss_correct",
                     ],
-                    "src/ParallelCodegen.v": [
+                    "src/ParallelValidator.v": [
+                        "check_pprog_parallel_currentb_sound"
+                    ],
+                    "src/ParallelCodegenCorrect.v": [
                         "checked_annotated_codegen_many_correct_general",
                         "checked_vector_annotated_codegen_correct_general"
                     ],
@@ -162,7 +178,7 @@ class ArchiveFullReviewTests(unittest.TestCase):
         )
         (self.results / "artifact-check/strict-loop-suite.stdout.txt").write_text(
             "[3/62] advect3d: ok changed=true time=148.80s\n"
-            "total=62\nok=62\nchanged=59\ndetected_tiled=39\n"
+            "total=62\nok=62\nchanged=59\ndetected_tiled=46\n"
         )
         claims_bytes = (self.results / "claims.json").read_bytes()
         claim_evidence = ARCHIVE.verify_claim_evidence(
@@ -181,10 +197,18 @@ class ArchiveFullReviewTests(unittest.TestCase):
                 {
                     "recorded_at": "2026-07-18T11:55:00+00:00",
                     "manifest": manifest,
-                    "source_archive_sha256": "b" * 64,
+                    "source_archive_sha256": manifest["polcert"]["archive_sha256"],
                     "pluto_base_image": {
                         "reference": manifest["pluto"]["base_image"],
                         "id": manifest["pluto"]["base_image_digest"],
+                    },
+                    "dependency_origin_image": {
+                        "reference": manifest["images"]["dependency_lock_origin"][
+                            "reference"
+                        ],
+                        "id": manifest["images"]["dependency_lock_origin"][
+                            "local_image_id"
+                        ],
                     },
                     "source_image": {
                         "reference": f"polcert-artifact-source:{manifest['polcert']['commit'][:12]}",
@@ -197,11 +221,16 @@ class ArchiveFullReviewTests(unittest.TestCase):
                             "io.polcert.packaging.revision": manifest["artifact"][
                                 "packaging_revision"
                             ],
+                            "org.opencontainers.image.version": manifest["polcert"][
+                                "tag"
+                            ],
                             "org.opencontainers.image.revision": manifest["polcert"][
                                 "commit"
                             ],
                             "io.polcert.source.tree": manifest["polcert"]["tree"],
-                            "io.polcert.source.archive.sha256": "b" * 64,
+                            "io.polcert.source.archive.sha256": manifest["polcert"][
+                                "archive_sha256"
+                            ],
                         },
                     },
                 }
@@ -268,6 +297,14 @@ class ArchiveFullReviewTests(unittest.TestCase):
         self.assertEqual(first["schema_version"], 2)
         self.assertEqual(first["review"]["executed_image_id"], IMAGE_ID)
         self.assertEqual(first["environment"]["artifact_image_id"], IMAGE_ID)
+        manifest = json.loads(self.manifest.read_text())
+        self.assertEqual(
+            first["images"]["dependency_origin"],
+            {
+                "reference": manifest["images"]["dependency_lock_origin"]["reference"],
+                "id": manifest["images"]["dependency_lock_origin"]["local_image_id"],
+            },
+        )
         self.assertEqual(
             [item["name"] for item in first["top_level_results"]],
             list(ARCHIVE.EXPECTED_OUTER_GATES),
@@ -278,12 +315,58 @@ class ArchiveFullReviewTests(unittest.TestCase):
         self.assertEqual(first["timing"]["advect3d_seconds"], 148.8)
         self.assertEqual(first["claim_evidence"]["claim_count"], 6)
         self.assertEqual(first["claim_evidence"]["verified_claims"], 6)
+        self.assertEqual(
+            first["tiling_validation"],
+            {
+                "gate_version": 2,
+                "exact_direct_only_schema_gate": True,
+                "recursive_zero_fallback_gate": True,
+                "all_accepted_tilings_direct_permutable_band": True,
+                "summary_sha256": ARCHIVE.sha256(
+                    (
+                        self.results
+                        / "artifact-check/tiling-route-summary.json"
+                    ).read_bytes()
+                ),
+            },
+        )
         ARCHIVE.validate_compact_v2(
             first,
             json.loads(self.manifest.read_text()),
             ARCHIVE.sha256(self.lock.read_bytes()),
             claims=json.loads((ROOT / "claims.json").read_text()),
         )
+
+    def test_compact_validation_rejects_source_identity_mutation(self) -> None:
+        evidence = self.build()
+        manifest = json.loads(self.manifest.read_text())
+        claims = json.loads((ROOT / "claims.json").read_text())
+        for field in ("tag", "tag_object", "commit", "tree", "archive_sha256"):
+            with self.subTest(field=field):
+                changed = copy.deepcopy(evidence)
+                changed["source"][field] = "changed"
+                with self.assertRaisesRegex(
+                    ARCHIVE.EvidenceError,
+                    "source identity or archive",
+                ):
+                    ARCHIVE.validate_compact_v2(
+                        changed,
+                        manifest,
+                        ARCHIVE.sha256(self.lock.read_bytes()),
+                        claims=claims,
+                    )
+
+    def test_refuses_candidate_version_label_drift(self) -> None:
+        metadata = json.loads(self.build_metadata.read_text())
+        metadata["artifact_image"]["labels"]["org.opencontainers.image.version"] = (
+            "wrong-tag"
+        )
+        self.build_metadata.write_text(json.dumps(metadata))
+        with self.assertRaisesRegex(
+            ARCHIVE.EvidenceError,
+            "org.opencontainers.image.version",
+        ):
+            self.build()
 
     def test_refuses_raw_image_id_mismatch(self) -> None:
         other = "sha256:" + "d" * 64
@@ -300,6 +383,66 @@ class ArchiveFullReviewTests(unittest.TestCase):
                 with self.assertRaisesRegex(ARCHIVE.EvidenceError, "image ID"):
                     self.build()
                 self.write_json(relative, original)
+
+    def test_refuses_non_exact_direct_only_tiling_evidence(self) -> None:
+        path = self.results / "artifact-check/tiling-route-summary.json"
+        original = json.loads(path.read_text())
+        mutations = (
+            lambda item: item.setdefault("future_layout", {}).update(
+                validation_fallback=1
+            ),
+            lambda item: item.setdefault("future_layout", {}).update(
+                accepted_route="general-fallback"
+            ),
+            lambda item: item.setdefault("future_layout", {}).update(
+                accepted_route="affine-validator"
+            ),
+            lambda item: item["second_level_additional_runtime_matrix"].update(
+                standalone_source_like="legacy-validator"
+            ),
+        )
+        for index, mutate in enumerate(mutations):
+            with self.subTest(index=index):
+                summary = copy.deepcopy(original)
+                mutate(summary)
+                self.write_json(
+                    "artifact-check/tiling-route-summary.json", summary
+                )
+                self.refresh_claim_evidence()
+                with self.assertRaisesRegex(ARCHIVE.EvidenceError, "direct-only"):
+                    self.build()
+        self.write_json("artifact-check/tiling-route-summary.json", original)
+        self.refresh_claim_evidence()
+
+    def test_compact_validation_rejects_tiling_gate_mutation(self) -> None:
+        evidence = self.build()
+        manifest = json.loads(self.manifest.read_text())
+        claims = json.loads((ROOT / "claims.json").read_text())
+        mutations = (
+            lambda item: item["tiling_validation"].update(
+                recursive_zero_fallback_gate=False
+            ),
+            lambda item: item["tiling_validation"].update(
+                exact_direct_only_schema_gate=False
+            ),
+            lambda item: item["tiling_validation"].update(
+                summary_sha256="0" * 64
+            ),
+            lambda item: item.pop("tiling_validation"),
+        )
+        for index, mutate in enumerate(mutations):
+            with self.subTest(index=index):
+                changed = copy.deepcopy(evidence)
+                mutate(changed)
+                with self.assertRaisesRegex(
+                    ARCHIVE.EvidenceError, "tiling validation"
+                ):
+                    ARCHIVE.validate_compact_v2(
+                        changed,
+                        manifest,
+                        ARCHIVE.sha256(self.lock.read_bytes()),
+                        claims=claims,
+                    )
 
     def test_refuses_missing_or_reordered_dependency_lock_gate(self) -> None:
         original = self.claim()
@@ -343,7 +486,7 @@ class ArchiveFullReviewTests(unittest.TestCase):
         self.refresh_claim_evidence()
         (self.results / "artifact-check/strict-loop-suite.stdout.txt").write_text(
             "[3/62] advect3d: ok changed=true time=148.80s\n"
-            "total=62\nok=62\nchanged=58\ndetected_tiled=39\n"
+            "total=62\nok=62\nchanged=58\ndetected_tiled=46\n"
         )
         with self.assertRaisesRegex(
             ARCHIVE.EvidenceError, "strict-loop-suite.*changed=59.*got 0"
@@ -352,7 +495,7 @@ class ArchiveFullReviewTests(unittest.TestCase):
 
     def test_refuses_missing_advect3d_timing(self) -> None:
         (self.results / "artifact-check/strict-loop-suite.stdout.txt").write_text(
-            "total=62\nok=62\nchanged=59\ndetected_tiled=39\n"
+            "total=62\nok=62\nchanged=59\ndetected_tiled=46\n"
         )
         self.refresh_claim_evidence()
         with self.assertRaisesRegex(ARCHIVE.EvidenceError, "advect3d"):
@@ -371,6 +514,14 @@ class ArchiveFullReviewTests(unittest.TestCase):
                 CANDIDATE,
                 IMAGE_ID,
             )
+
+    def test_compact_required_files_include_unrolljam_summary(self) -> None:
+        evidence = self.build()
+        required = evidence["review"]["raw_results"]["required_files"]
+        self.assertIn(
+            "artifact-check/unrolljam-effect-corpus/summary.json",
+            required,
+        )
 
     def test_refuses_claim_evidence_report_mutation(self) -> None:
         report_path = self.results / "claim-evidence.json"
