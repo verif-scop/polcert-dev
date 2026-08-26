@@ -54,7 +54,8 @@ For this repository, the paper-facing bibliography lives at:
 After the RefChecker pass, also run:
 
 ```bash
-python3 doc/pluto-comprehensive/paper-local/bib/check_bibliography.py
+python3 doc/pluto-comprehensive/paper-local/bib/check_bibliography.py \
+  --tex-root paper
 ```
 
 That local script checks cited-key and curated-copy consistency, which RefChecker does not cover.

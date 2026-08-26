@@ -27,7 +27,12 @@ Before any substantial paper edit, read:
 
 - `doc/pluto-comprehensive/paper-local/STATUS.md`
 - `doc/pluto-comprehensive/paper-local/TODO.md`
-- `doc/pluto-comprehensive/paper-local/REVIEW_LOG.md`
+- `doc/pluto-comprehensive/paper-local/workflow/claims/contribution_contract.md`
+- `doc/pluto-comprehensive/paper-local/workflow/story/narrative.md`
+
+For review history, use
+`doc/pluto-comprehensive/paper-local/workflow/reviews/paper_review_log.md`.
+Historical material under `archive/` does not control current prose.
 
 Then read only the target section files you need.
 
@@ -55,8 +60,13 @@ Always calibrate prose against the narrowest trusted boundary.
 
 - Do not let the abstract or introduction outrun the correctness section.
 - Do not let current code paths automatically become theorem claims.
-- If a route is experimental, say that it is experimental.
-- If the default theorem remains sequential affine-plus-tiling, say so plainly.
+- The headline theorem is the unified structured-loop-to-`ParallelLoop`
+  refinement theorem in the frozen v9 source.
+- Parallel targets admit raw order-preserving interleavings; safety is supplied
+  by checked eligibility certificates and generated-event origin proofs, not by
+  a semantic safety gate.
+- Vectorization is the innermost restricted parallel case in the paper narrative;
+  do not claim machine-SIMD adequacy.
 - Distinguish:
   - implemented route
   - checked route
@@ -65,11 +75,11 @@ Always calibrate prose against the narrowest trusted boundary.
 
 High-risk topics in this workspace include:
 
-- diamond tiling support
-- checked parallelization maturity
+- direct-only ordinary, hierarchical, and diamond tiling support
+- raw parallel interleavings versus eligibility-filter soundness
 - what `li2024affine` directly proves
-- whether theorem statements bind all semantic objects they mention
-- what `StateEq` and related cross-model refinement assumptions actually mean
+- inherited affine validation and loop generation versus new composition work
+- target-to-source termination-bounded refinement versus equivalence or progress
 
 ## Writing style anchors
 
@@ -99,7 +109,8 @@ keep the same standard of scope honesty.
 
 ## Theorem-writing discipline
 
-When editing `correctness.tex` or `relation.tex`:
+When editing theorem prose in `paper/sections/semantics.tex`,
+`paper/sections/tiling.tex`, or `paper/sections/composition.tex`:
 
 - bind every semantic object mentioned in a theorem statement
 - state the success domain or preconditions of pipeline functions
@@ -125,7 +136,7 @@ Before finishing a paper-writing task:
 
 1. Re-read the edited section plus the nearest neighboring section.
 2. If you touched abstract/introduction/conclusion, compare them against
-   `correctness.tex`.
+   `paper/sections/semantics.tex` and `paper/sections/composition.tex`.
 3. If you touched related work, compare prose against the audited bibliography
    notes.
 4. If you touched theorem prose, check whether the statement now binds all
