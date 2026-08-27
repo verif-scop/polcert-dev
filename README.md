@@ -6,7 +6,7 @@ maintained in a separate Git worktree and is not tracked here.
 
 ## Current Sources
 
-- Proof and compiler source: `work/parallel-interleaving/`
+- Proof and compiler source: `work/verified-compilation-v9/`
   - branch: `artifact/verified-compilation-v9-candidate`
   - commit: `604587ecfec9ff3bf6be655dd66e25af6178d604`
   - tag: `state-eq-polyhedral-verification-complete-2026-08-26-v9`

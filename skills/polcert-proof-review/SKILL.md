@@ -5,7 +5,7 @@ description: Review the frozen PolCert v9 Rocq proof top down, map paper claims 
 
 # PolCert Proof Review
 
-Use this skill for the frozen implementation in `work/parallel-interleaving/`.
+Use this skill for the frozen implementation in `work/verified-compilation-v9/`.
 Before relying on line numbers or theorem inventories, verify:
 
 - branch `artifact/verified-compilation-v9-candidate`;
