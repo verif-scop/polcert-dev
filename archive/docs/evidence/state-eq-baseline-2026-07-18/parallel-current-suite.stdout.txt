@@ -1,8 +1,0 @@
-make[1]: Entering directory '/tmp/polcert-state-eq-v2-repro'
-make -f Makefile.extr polopt
-make[2]: Entering directory '/tmp/polcert-state-eq-v2-repro'
-make[2]: Leaving directory '/tmp/polcert-state-eq-v2-repro'
-python3 tools/parallel_current/run_parallel_current_suite.py \
-	--polopt ./polopt
-[PARALLEL-CURRENT] OK
-make[1]: Leaving directory '/tmp/polcert-state-eq-v2-repro'

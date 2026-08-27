@@ -18,8 +18,9 @@ maintained in a separate Git worktree and is not tracked here.
 Each source, artifact, and paper directory has its own Git state. Inspect and
 commit them separately. The ignored `output/`, `tmp/`, and `work/` directories
 contain generated results, temporary files, and independent source worktrees.
-The hidden `.work/` and `.worktree/` directories are legacy local scratch and
-registered historical worktrees; they are not part of the active release tree.
+The hidden `.work/` directory contains legacy local scratch. `.worktree/`
+contains a storage-generalization worktree with uncommitted changes; neither is
+part of the active release tree.
 
 ## Active Responsibilities
 
@@ -44,14 +45,14 @@ Historical paper drafts and plans live under that repository's `archive/`.
 
 Active skills must point to current source and paper locations. Skills tied to
 the retired `gifted_curie:/polcert` workflow or completed one-off proof efforts
-are retained under `archive/skills/` and must not be selected for current work.
+were removed from the current tree and remain available in Git history.
 
 ## Archive
 
 `archive/` preserves superseded development logs, proof plans, design notes,
-Pluto prototypes, storage-generalization experiments, and retired skills. These
-files remain available for provenance but do not define the current artifact,
-paper narrative, or proof-reading path.
+and possible-bug records. Reproducible outputs, obsolete prototypes, duplicated
+research trees, and retired executable workflows were deleted. Archived files
+do not define the current artifact, paper narrative, or proof-reading path.
 
 The active source of truth is ordered as follows:
 

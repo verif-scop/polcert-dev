@@ -1,9 +1,0 @@
-(executable
- (name pluto_tiling_ocaml)
- (modules tiling_core pluto_tiling_ocaml)
- (libraries yojson))
-
-(executable
- (name design_validator_prototype)
- (modules tiling_core design_validator_core design_validator_prototype)
- (libraries yojson))
