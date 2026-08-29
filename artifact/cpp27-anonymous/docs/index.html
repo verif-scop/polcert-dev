@@ -15,9 +15,8 @@
     <a href="#project-map">Project map</a>
     <a href="#top-level">Top-level proof</a>
     <a href="#proof-spine">Proof structure</a>
-    <a href="#components">Proof by component</a>
-    <a href="#crosswalk">Paper claims</a>
-    <a href="#evidence">Evidence</a>
+    <a href="#components">Core proof reading</a>
+    <a href="#crosswalk">Proof and evidence</a>
     <a href="#scope">Scope</a>
     <div class="minor">
       <a href="proof/toc.html">Rocq module index</a>
@@ -178,7 +177,7 @@
       <p>
         These examples instantiate the formal instruction interface by hand;
         they do not make C parsing part of the theorem. The
-        <a href="../evidence/proof-and-test-results/raw-output/typed-c-pipeline.stdout.txt">six-case typed pipeline record</a>
+        <a href="../evidence/proof-and-test-results/test-catalog.html#typed-instruction-programs">six-case typed pipeline record</a>
         shows the accepted transformations and their observed structural
         effects in remote CI.
       </p>
@@ -208,16 +207,6 @@
         all such executions are safe; the target language does not assume it.
       </p>
 
-      <h3>What the Theorem Covers</h3>
-      <table>
-        <thead><tr><th>Covered</th><th>Not covered</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>The source and target models, extracted checks, their composition, loop generation, and parallel annotations.</td>
-            <td>The optimizer's search, text input and output, the external C compiler, the runtime system, and hardware.</td>
-          </tr>
-        </tbody>
-      </table>
     </section>
 
     <section id="project-map">
@@ -367,33 +356,17 @@
         </div>
       </div>
 
-      <h3>Reading Budget</h3>
-      <p>
-        These counts cover nonempty lines inside selected proof bodies. They
-        estimate reading effort, not total implementation size.
-      </p>
-      <table>
-        <thead><tr><th>Area</th><th>Included argument</th><th>Proof-body lines</th></tr></thead>
-        <tbody>
-          <tr><td>Source translation</td><td>Reconstruct source executions from the model</td><td>700</td></tr>
-          <tr><td>ISS</td><td>Show that the split is disjoint and complete</td><td>376</td></tr>
-          <tr><td>Schedule checking</td><td>Exclude unsafe order changes</td><td>410</td></tr>
-          <tr><td>Tiling representation</td><td>Match tiled and original instances</td><td>332</td></tr>
-          <tr><td>Tiling order</td><td>Check supported layouts and their order</td><td>1,246</td></tr>
-          <tr><td>Parallel code generation</td><td>Relate generated parallel executions to source executions</td><td>725</td></tr>
-          <tr><td>Compiler composition</td><td>Compose components into the public theorem</td><td>105</td></tr>
-          <tr><th colspan="2">All listed core components, including optional ISS</th><th>3,894</th></tr>
-        </tbody>
-      </table>
-      <p>
-        The typical path does not use the optional ISS proof, so the
-        total is not the size of a single compiler path. The exact files and
-        counting rule are in <a href="reading-budget.json"><code>reading-budget.json</code></a>.
-      </p>
     </section>
 
     <section id="components">
-      <h2>Proof by Component</h2>
+      <h2>Core Proof Reading</h2>
+      <p>
+        Start from each question, then follow its main theorem into the proof
+        page or source. The selected-reading counts cover extraction, optional
+        ISS, affine scheduling, tiling, and parallel code generation. They
+        count nonempty lines in proof bodies chosen for a first pass, not
+        entire components or the full proof. Loop postpasses are not included.
+      </p>
 
       <article class="component" id="claim-extraction">
         <h3>Building the Polyhedral Model</h3>
@@ -406,6 +379,8 @@
           <dd>The proof follows the structure of the source loop. It identifies the instances produced by each iteration and joins them in source order. Every segment of the model's execution can then be mapped back to the source statement or loop that produced it.</dd>
           <dt>Main theorem</dt>
           <dd><a href="proof/polcert.src.ExtractorCorrect.html#ExtractorCorrect.extractor_correct"><code>ExtractorCorrect.extractor_correct</code></a></dd>
+          <dt>Selected reading</dt>
+          <dd>700 proof-body lines: the reconstruction lemmas leading to <code>extractor_correct</code>.</dd>
           <dt>Source</dt>
           <dd><a href="../source/src/ExtractorFrontend.v"><code>ExtractorFrontend.v</code></a>, <a href="../source/src/ExtractorFacts.v"><code>ExtractorFacts.v</code></a>, <a href="../source/src/ExtractorCorrect.v"><code>ExtractorCorrect.v</code></a></dd>
         </dl>
@@ -422,6 +397,8 @@
           <dd>Coverage ensures that every original instance remains; disjointness ensures that it appears only once. Joining the executions of all parts therefore reconstructs the original execution.</dd>
           <dt>Main theorem</dt>
           <dd><a href="proof/polcert.src.ISSValidatorCorrect.html#ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct"><code>checked_iss_complete_cut_shape_validate_semantics_correct</code></a></dd>
+          <dt>Selected reading</dt>
+          <dd>376 proof-body lines: partition, injectivity, flattening, and the checked ISS endpoint.</dd>
           <dt>Source</dt>
           <dd><a href="../source/src/ISSRefinement.v"><code>ISSRefinement.v</code></a>, <a href="../source/src/ISSCutSemantics.v"><code>ISSCutSemantics.v</code></a>, <a href="../source/src/ISSValidatorCorrect.v"><code>ISSValidatorCorrect.v</code></a></dd>
         </dl>
@@ -438,6 +415,8 @@
           <dd>If no unsafe reversed pair exists, the new order can be obtained through safe exchanges of adjacent instances. Each exchange preserves the state, so the complete reordered execution does too.</dd>
           <dt>Main theorem</dt>
           <dd><a href="proof/polcert.src.AffineValidator.html#AffineValidator.validate_correct"><code>AffineValidator.validate_correct</code></a></dd>
+          <dt>Selected reading</dt>
+          <dd>410 proof-body lines: conflict checking, list lifting, and <code>validate_correct</code>.</dd>
           <dt>Source</dt>
           <dd><a href="../source/src/AffineValidator.v"><code>AffineValidator.v</code></a></dd>
         </dl>
@@ -454,6 +433,8 @@
           <dd>Integer division and remainder map each original index to one tiled coordinate and back. This proves that tiling preserves the work. A separate argument proves that the checked tile order is safe for ordinary, two-level, and diamond layouts.</dd>
           <dt>Main theorems</dt>
           <dd><a href="proof/polcert.src.TilingRelation.html#TilingRelation.tiling_retiled_old_to_before_instance_correct_source"><code>tiling_retiled_old_to_before_instance_correct_source</code></a>; <a href="proof/polcert.src.TilingBandScheduleValidator.html#TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe"><code>semantic_componentwise_permutable_implies_reordering_safe</code></a>; <a href="proof/polcert.src.TilingBandDirectRuntime.html#TilingBandDirectRuntime.checked_tiling_sourceb_complete_direct_band_check_correct"><code>checked_tiling_sourceb_complete_direct_band_check_correct</code></a></dd>
+          <dt>Selected reading</dt>
+          <dd>1,578 proof-body lines: 332 for the tiled-instance correspondence and 1,246 for ordinary-band order safety.</dd>
           <dt>Source</dt>
           <dd><a href="../source/src/TilingWitness.v"><code>TilingWitness.v</code></a>, <a href="../source/src/TilingRelation.v"><code>TilingRelation.v</code></a>, <a href="../source/src/TilingBandScheduleValidator.v"><code>TilingBandScheduleValidator.v</code></a>, <a href="../source/src/TilingBandDirectRuntime.v"><code>TilingBandDirectRuntime.v</code></a></dd>
         </dl>
@@ -470,6 +451,8 @@
           <dd>The target model allows any interleaving that preserves the order inside each iteration. The proof maps every generated event back to a checked statement instance, then uses the validator result to reorder the interleaved execution into an equivalent sequential one. The existing sequential code-generation theorem finishes the argument.</dd>
           <dt>Main theorems</dt>
           <dd><a href="proof/polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.annotated_codegen_many_raw_semantics_ordered"><code>annotated_codegen_many_raw_semantics_ordered</code></a>; <a href="proof/polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.checked_annotated_codegen_many_correct_general_certified"><code>checked_annotated_codegen_many_correct_general_certified</code></a></dd>
+          <dt>Selected reading</dt>
+          <dd>725 proof-body lines: eligibility, generated-instance origin, interleaving serialization, cleanup, and the checked endpoint.</dd>
           <dt>Source</dt>
           <dd><a href="../source/polygen/ParallelLoop.v"><code>ParallelLoop.v</code></a>, <a href="../source/src/ParallelValidator.v"><code>ParallelValidator.v</code></a>, <a href="../source/src/RawCodegenOrigin.v"><code>RawCodegenOrigin.v</code></a>, <a href="../source/src/ParallelCodegenCorrect.v"><code>ParallelCodegenCorrect.v</code></a></dd>
         </dl>
@@ -498,7 +481,12 @@
     </section>
 
     <section id="crosswalk">
-      <h2>Paper Claims</h2>
+      <h2>Proof and Evidence</h2>
+      <p>
+        Use the proof entry to inspect the argument and the recorded evidence
+        to inspect proof status or executable coverage. The complete test
+        catalog is grouped by transformation and purpose.
+      </p>
       <table>
         <thead><tr><th>Claim</th><th>Proof entry</th><th>Recorded checks</th></tr></thead>
         <tbody>
@@ -515,81 +503,27 @@
           <tr>
             <td>Index-set splitting</td>
             <td><a href="#claim-iss">complete, non-overlapping split</a></td>
-            <td><a href="../evidence/proof-and-test-results/raw-output/iss-suite.stdout.txt">index-set splitting tests</a></td>
+            <td><a href="../evidence/proof-and-test-results/test-catalog.html#index-set-splitting-iss">index-set splitting tests</a></td>
           </tr>
           <tr>
             <td>Schedule checking and tiling</td>
             <td><a href="#claim-affine">schedule proof</a>; <a href="#claim-tiling">tiling proof</a></td>
-            <td><a href="../evidence/proof-and-test-results/raw-output/pluto-compat-suite.stdout.txt">schedule tests</a>; <a href="../evidence/proof-and-test-results/tiling-tests.json">tiling tests</a></td>
+            <td><a href="../evidence/proof-and-test-results/test-catalog.html#affine-schedule-validation">schedule tests</a>; <a href="../evidence/proof-and-test-results/test-catalog.html#one-level-and-direct-tiling-validation">tiling tests</a></td>
           </tr>
           <tr>
             <td>Parallel eligibility, including innermost-restricted configurations</td>
             <td><a href="#claim-parallel">parallel interleavings refine the source; restricted configurations reuse the eligibility check with ordinary loop semantics</a></td>
-            <td><a href="../evidence/proof-and-test-results/raw-output/parallel-current-suite.stdout.txt">general cases</a>; <a href="../evidence/proof-and-test-results/raw-output/vector-current-suite.stdout.txt">innermost-restricted cases</a></td>
+            <td><a href="../evidence/proof-and-test-results/test-catalog.html#parallel-loops">parallel-loop tests</a></td>
           </tr>
           <tr>
             <td>Unrolling and supported loop fusion</td>
             <td><a href="#claim-unroll">loop rewrite proofs</a></td>
-            <td><a href="../evidence/proof-and-test-results/raw-output/unrolljam-effect-corpus.stdout.txt">unrolling and fusion tests</a></td>
+            <td><a href="../evidence/proof-and-test-results/test-catalog.html#unroll-and-jam">unrolling and fusion tests</a></td>
           </tr>
           <tr>
             <td>Unsafe optimizer proposals are rejected</td>
             <td><a href="#claim-affine">schedule proof</a>; <a href="#claim-tiling">tiling proof</a>; <a href="#claim-parallel">parallel proof</a>; <a href="#claim-unroll">loop-fusion proof</a></td>
             <td><a href="../evidence/rejected-optimizer-outputs/index.html">case explanations and results</a>; <a href="../evidence/rejected-optimizer-outputs/BUG_REPORT_DRAFT.md">bug-report draft</a></td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section id="evidence">
-      <h2>Evidence Guide</h2>
-      <p>
-        Choose a row by the question you want to answer. Raw command logs are
-        available from the complete run record but are not needed for a first
-        review.
-      </p>
-      <table>
-        <thead><tr><th>Question</th><th>Where to look</th><th>Recorded result</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>Did the complete validation run pass?</td>
-            <td><a href="../evidence/summary.json"><code>summary.json</code></a></td>
-            <td class="status-pass">PASS</td>
-          </tr>
-          <tr>
-            <td>Which commands ran, and where is their output?</td>
-            <td><a href="../evidence/proof-and-test-results/run-results.json"><code>proof-and-test-results/run-results.json</code></a></td>
-            <td class="status-pass">complete run passed</td>
-          </tr>
-          <tr>
-            <td>Are any proofs unfinished or missing?</td>
-            <td><a href="../evidence/proof-and-test-results/proof-report.md"><code>proof-and-test-results/proof-report.md</code></a></td>
-            <td class="status-pass">0 gaps</td>
-          </tr>
-          <tr>
-            <td>How broad is the test suite?</td>
-            <td><a href="../evidence/proof-and-test-results/test-catalog.html"><code>proof-and-test-results/test-catalog.html</code></a></td>
-            <td class="status-pass">every recorded case, expected result, observed transformation, and actual result</td>
-          </tr>
-          <tr>
-            <td>Which compiler configurations were tested?</td>
-            <td><a href="../evidence/proof-and-test-results/tested-configurations.md"><code>proof-and-test-results/tested-configurations.md</code></a></td>
-            <td class="status-pass">supported and rejected cases behaved as expected</td>
-          </tr>
-          <tr>
-            <td>What code did optimization produce?</td>
-            <td><a href="../evidence/optimized-loop-examples/index.html"><code>optimized-loop-examples/</code></a></td>
-            <td class="status-pass">before-and-after loops labeled by transformation</td>
-          </tr>
-          <tr>
-            <td>Did original and optimized programs return the same result?</td>
-            <td><a href="../evidence/execution-comparisons/results.json"><code>execution-comparisons/</code></a></td>
-            <td class="status-pass">all recorded comparisons passed; focused transformation effects confirmed</td>
-          </tr>
-          <tr>
-            <td>Does PolCert reject invalid optimizer output?</td>
-            <td><a href="../evidence/rejected-optimizer-outputs/index.html"><code>rejected-optimizer-outputs/</code></a></td>
-            <td class="status-pass">each violated condition rejected or removed as recorded</td>
           </tr>
         </tbody>
       </table>
@@ -616,7 +550,7 @@
 
     <p class="footer">
       Generated proof pages are under <a href="proof/toc.html"><code>docs/proof/</code></a>.
-      Each component above links to its source and recorded test results.
+      The Proof and Evidence table links each claim to its recorded checks.
     </p>
   </main>
 </div>

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-from html import escape
+from html import escape, unescape
 from html.parser import HTMLParser
 import json
 import os
@@ -91,6 +91,19 @@ DENYLIST = (
     "artifact/verified-compilation",
     "33243898549",
 )
+
+EVIDENCE_TEXT_SUFFIXES = {
+    ".c",
+    ".cloog",
+    ".fst",
+    ".json",
+    ".log",
+    ".loop",
+    ".md",
+    ".patch",
+    ".scop",
+    ".txt",
+}
 
 
 class LinkCollector(HTMLParser):
@@ -285,10 +298,6 @@ def prepare_docs(proof_html_dir: Path, destination: Path) -> None:
     (destination / "proof/proof.glob").unlink(missing_ok=True)
     shutil.copy2(PACKAGE_DIR / "docs/index.html", destination / "index.html")
     shutil.copy2(PACKAGE_DIR / "docs/artifact.css", destination / "artifact.css")
-    shutil.copy2(
-        PACKAGE_DIR / "docs/reading-budget.json",
-        destination / "reading-budget.json",
-    )
     shutil.copy2(PACKAGE_DIR / "docs/proof-index.html", destination / "proof/index.html")
     for path in sorted((destination / "proof").glob("*.html")):
         if path.name != "index.html":
@@ -1878,6 +1887,7 @@ def prepare_test_catalog(
         )
         family_blocks = []
         for family in category["families"]:
+            family_id = html_slug(family["name"])
             suite_blocks = []
             for suite in family["suites"]:
                 suite_name = suite["name"]
@@ -1909,7 +1919,7 @@ def prepare_test_catalog(
                     f'{rows}</tbody></table></div></details>'
                 )
             family_blocks.append(
-                '<details class="catalog-family" data-catalog-family>'
+                f'<details id="{family_id}" class="catalog-family" data-catalog-family>'
                 f'<summary><span>{escape(family["name"])}</span>'
                 f'<span>{family["configurations"]} configurations</span></summary>'
                 f'{chr(10).join(suite_blocks)}</details>'
@@ -2128,6 +2138,72 @@ def parse_html(path: Path) -> LinkCollector:
     return parser
 
 
+def prepare_evidence_text_views(package: Path, evidence: Path) -> int:
+    """Replace browser-facing evidence text links with self-contained HTML views."""
+    evidence_root = evidence.resolve()
+    views: dict[Path, Path] = {}
+    href_pattern = re.compile(
+        r'(?P<prefix>\bhref\s*=\s*)(?P<quote>["\'])(?P<value>.*?)(?P=quote)',
+        re.IGNORECASE,
+    )
+
+    for html_path in sorted(package.rglob("*.html")):
+        original = html_path.read_text(encoding="utf-8")
+
+        def replace_href(match: re.Match[str]) -> str:
+            raw_href = unescape(match.group("value"))
+            link = urlsplit(raw_href)
+            if link.scheme or link.netloc or not link.path:
+                return match.group(0)
+            target = (html_path.parent / unquote(link.path)).resolve()
+            try:
+                target.relative_to(evidence_root)
+            except ValueError:
+                return match.group(0)
+            if target.suffix.lower() not in EVIDENCE_TEXT_SUFFIXES or not target.is_file():
+                return match.group(0)
+            try:
+                target.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                return match.group(0)
+            view = Path(f"{target}.html")
+            views[target] = view
+            replacement = f"{link.path}.html"
+            if link.query:
+                replacement += f"?{link.query}"
+            if link.fragment:
+                replacement += f"#{link.fragment}"
+            quote = match.group("quote")
+            return (
+                f"{match.group('prefix')}{quote}"
+                f"{escape(replacement, quote=True)}{quote}"
+            )
+
+        updated = href_pattern.sub(replace_href, original)
+        if updated != original:
+            html_path.write_text(updated, encoding="utf-8")
+
+    for target, view in sorted(views.items()):
+        css_href = os.path.relpath(package / "docs/artifact.css", view.parent).replace(
+            os.sep, "/"
+        )
+        guide_href = os.path.relpath(package / "docs/index.html", view.parent).replace(
+            os.sep, "/"
+        )
+        label = target.relative_to(evidence_root).as_posix()
+        payload = target.read_text(encoding="utf-8")
+        page = f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{escape(target.name)}</title><link rel="stylesheet" href="{escape(css_href, quote=True)}"></head>
+<body><main><p><a href="{escape(guide_href, quote=True)}">Supplement guide</a></p>
+<h1><code>{escape(label)}</code></h1>
+<pre>{escape(payload)}</pre>
+</main></body></html>
+"""
+        view.write_text(page, encoding="utf-8")
+    return len(views)
+
+
 def check_html_links(root: Path) -> int:
     parsed: dict[Path, LinkCollector] = {}
     html_files = sorted(root.rglob("*.html"))
@@ -2325,6 +2401,7 @@ def main() -> int:
             json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
 
+        evidence_text_views = prepare_evidence_text_views(package, evidence)
         json_count = check_json(package)
         html_count = check_html_links(package)
         check_denylist(package)
@@ -2337,6 +2414,7 @@ def main() -> int:
     print(f"SHA-256: {sha256(output)}")
     print(f"validated JSON files: {json_count}")
     print(f"validated HTML files: {html_count}")
+    print(f"browser-readable evidence files: {evidence_text_views}")
     print(f"checksummed files: {checksummed}")
     return 0
 

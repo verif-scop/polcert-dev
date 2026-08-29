@@ -15,6 +15,15 @@ assistant, readable proof documentation, and recorded validation results for
 *End-to-End Verified Polyhedral Compilation*. [`docs/index.html`](docs/index.html)
 links the compiler pipeline, correctness theorem, proof structure, and source.
 
+For reliable local navigation, serve the extracted directory:
+
+```sh
+python3 -m http.server 8000 --bind 127.0.0.1
+```
+
+Then open <http://127.0.0.1:8000/docs/index.html>. This avoids browser
+restrictions on links below a `file://` page.
+
 For the complete test inventory, open
 [`evidence/proof-and-test-results/test-catalog.html`](evidence/proof-and-test-results/test-catalog.html).
 
