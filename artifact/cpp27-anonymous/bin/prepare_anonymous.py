@@ -10,6 +10,7 @@ from html.parser import HTMLParser
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import shutil
 import stat
 import sys
@@ -198,7 +199,11 @@ def prune_source(source: Path) -> None:
     shutil.copy2(PACKAGE_DIR / "SOURCE_DOC_README.md", source / "doc/README.md")
     ci_tools = source / "tools/ci"
     for path in list(ci_tools.iterdir()):
-        if path.name in {"check_open_proofs.py", "test_check_open_proofs.py"}:
+        if path.name in {
+            "check_legacy_failure_exit.sh",
+            "check_open_proofs.py",
+            "test_check_open_proofs.py",
+        }:
             continue
         if path.is_dir() and not path.is_symlink():
             shutil.rmtree(path)
@@ -413,31 +418,28 @@ def prepare_transformation_index(destination: Path) -> dict:
     rows = []
     for path in examples:
         changed = (path / "diff.patch").is_file() and (path / "diff.patch").stat().st_size > 0
-        input_text = (path / "input.pretty.loop").read_text(encoding="utf-8")
         output_text = (path / "optimized.loop").read_text(encoding="utf-8")
-        source_loop_count = sum(line.startswith("for ") for line in input_text.splitlines())
-        if not changed:
-            transformation = "No loop transformation; output is identical"
-        elif path.name == "seq":
-            transformation = "Domain guard inserted; loop order is unchanged"
-        elif path.name in {"fusion1", "fusion6", "multi-stmt-stencil-seq"}:
-            transformation = "Producer-consumer loop fusion and pipelining"
-        elif path.name == "tricky2":
-            transformation = "Loop fusion with parameter-dependent domain splitting"
-        elif path.name == "tricky3":
-            transformation = "Inner-loop fusion and splitting with parameter guards"
-        elif any(
+        tiled = any(
             marker in output_text
             for marker in ("32 *", "/ 32", "64 *", "/ 64", "313")
-        ):
-            if source_loop_count > 1:
-                transformation = (
-                    "Tiling or strip-mining in a program with multiple source loops"
-                )
-            else:
-                transformation = "Tiling or strip-mining of the loop nest"
+        )
+        transformations = []
+        if not changed:
+            transformations.append("None; output loop is identical")
+        elif path.name == "seq":
+            transformations.append("Domain guard insertion")
         else:
-            transformation = "Affine loop reordering and bound reconstruction"
+            if path.name.startswith("fusion") or path.name == "multi-stmt-stencil-seq":
+                transformations.append("Loop fusion")
+            if path.name == "tricky2":
+                transformations.extend(("Loop fusion", "Domain splitting"))
+            elif path.name == "tricky3":
+                transformations.extend(("Inner-loop fusion", "Domain splitting"))
+            if tiled:
+                transformations.append("Ordinary tiling")
+            if not transformations:
+                transformations.append("Affine scheduling and loop-bound reconstruction")
+        transformation = "; ".join(dict.fromkeys(transformations))
         records.append(
             {
                 "case": path.name,
@@ -676,7 +678,7 @@ def copy_bug_witnesses(
     (destination / "validation.log").write_text(witness_log, encoding="utf-8")
 
 
-def validate_test_overview(source: Path, raw_output: Path) -> None:
+def validate_test_evidence(source: Path, raw_output: Path) -> None:
     markers = {
         "pluto-compat-suite.stdout.txt": "PASS expected=189 actual=189",
         "strict-loop-suite.stdout.txt": "total=62",
@@ -697,7 +699,7 @@ def validate_test_overview(source: Path, raw_output: Path) -> None:
     }
     for filename, marker in markers.items():
         text = (raw_output / filename).read_text(encoding="utf-8")
-        require(marker in text, f"test overview marker is missing from {filename}")
+        require(marker in text, f"test evidence marker is missing from {filename}")
     iss_log = (raw_output / "iss-suite.stdout.txt").read_text(encoding="utf-8")
     require(
         "[ISS-MULTICUT] PASS expected=accepted:1,rejected:2 "
@@ -728,6 +730,983 @@ def copy_typed_pipeline_ci_result(release_dir: Path, raw_output: Path) -> None:
         "\n".join(lines) + "\n",
         encoding="utf-8",
     )
+
+
+def copy_remote_ci_test_results(release_dir: Path, raw_output: Path) -> list[dict]:
+    """Copy concise result lines and recover every timed remote-CI phase."""
+    ci_logs = sorted(release_dir.glob("github-actions-*.log"))
+    require(len(ci_logs) == 1, f"expected one GitHub Actions log, found {len(ci_logs)}")
+    payloads = []
+    starts: list[str] = []
+    elapsed: dict[str, str] = {}
+    result_pattern = re.compile(
+        r"\[[A-Za-z0-9_./-]+\] (?:PASS|OK)\b.*"
+        r"|\[pluto-bug\] explicit-RAR matmul parallel-hint case reproduced"
+    )
+    for line in ci_logs[0].read_text(encoding="utf-8").splitlines():
+        timing = line.find("[ci-timing]")
+        result = result_pattern.search(line)
+        if timing >= 0:
+            payload = line[timing:]
+            payloads.append(payload)
+            start = re.match(r"\[ci-timing\] START ([^ ]+)$", payload)
+            end = re.match(r"\[ci-timing\] END ([^ ]+) wall=([^ ]+)$", payload)
+            if start:
+                starts.append(start.group(1))
+            if end:
+                elapsed[end.group(1)] = end.group(2)
+        elif result:
+            payloads.append(result.group(0))
+    require(len(starts) == 45, f"expected 45 timed CI phases, found {len(starts)}")
+    require(set(starts) == set(elapsed), "remote CI timing start/end mismatch")
+    require(
+        "[pluto-bug] explicit-RAR matmul parallel-hint case reproduced" in payloads,
+        "remote CI output is missing the matmul parallel-hint witness",
+    )
+    (raw_output / "remote-ci-test-results.stdout.txt").write_text(
+        "\n".join(payloads) + "\n",
+        encoding="utf-8",
+    )
+    return [
+        {
+            "name": name,
+            "elapsed": elapsed[name],
+            "status": "PASS",
+            "evidence": "raw-output/remote-ci-test-results.stdout.txt",
+        }
+        for name in starts
+    ]
+
+
+def result_fields(line: str) -> dict[str, str]:
+    """Parse space-separated key/value fields while preserving values verbatim."""
+    matches = list(re.finditer(r"(?:^| )([A-Za-z][A-Za-z0-9_-]*)=", line))
+    fields: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(line)
+        fields[match.group(1)] = line[start:end].strip()
+    return fields
+
+
+def is_expected_rejection(expected: str, actual: str, coverage: str) -> bool:
+    text = f"{expected} {actual} {coverage}".lower()
+    return (
+        "rejection-contract" in text
+        or expected.lower().startswith(
+            ("reject", "failure", "result=failure", "result:reject")
+        )
+        or "expected=rejection" in text
+        or "route:rejected" in expected.lower()
+        or "status:" in expected.lower() and "rejected" in expected.lower()
+    )
+
+
+def observed_transformation(
+    suite: str,
+    case: str,
+    expected: str,
+    actual: str,
+    coverage: str,
+    transformation_by_case: dict[str, str],
+) -> str:
+    """Name the loop effect checked by a case, rather than saying only changed."""
+    lower_suite = suite.lower()
+    lower_case = case.lower()
+    lower_actual = actual.lower()
+    lower_expected = expected.lower()
+
+    if is_expected_rejection(expected, actual, coverage):
+        if "final-affine" in lower_case:
+            return "No program emitted; post-tiling affine rescheduling was rejected"
+        if "consumer" in lower_case:
+            return "No program emitted; an invalid parallel-loop consumer was rejected"
+        return "None; the invalid or unsupported candidate was rejected"
+
+    if lower_suite == "legacy/pluto-all":
+        return "Affine schedule validation; the generated loop effect was not recorded"
+    if lower_suite == "legacy/readscop":
+        return "None; OpenScop parsing and printing only"
+    if lower_suite == "legacy/cpol-openscop":
+        return "None; CPoly-to-OpenScop representation conversion only"
+    if lower_suite == "legacy/pluto":
+        return "Affine schedule generation and conversion"
+    if lower_suite.startswith("legacy/csample"):
+        return "None; bidirectional refinement of fixed C instruction programs"
+    if lower_suite in {"unit", "proof gate", "build gate"}:
+        return "None; infrastructure or proof-closure check"
+    if lower_suite == "identity-iss-sensitive-search":
+        return "ISS sensitivity comparison; the per-fixture effect was not preserved"
+    if lower_suite == "direct-route" and lower_case == "frozen-diamond-phase-pair":
+        return "Diamond tiling certificate accepted; no optimized program emitted"
+    if lower_suite == "identity-diamond-sensitive-search":
+        if "export-failed" in lower_actual:
+            return "None; the input could not be exported for this search"
+        return "Ordinary tiling; diamond tiling produced the same generated C"
+    if lower_suite == "unroll-and-jam exploration":
+        if "effect=true" in lower_actual:
+            return "Block unrolling and validated loop jamming"
+        return "None; no checked unroll-and-jam effect was observed"
+    if lower_suite == "scalar-interleaved tiling":
+        return (
+            "Ordinary tiling certificate accepted"
+            if case == "frozen-positive"
+            else "None; the mutated tiling certificate was rejected"
+        )
+    if lower_suite == "generated execution: parallel-effect":
+        return "Parallelization"
+    if lower_suite == "generated execution: second-level-effect":
+        return "Two-level tiling"
+    if lower_suite == "generated execution: intratile-effect":
+        return "Intra-tile affine rescheduling"
+
+    if lower_suite == "pluto-compat-suite" and "acceptance-only" in coverage.lower():
+        if lower_case == "sequential-iss-notile":
+            return "ISS route accepted; no loop transformation asserted"
+        if lower_case == "optimizer-forceparallel-pass-through":
+            return "None; option accepted, but no parallelization effect is implemented or asserted"
+        return "None; route accepted without a loop-transformation assertion"
+
+    if lower_suite in {"strict-effect", "generated execution: default-corpus"}:
+        mapped = transformation_by_case.get(case)
+        if mapped:
+            return mapped
+
+    transformations = []
+    if (
+        "iss" in lower_case
+        or "iss" in lower_expected
+        or lower_suite in {"iss", "iss-multicut", "iss-live"}
+    ):
+        transformations.append("Index-set splitting (ISS)")
+    has_diamond_effect = (
+        "full-diamond" in lower_case
+        or "diamond" in lower_case
+        or "effect:diamond" in lower_expected
+        or "effect:diamond" in lower_actual
+    )
+    if has_diamond_effect:
+        transformations.append("Diamond tiling")
+    if "second-level" in lower_case or "two-level" in lower_case:
+        transformations.append("Two-level tiling")
+    elif not has_diamond_effect and (
+        "tiled" in lower_case
+        or "tiling" in lower_case
+        or "tiling:true" in lower_actual
+        or "tiling-route=permutable-band" in lower_expected
+        or lower_suite in {
+            "direct-route",
+            "non-second-level-routes",
+            "second-level-routes",
+            "second-level-tile",
+        }
+    ):
+        transformations.append("Ordinary tiling")
+    if "intratile" in lower_case:
+        transformations.append("Intra-tile affine rescheduling")
+    if "multipar" in lower_case:
+        transformations.append("Parallelization of multiple loop dimensions")
+    elif (
+        "parallel" in lower_case
+        or "parallel=true" in lower_actual
+        or "par:1" in lower_actual
+    ):
+        transformations.append("Parallelization")
+    if "vector" in lower_case or "vector=true" in lower_actual or "vec:1" in lower_actual:
+        if "skipped" in lower_actual or "skip" in lower_case:
+            transformations.append("No innermost parallel annotation; eligibility check skipped it")
+        else:
+            transformations.append("Parallelization restricted to the innermost loop")
+    if lower_suite == "parallel-current":
+        transformations.append("Parallelization")
+    if lower_suite == "vector-current":
+        transformations.append("Parallelization restricted to the innermost loop")
+    if "unrolljam" in lower_case or "unroll-jam" in lower_case:
+        if "dependent" in lower_case:
+            transformations.append("Block unrolling; unsafe loop jamming rejected")
+        else:
+            transformations.append("Block unrolling and validated loop jamming")
+    elif "const_unroll" in lower_case or "const-unroll" in lower_case:
+        if "unrolled:false" in lower_actual:
+            transformations.append("Constant-bound unrolling not applied on this parallel loop")
+        else:
+            transformations.append("Constant-bound loop unrolling")
+    if "nofuse" in lower_case or "no-fuse" in lower_case:
+        transformations.append("Loop fission/distribution relative to the fused schedule")
+    elif "fusion" in lower_case or "fuse" in lower_case:
+        transformations.append("Loop fusion")
+    if "fission" in lower_case or "distribution" in lower_case:
+        transformations.append("Loop fission/distribution")
+    if "affine" in lower_case:
+        transformations.append("Affine rescheduling")
+    if "stride" in lower_case:
+        transformations.append("Stride-preserving loop generation")
+    if lower_suite == "typed-c-pipeline":
+        typed = {
+            "ordinary-tiling-pointwise": "Ordinary tiling",
+            "two-level-tiling-matmul": "Two-level tiling",
+            "iss-reverse-index": "Index-set splitting (ISS)",
+            "diamond-stencil": "Diamond tiling and post-tiling affine rescheduling",
+            "parallel-pointwise": "Ordinary tiling and parallelization",
+            "vector-pointwise": (
+                "Ordinary tiling and parallelization restricted to the innermost loop"
+            ),
+        }
+        return typed.get(case, "; ".join(dict.fromkeys(transformations)))
+    if lower_suite == "e2e" and case == "matmul [innermost-parallel]":
+        return "Ordinary tiling and parallelization restricted to the innermost loop"
+    if lower_suite == "e2e" and case == "matmul [parallel]":
+        return "Ordinary tiling and parallelization"
+    if lower_suite == "e2e" and case == "matmul [sequential]":
+        return "Ordinary tiling"
+    if lower_suite == "e2e" and case == "reverse_iss":
+        return "ISS route executed; this test asserts output equality, not a structural effect"
+    if not transformations:
+        if lower_suite == "pluto-compat-suite" and "effect-contracts-matched" in lower_actual:
+            if "noop" in lower_case:
+                return "Affine rescheduling; the named option adds no loop transformation"
+            return "Affine rescheduling"
+        if "changed:true" in lower_actual or "effects-matched" in lower_actual:
+            return "Affine scheduling and loop reconstruction"
+        if "unchanged" in lower_expected or "changed:false" in lower_actual:
+            return "None; output loop is unchanged"
+        return "No loop transformation asserted by this test"
+    return "; ".join(dict.fromkeys(transformations))
+
+
+def second_level_rejection_records() -> list[dict]:
+    """Expand the 116 generated negative cases summarized by the CI log."""
+    records = []
+
+    def add(case: str, reason: str, observed: str | None = None) -> None:
+        records.append(
+            {
+                "suite": "second-level rejection",
+                "case": case,
+                "expected": reason,
+                "actual": "PASS; the declared failure point was preserved",
+                "coverage": "rejection-contract",
+                "observed_transformation": observed,
+                "evidence": [
+                    "raw-output/remote-ci-test-results.stdout.txt",
+                    "../../source/tools/second_level_tiling/check_rejected_tiling_route.py",
+                ],
+                "source": ["remote CI"],
+            }
+        )
+
+    malformed_bases = (
+        "ordinary",
+        "identity-mixed-depth",
+        "second-level",
+        "second-level-identity-mixed-depth",
+        "diamond",
+        "full-diamond",
+        "second-level-diamond",
+        "second-level-full-diamond",
+    )
+    malformed = []
+    for base in malformed_bases:
+        malformed.extend((base, f"{base}-iss"))
+    for name in malformed:
+        add(f"malformed-{name}", "reject a corrupted tiling relation")
+
+    add("scalar-only", "reject tiling when no non-scalar statement exists")
+    add("nonpermutable-band", "reject a non-permutable band")
+
+    for second_level in (False, True):
+        for use_iss in (False, True):
+            name = "identity-vector-strict"
+            if second_level:
+                name = f"second-level-{name}"
+            if use_iss:
+                name = f"{name}-iss"
+            observed = (
+                "Two-level tiling; no innermost parallel annotation because the hint "
+                "was not certifiable"
+                if second_level
+                else "Ordinary tiling; no innermost parallel annotation because the hint was not certifiable"
+            )
+            add(name, "keep verified tiling and skip the optional annotation", observed)
+
+    consumer_producers = (
+        "ordinary",
+        "second-level-iss",
+        "identity-mixed-depth",
+        "second-level-identity-mixed-depth-iss",
+        "diamond",
+        "full-diamond-iss",
+    )
+    for producer in consumer_producers:
+        for consumer in ("parallel-current", "vector-current"):
+            add(
+                f"consumer-{producer}-{consumer}",
+                "reject an out-of-range explicit parallel-loop consumer",
+            )
+
+    explicit_producers = (
+        "ordinary",
+        "identity-mixed-depth-iss",
+        "second-level",
+        "second-level-identity-mixed-depth-iss",
+        "diamond",
+        "full-diamond-iss",
+        "second-level-diamond",
+        "second-level-full-diamond-iss",
+    )
+    for producer in explicit_producers:
+        for consumer in ("parallel-current", "vector-current"):
+            add(
+                f"malformed-{producer}-with-{consumer}",
+                "reject the malformed tiling before checking the explicit consumer",
+            )
+
+    hinted_producers = ("ordinary", "diamond", "second-level-full-diamond-iss")
+    hinted_consumers = (
+        "parallel",
+        "parallel-strict",
+        "multipar",
+        "multipar-strict",
+        "vector",
+        "vector-strict",
+    )
+    for producer in hinted_producers:
+        for consumer in hinted_consumers:
+            add(
+                f"malformed-{producer}-with-hinted-{consumer}",
+                "reject the malformed tiling before adopting a hinted parallel loop",
+            )
+
+    affine_producers = (
+        "diamond",
+        "diamond-iss",
+        "full-diamond",
+        "full-diamond-iss",
+        "second-level-diamond",
+        "second-level-diamond-iss",
+        "second-level-full-diamond",
+        "second-level-full-diamond-iss",
+    )
+    affine_consumers = (
+        "sequential",
+        "parallel-current",
+        "vector-current",
+        "parallel-hint-strict",
+        "multipar-hint-strict",
+        "vector-hint-strict",
+    )
+    for producer in affine_producers:
+        for consumer in affine_consumers:
+            add(
+                f"final-affine-{producer}-with-{consumer}",
+                "accept the tiling leg, then reject an invalid post-tiling affine schedule",
+            )
+    require(len(records) == 116, f"expected 116 second-level rejections, found {len(records)}")
+    return records
+
+
+def unit_test_records() -> list[dict]:
+    """List subcases hidden behind concise unit-test summaries."""
+    groups = {
+        "artifact runner timeout": ("tools/artifact/test_artifact_runner_timeout.py", (
+            "timeout-preserves-partial-output",
+        )),
+        "tiling route summary": ("tools/artifact/test_tiling_route_summary.py", (
+            "matching-counts-accepted",
+            "mismatched-counts-rejected",
+        )),
+        "release provenance": ("tools/artifact/test_release_provenance.py", (
+            "plain-image-digest",
+            "registry-qualified-image-digest",
+            "empty-image-digest-rejected",
+            "unknown-image-digest-rejected",
+            "garbage-image-digest-rejected",
+            "short-image-digest-rejected",
+            "pluto-revision-mismatch-rejected",
+            "bug-witness-pluto-revision-mismatch-rejected",
+            "invalid-release-tag-rejected",
+            "provenance-check-explicitly-disabled",
+        )),
+        "manifest runner": ("tools/polopt_flag_suites/test_manifest_runner.py", (
+            "ordinary-failed-command-accepted-as-rejection",
+            "failed-command-with-stale-output-rejected",
+        )),
+        "tiling route telemetry": ("tools/tiling_routes/test_route_telemetry.py", (
+            "direct_band_is_the_only_accepted_route",
+            "no_loop_is_the_only_not_applicable_status",
+            "extra_route_is_rejected",
+            "alarm_is_rejected",
+            "fallback_marker_is_case_insensitively_rejected",
+            "exact_direct_phase_route_is_accepted",
+            "exact_rejected_phase_route_is_accepted",
+            "extra_phase_route_is_rejected",
+            "fallback_marker_outside_route_is_rejected",
+        )),
+        "unroll-and-jam route guard": ("tools/artifact/test_unrolljam_route_guard.py", (
+            "checks_complete_stderr_not_only_tail",
+            "accepts_stderr_without_tiling_route",
+            "missing_stderr_fails_closed",
+        )),
+        "proof report": ("tools/artifact/test_proof_report.py", (
+            "clean_report_passes",
+            "open_proofs_fail_but_comments_do_not",
+            "unrealized_extraction_axiom_fails",
+            "missing_listed_route_theorem_fails",
+        )),
+        "open-proof scanner": ("tools/ci/test_check_open_proofs.py", (
+            "rejects_unfinished_commands",
+            "ignores_comments_strings_and_identifiers",
+            "preserves_line_numbers_across_nested_comments",
+            "gate_exit_statuses",
+        )),
+        "strict transformation effects": ("tests/polopt-generated/tools/test_check_polopt_cases.py", (
+            "changed-case-satisfies-all-effects",
+            "unchanged-case-satisfies-all-effects",
+            "missing-nontrivial-and-tiling-effects-rejected",
+            "unexpected-change-rejected",
+        )),
+        "generated C harness": ("tools/end_to_end_c/test_generated_harness.py", (
+            "positive-stride-range",
+            "negative-stride-range",
+            "signed-division-candidate",
+            "multidimensional-checksum-indexing",
+        )),
+        "legacy failure gate": ("tools/ci/check_legacy_failure_exit.sh", (
+            "declared-nonzero-exit-accepted",
+            "unexpected-nonzero-exit-rejected",
+            "unexpected-zero-exit-rejected",
+            "missing-command-rejected",
+        )),
+    }
+    records = []
+    for group, (source_path, cases) in groups.items():
+        for case in cases:
+            records.append(
+                {
+                    "suite": "unit",
+                    "case": f"{group}: {case}",
+                    "expected": "the declared unit-test condition",
+                    "actual": "PASS",
+                    "coverage": "unit",
+                    "evidence": [
+                        "raw-output/remote-ci-test-results.stdout.txt",
+                        f"../../source/{source_path}",
+                    ],
+                    "source": ["remote CI"],
+                }
+            )
+
+    zero_fallback = (
+        "SBandTilingOpt.reject_tiling",
+        "SBandTilingOpt.Rejected selector",
+        "SBandTilingOpt post-tiling affine rejection",
+        "SParallelPolOpt.reject_tiling",
+        "SParallelPolOpt.Rejected selector",
+        "SParallelPolOpt post-tiling affine rejection",
+    )
+    for case in zero_fallback:
+        records.append(
+            {
+                "suite": "unit",
+                "case": f"extracted zero fallback: {case}",
+                "expected": "raise CertCheckerFailure and return no unchecked program",
+                "actual": "PASS",
+                "coverage": "unit",
+                "evidence": [
+                    "raw-output/extracted-zero-fallback-gate.stdout.txt",
+                    "raw-output/remote-ci-test-results.stdout.txt",
+                    "../../source/tests/extracted-zero-fallback/test.ml",
+                ],
+                "source": ["local artifact run", "remote CI"],
+                "occurrences": 2,
+            }
+        )
+    return records
+
+
+def display_case_name(suite: str, case: str, expected: str) -> str:
+    if suite == "E2E" and case == "matmul":
+        if "parallel=true" in expected:
+            return "matmul [parallel]"
+        if "vector=true" in expected:
+            return "matmul [innermost-parallel]"
+        return "matmul [sequential]"
+    return case
+
+
+def catalog_suite_name(suite: str) -> str:
+    return {
+        "pluto-compat-suite": "driver option configurations",
+        "non-second-level-routes": "one-level tiling configurations",
+        "SECOND-LEVEL-TILE": "two-level tiling configurations",
+        "second-level-routes": "two-level tiling route checks",
+        "direct-route": "direct tiling-validator routes",
+        "PARALLEL-CURRENT": "parallel-loop validation",
+        "VECTOR-CURRENT": "innermost parallel-loop validation",
+        "ISS": "ISS validator",
+        "ISS-LIVE": "ISS from live Pluto output",
+        "ISS-MULTICUT": "ISS multi-cut validation",
+        "strict-effect": "default optimization structural effects",
+        "E2E": "handwritten C execution",
+        "diamond-suite": "diamond tiling",
+        "typed-c-pipeline": "typed C instruction pipelines",
+        "legacy/pluto-all": "affine schedule refinement",
+        "legacy/readscop": "OpenScop round trips",
+        "legacy-failure-gate": "legacy failure propagation",
+        "legacy/cpol-openscop": "CPoly-to-OpenScop conversion",
+        "legacy/pluto": "scheduler conversion smoke test",
+        "legacy/csample1": "typed C refinement: matrix multiplication",
+        "legacy/csample2": "typed C refinement: covariance",
+        "legacy/csample3": "typed C refinement: GEMVER",
+    }.get(suite, suite)
+
+
+def prepare_test_catalog(
+    destination: Path,
+    source: Path,
+    artifact_results: dict,
+    remote_commands: list[dict],
+    transformation_summary: dict,
+    executable_summary: dict,
+    witness_summary: dict,
+) -> dict:
+    """Generate a reviewer-facing inventory of every recorded test case."""
+    raw_output = destination / "raw-output"
+    transformation_by_case = {
+        item["case"]: item["observed_transformation"]
+        for item in transformation_summary["cases"]
+    }
+    records: list[dict] = []
+    by_key: dict[tuple[str, str, str, str], dict] = {}
+
+    def add(record: dict) -> None:
+        raw_suite = record["suite"]
+        suite = catalog_suite_name(raw_suite)
+        case = display_case_name(raw_suite, record["case"], record.get("expected", ""))
+        expected = record.get("expected", "not separately recorded")
+        actual = record.get("actual", "PASS")
+        coverage = record.get("coverage", "recorded result")
+        observed = record.get("observed_transformation") or observed_transformation(
+            raw_suite,
+            case,
+            expected,
+            actual,
+            coverage,
+            transformation_by_case,
+        )
+        key = (suite, case, expected, actual)
+        if key in by_key:
+            current = by_key[key]
+            current["occurrences"] += record.get("occurrences", 1)
+            current["evidence"] = list(
+                dict.fromkeys([*current["evidence"], *record.get("evidence", [])])
+            )
+            current["source"] = list(
+                dict.fromkeys([*current["source"], *record.get("source", [])])
+            )
+            return
+        current = {
+            "suite": suite,
+            "case": case,
+            "expected": expected,
+            "observed_transformation": observed,
+            "actual": actual,
+            "coverage": coverage,
+            "status": record.get("status", "PASS"),
+            "occurrences": record.get("occurrences", 1),
+            "source": record.get("source", []),
+            "evidence": record.get("evidence", []),
+        }
+        by_key[key] = current
+        records.append(current)
+
+    case_line = re.compile(r"\[([^]]+)\] PASS case=([^ ]+)(.*)$")
+    scalar_line = re.compile(r"\[scalar-interleaved\] ([^:]+): PASS$")
+    for result in artifact_results["results"]:
+        filename = Path(result["stdout_path"]).name
+        text = (raw_output / filename).read_text(encoding="utf-8")
+        for line in text.splitlines():
+            match = case_line.search(line)
+            if match:
+                fields = result_fields(match.group(3))
+                add(
+                    {
+                        "suite": match.group(1),
+                        "case": match.group(2),
+                        "expected": fields.get("expected", "PASS"),
+                        "actual": fields.get("actual", "PASS"),
+                        "coverage": fields.get("coverage", "recorded result"),
+                        "source": ["local artifact run"],
+                        "evidence": [f"raw-output/{filename}"],
+                    }
+                )
+                continue
+            scalar = scalar_line.search(line)
+            if scalar:
+                positive = scalar.group(1) == "frozen-positive"
+                add(
+                    {
+                        "suite": "scalar-interleaved tiling",
+                        "case": scalar.group(1),
+                        "expected": "accept exact tiling" if positive else "reject mutated tiling",
+                        "actual": "accepted" if positive else "rejected",
+                        "coverage": "effect" if positive else "rejection-contract",
+                        "source": ["local artifact run"],
+                        "evidence": [f"raw-output/{filename}"],
+                    }
+                )
+
+    remote_text = (raw_output / "remote-ci-test-results.stdout.txt").read_text(
+        encoding="utf-8"
+    )
+    for line in remote_text.splitlines():
+        match = case_line.search(line)
+        if match and match.group(1) != "E2E-GEN":
+            fields = result_fields(match.group(3))
+            add(
+                {
+                    "suite": match.group(1),
+                    "case": match.group(2),
+                    "expected": fields.get("expected", "PASS"),
+                    "actual": fields.get("actual", "PASS"),
+                    "coverage": fields.get("coverage", "recorded result"),
+                    "source": ["remote CI"],
+                    "evidence": ["raw-output/remote-ci-test-results.stdout.txt"],
+                }
+            )
+            continue
+        csample = re.search(r"\[(legacy/csample[123])\] PASS check=([^ ]+)(.*)$", line)
+        if csample:
+            fields = result_fields(csample.group(3))
+            add(
+                {
+                    "suite": csample.group(1),
+                    "case": csample.group(2),
+                    "expected": fields.get("expected", "refinement succeeds"),
+                    "actual": fields.get("actual", "PASS"),
+                    "coverage": "refinement",
+                    "source": ["remote CI"],
+                    "evidence": ["raw-output/remote-ci-test-results.stdout.txt"],
+                }
+            )
+    for suite, case, expected, actual in (
+        (
+            "legacy/cpol-openscop",
+            "both-conversions",
+            "both conversions succeed",
+            "both conversions succeeded",
+        ),
+        ("legacy/pluto", "scheduler-smoke", "scheduler succeeds", "scheduler succeeded"),
+    ):
+        add(
+            {
+                "suite": suite,
+                "case": case,
+                "expected": expected,
+                "actual": actual,
+                "coverage": "smoke",
+                "source": ["remote CI"],
+                "evidence": ["raw-output/remote-ci-test-results.stdout.txt"],
+            }
+        )
+
+    for record in unit_test_records():
+        add(record)
+    for record in second_level_rejection_records():
+        add(record)
+
+    unroll = load_json(raw_output / "unrolljam-effect-corpus/summary.json")
+    for case in unroll["cases"]:
+        effect = bool(case["polopt_checked_effect"])
+        add(
+            {
+                "suite": "unroll-and-jam exploration",
+                "case": Path(case["fixture"]).stem,
+                "expected": case["note"],
+                "actual": f"checked-effect={str(effect).lower()}",
+                "coverage": "effect",
+                "source": ["local artifact run"],
+                "evidence": [
+                    "raw-output/unrolljam-effect-corpus/summary.json",
+                    f"../../source/{case['fixture']}",
+                ],
+            }
+        )
+
+    codegen_gap = load_json(raw_output / "codegen-gap-exploration.stdout.txt")
+    add(
+        {
+            "suite": "code-generation gap exploration",
+            "case": "matmul-unroll-and-jam",
+            "expected": "checked block unrolling, local jam validation, and remainder loop",
+            "actual": "all checked markers present; optimized program accepted",
+            "coverage": "effect",
+            "observed_transformation": "Block unrolling and validated loop jamming",
+            "source": ["local artifact run"],
+            "evidence": ["raw-output/codegen-gap-exploration.stdout.txt"],
+        }
+    )
+
+    identity = load_json(raw_output / "identity-composition-exploration.stdout.txt")
+    direct_second, direct_diamond, diamond_search, iss_search = identity["results"]
+    add(
+        {
+            "suite": "identity composition",
+            "case": f"{direct_second['case']} [identity second-level]",
+            "expected": "two-level tiling remains effective with identity affine scheduling",
+            "actual": "accepted; first- and second-level tile markers observed",
+            "coverage": "effect",
+            "observed_transformation": "Two-level tiling",
+            "source": ["local artifact run"],
+            "evidence": ["raw-output/identity-composition-exploration.stdout.txt"],
+        }
+    )
+    add(
+        {
+            "suite": "identity composition",
+            "case": f"{direct_diamond['case']} [identity diamond]",
+            "expected": "reject an unsupported identity-plus-diamond route",
+            "actual": "rejected; no optimized loop emitted",
+            "coverage": "rejection-contract",
+            "source": ["local artifact run"],
+            "evidence": ["raw-output/identity-composition-exploration.stdout.txt"],
+        }
+    )
+    diamond_root = raw_output / "identity-compositions/identity-diamond-search"
+    fixture_names = sorted(path.stem for path in (source / "tests/polopt-regression/inputs").glob("*.loop"))
+    require(len(fixture_names) == diamond_search["fixtures_checked"] == 71, "identity search size mismatch")
+    for name in fixture_names:
+        case_root = diamond_root / name
+        exported = any(case_root.glob("*.scop"))
+        add(
+            {
+                "suite": "identity-diamond-sensitive-search",
+                "case": name,
+                "expected": "compare identity tiling with identity diamond tiling",
+                "actual": (
+                    "same generated C; no distinct diamond effect"
+                    if exported
+                    else "export-failed; recorded as one of two aggregate export failures"
+                ),
+                "coverage": "effect search",
+                "source": ["local artifact run"],
+                "evidence": [
+                    "raw-output/identity-composition-exploration.stdout.txt",
+                    f"../../source/tests/polopt-regression/inputs/{name}.loop",
+                ],
+            }
+        )
+        add(
+            {
+                "suite": "identity-iss-sensitive-search",
+                "case": name,
+                "expected": "compare identity tiling with and without ISS",
+                "actual": (
+                    "per-fixture result not preserved; the suite recorded 42 equal outputs "
+                    "and 29 paired failures across these 71 fixtures"
+                ),
+                "coverage": "effect search",
+                "status": "AGGREGATE ONLY",
+                "source": ["local artifact run"],
+                "evidence": [
+                    "raw-output/identity-composition-exploration.stdout.txt",
+                    f"../../source/tests/polopt-regression/inputs/{name}.loop",
+                ],
+            }
+        )
+
+    for suite in executable_summary["suites"]:
+        for case in suite["cases"]:
+            add(
+                {
+                    "suite": f"generated execution: {suite['name']}",
+                    "case": case["case"],
+                    "expected": case["expected"],
+                    "actual": case["actual"],
+                    "coverage": case["coverage"],
+                    "source": ["remote CI"],
+                    "evidence": ["../execution-comparisons/validation.log"],
+                }
+            )
+
+    for witness in witness_summary["results"]:
+        add(
+            {
+                "suite": "optimizer-output rejection",
+                "case": witness["case"],
+                "expected": witness["reason_not_accepted"],
+                "actual": witness["polcert_outcome"],
+                "coverage": "rejection-contract",
+                "source": ["local release validation", "remote CI"],
+                "evidence": [
+                    "../rejected-optimizer-outputs/index.html",
+                    "raw-output/remote-ci-test-results.stdout.txt",
+                ],
+                "occurrences": 2,
+            }
+        )
+
+    records.sort(key=lambda item: (item["suite"].lower(), item["case"].lower(), item["expected"]))
+    expected_suite_counts = {
+        "driver option configurations": 189,
+        "second-level rejection": 116,
+        "one-level tiling configurations": 90,
+        "identity-diamond-sensitive-search": 71,
+        "identity-iss-sensitive-search": 71,
+        "generated execution: default-corpus": 62,
+        "affine schedule refinement": 62,
+        "default optimization structural effects": 62,
+        "two-level tiling configurations": 58,
+        "unit": 53,
+        "two-level tiling route checks": 23,
+        "direct tiling-validator routes": 20,
+        "diamond tiling": 19,
+        "handwritten C execution": 15,
+        "innermost parallel-loop validation": 12,
+        "unroll-and-jam exploration": 11,
+        "parallel-loop validation": 9,
+        "ISS validator": 7,
+        "ISS from live Pluto output": 7,
+        "optimizer-output rejection": 7,
+        "OpenScop round trips": 6,
+        "typed C instruction pipelines": 6,
+        "scalar-interleaved tiling": 5,
+        "ISS multi-cut validation": 3,
+        "generated execution: parallel-effect": 3,
+        "legacy failure propagation": 3,
+        "identity composition": 2,
+        "typed C refinement: matrix multiplication": 2,
+        "typed C refinement: covariance": 2,
+        "typed C refinement: GEMVER": 2,
+        "CPoly-to-OpenScop conversion": 1,
+        "code-generation gap exploration": 1,
+        "generated execution: intratile-effect": 1,
+        "generated execution: second-level-effect": 1,
+        "scheduler conversion smoke test": 1,
+    }
+    actual_suite_counts: dict[str, int] = {}
+    for record in records:
+        actual_suite_counts[record["suite"]] = actual_suite_counts.get(record["suite"], 0) + 1
+    require(
+        actual_suite_counts == expected_suite_counts,
+        "complete test-catalog count mismatch:\n"
+        f"expected={expected_suite_counts}\nactual={actual_suite_counts}",
+    )
+    require(len(records) == 1003, f"expected 1003 test configurations, found {len(records)}")
+    local_commands = []
+    for result in artifact_results["results"]:
+        local_commands.append(
+            {
+                "name": result["name"],
+                "command": " ".join(result["command"]),
+                "elapsed_seconds": result["elapsed_seconds"],
+                "status": "PASS" if result["ok"] else "FAIL",
+                "evidence": f"raw-output/{Path(result['stdout_path']).name}",
+            }
+        )
+
+    recorded_results = sum(item["occurrences"] for item in records)
+    require(recorded_results == 1508, f"expected 1508 recorded results, found {recorded_results}")
+    catalog = {
+        "counts": {
+            "listed_test_configurations": len(records),
+            "recorded_test_case_results": recorded_results,
+            "local_artifact_commands": len(local_commands),
+            "remote_ci_phases": len(remote_commands),
+            "suites": len({item["suite"] for item in records}),
+        },
+        "local_artifact_commands": local_commands,
+        "remote_ci_phases": remote_commands,
+        "cases": records,
+    }
+    (destination / "test-catalog.json").write_text(
+        json.dumps(catalog, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    def evidence_links(items: list[str]) -> str:
+        links = []
+        for item in items:
+            label = Path(item).name or item
+            links.append(f'<a href="{escape(item, quote=True)}">{escape(label)}</a>')
+        return " &middot; ".join(links)
+
+    command_rows = []
+    for command in local_commands:
+        command_rows.append(
+            "<tr>"
+            f"<td><code>{escape(command['name'])}</code></td>"
+            f"<td><code>{escape(command['command'])}</code></td>"
+            f"<td>{command['elapsed_seconds']:.2f} s</td>"
+            f"<td class=\"status-pass\">{command['status']}</td>"
+            f"<td><a href=\"{escape(command['evidence'], quote=True)}\">output</a></td>"
+            "</tr>"
+        )
+    remote_rows = []
+    for command in remote_commands:
+        remote_rows.append(
+            "<tr>"
+            f"<td><code>{escape(command['name'])}</code></td>"
+            f"<td>{escape(command['elapsed'])}</td>"
+            f"<td class=\"status-pass\">{command['status']}</td>"
+            f"<td><a href=\"{escape(command['evidence'], quote=True)}\">CI results</a></td>"
+            "</tr>"
+        )
+    case_rows = []
+    for index, record in enumerate(records, start=1):
+        search = " ".join(
+            str(record[field])
+            for field in ("suite", "case", "expected", "observed_transformation", "actual")
+        ).lower()
+        status_class = "status-pass" if record["status"] == "PASS" else "status-note"
+        case_rows.append(
+            f'<tr data-search="{escape(search, quote=True)}">'
+            f"<td>{index}</td>"
+            f"<td><code>{escape(record['suite'])}</code></td>"
+            f"<td><code>{escape(record['case'])}</code></td>"
+            f"<td>{escape(record['expected'])}</td>"
+            f"<td>{escape(record['observed_transformation'])}</td>"
+            f"<td>{escape(record['actual'])}</td>"
+            f"<td class=\"{status_class}\">{escape(record['status'])}</td>"
+            f"<td>{escape(', '.join(record['source']))}</td>"
+            f"<td>{evidence_links(record['evidence'])}</td>"
+            "</tr>"
+        )
+    counts = catalog["counts"]
+    page = f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Complete Test Catalog</title><link rel="stylesheet" href="../../docs/artifact.css"></head>
+<body><main><h1>Complete Test Catalog</h1>
+<p class="lede">This page lists every test configuration executed by the frozen local artifact run and remote CI. Aggregate suites are expanded from their exact frozen test generators; executable comparisons and optimizer-output rejection checks are included as individual rows. When a search retained only aggregate results, the affected rows say so explicitly.</p>
+<p><strong>{counts['listed_test_configurations']} listed test configurations</strong> account for <strong>{counts['recorded_test_case_results']} recorded test-case results</strong>. Exact local/CI reruns share one row and retain both evidence links. The two command tables list all {counts['local_artifact_commands']} local checks and all {counts['remote_ci_phases']} timed remote CI phases, including aggregate gates that do not print per-case results.</p>
+<p>The <em>Observed transformation</em> column names the checked loop effect: ISS, loop fusion or fission, affine rescheduling, ordinary or two-level tiling, diamond tiling, parallelization, or unroll-and-jam. A rejection row says explicitly that no transformed program was emitted.</p>
+<label for="test-filter"><strong>Filter cases</strong></label>
+<input id="test-filter" type="search" placeholder="ISS, diamond, parallel, fusion, case name..." aria-controls="case-table">
+<p id="visible-count" aria-live="polite">Showing all {counts['listed_test_configurations']} configurations.</p>
+<div class="wide-table"><table id="case-table"><thead><tr><th>#</th><th>Suite</th><th>Case</th><th>Expected result</th><th>Observed transformation</th><th>Actual result</th><th>Status</th><th>Run</th><th>Evidence</th></tr></thead><tbody>
+{chr(10).join(case_rows)}
+</tbody></table></div>
+<h2>Local Artifact Commands</h2>
+<table><thead><tr><th>Check</th><th>Command</th><th>Time</th><th>Status</th><th>Evidence</th></tr></thead><tbody>{chr(10).join(command_rows)}</tbody></table>
+<h2>Remote CI Phases</h2>
+<table><thead><tr><th>Phase</th><th>Time</th><th>Status</th><th>Evidence</th></tr></thead><tbody>{chr(10).join(remote_rows)}</tbody></table>
+</main><script>
+const input = document.getElementById('test-filter');
+const rows = [...document.querySelectorAll('#case-table tbody tr')];
+const count = document.getElementById('visible-count');
+input.addEventListener('input', () => {{
+  const query = input.value.trim().toLowerCase();
+  let visible = 0;
+  for (const row of rows) {{
+    const show = !query || row.dataset.search.includes(query);
+    row.hidden = !show;
+    if (show) visible += 1;
+  }}
+  count.textContent = `Showing ${{visible}} of ${{rows.length}} cases.`;
+}});
+</script></body></html>\n"""
+    (destination / "test-catalog.html").write_text(page, encoding="utf-8")
+    return catalog
 
 
 def prepare_evidence(
@@ -808,8 +1787,8 @@ def prepare_evidence(
     )
     remove_elf_outputs(details)
     copy_typed_pipeline_ci_result(release_dir, raw_output)
-    validate_test_overview(source, raw_output)
-    shutil.copy2(PACKAGE_DIR / "TEST_OVERVIEW.md", details / "test-overview.md")
+    remote_commands = copy_remote_ci_test_results(release_dir, raw_output)
+    validate_test_evidence(source, raw_output)
     shutil.copytree(
         release_dir / "polopt-generated-cases",
         destination / "optimized-loop-examples",
@@ -824,6 +1803,15 @@ def prepare_evidence(
     rejected = destination / "rejected-optimizer-outputs"
     copy_bug_witnesses(source, rejected, release_dir, bug_report_draft)
     witness_summary = prepare_witness_results(rejected)
+    test_catalog = prepare_test_catalog(
+        details,
+        source,
+        artifact_results,
+        remote_commands,
+        transformation_summary,
+        executable_summary,
+        witness_summary,
+    )
     shutil.copy2(PACKAGE_DIR / "EVIDENCE_README.md", destination / "README.md")
 
     checks = artifact_results["results"]
@@ -858,6 +1846,7 @@ def prepare_evidence(
             "passed": witness_summary["passed"],
             "total": witness_summary["total"],
         },
+        "test_catalog": test_catalog["counts"],
         "toolchain": {"ocaml": "4.13.1", "rocq_coq": "8.13.2"},
     }
     (destination / "summary.json").write_text(

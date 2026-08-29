@@ -19,6 +19,9 @@ assistant, readable proof documentation, and recorded validation results for
 - **Proof:** read Top-Level Proof, Proof Structure, and Proof by Component.
 - **Details:** follow theorem links to the generated Rocq pages and source.
 
+For the complete test inventory, open
+[`evidence/proof-and-test-results/test-catalog.html`](evidence/proof-and-test-results/test-catalog.html).
+
 ## Contents
 
 | Path | Contents |
@@ -28,8 +31,8 @@ assistant, readable proof documentation, and recorded validation results for
 | `source/` | The validated source and proof snapshot. |
 | `environment/Dockerfile.proof` | Reproducible proof-build environment. |
 | `evidence/README.md` | Guide to the recorded proof and test results. |
-| `evidence/proof-and-test-results/` | Proof status and detailed compiler test results. |
-| `evidence/optimized-loop-examples/` | 62 loops shown before and after optimization. |
+| `evidence/proof-and-test-results/` | Complete test catalog, proof status, commands, and raw output. |
+| `evidence/optimized-loop-examples/` | Before-and-after loop outputs, labeled by transformation. |
 | `evidence/execution-comparisons/` | Checks that original and optimized programs return the same result. |
 | `evidence/rejected-optimizer-outputs/` | Unsafe or non-certifiable optimizer proposals, their causes, and PolCert's response. |
 | `THIRD_PARTY.md` | Third-party attribution and license map. |

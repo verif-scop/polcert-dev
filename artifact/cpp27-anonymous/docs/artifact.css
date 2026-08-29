@@ -205,6 +205,27 @@ table {
   font-size: 0.94rem;
 }
 
+.wide-table {
+  width: min(1500px, calc(100vw - 56px));
+  overflow-x: auto;
+}
+
+.wide-table table { min-width: 1320px; }
+
+input[type="search"] {
+  display: block;
+  width: min(720px, 100%);
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+}
+
+tr[hidden] { display: none; }
+
 th, td {
   padding: 10px 11px;
   border: 1px solid var(--line);
@@ -215,6 +236,7 @@ th, td {
 th { background: var(--soft); }
 
 .status-pass { color: var(--green); font-weight: 700; }
+.status-note { color: var(--ink-muted); font-weight: 700; }
 .boundary { color: var(--red); }
 
 .proof-step {
