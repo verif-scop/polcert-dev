@@ -92,17 +92,23 @@ DENYLIST = (
     "33243898549",
 )
 
-EVIDENCE_TEXT_SUFFIXES = {
+BROWSER_TEXT_SUFFIXES = {
     ".c",
     ".cloog",
     ".fst",
+    ".h",
     ".json",
     ".log",
     ".loop",
     ".md",
+    ".ml",
+    ".mli",
     ".patch",
+    ".py",
     ".scop",
+    ".sh",
     ".txt",
+    ".v",
 }
 
 
@@ -2138,14 +2144,46 @@ def parse_html(path: Path) -> LinkCollector:
     return parser
 
 
-def prepare_evidence_text_views(package: Path, evidence: Path) -> int:
-    """Replace browser-facing evidence text links with self-contained HTML views."""
-    evidence_root = evidence.resolve()
-    views: dict[Path, Path] = {}
+def prepare_browser_text_views(package: Path) -> int:
+    """Replace linked text files with short, self-contained HTML views."""
+    package_root = package.resolve()
     href_pattern = re.compile(
         r'(?P<prefix>\bhref\s*=\s*)(?P<quote>["\'])(?P<value>.*?)(?P=quote)',
         re.IGNORECASE,
     )
+
+    def text_target(html_path: Path, raw_href: str) -> Path | None:
+        link = urlsplit(raw_href)
+        if link.scheme or link.netloc or not link.path:
+            return None
+        target = (html_path.parent / unquote(link.path)).resolve()
+        try:
+            target.relative_to(package_root)
+        except ValueError:
+            return None
+        if target.suffix.lower() not in BROWSER_TEXT_SUFFIXES or not target.is_file():
+            return None
+        try:
+            target.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            return None
+        return target
+
+    targets: set[Path] = set()
+    for html_path in sorted(package.rglob("*.html")):
+        original = html_path.read_text(encoding="utf-8")
+
+        for match in href_pattern.finditer(original):
+            target = text_target(html_path, unescape(match.group("value")))
+            if target is not None:
+                targets.add(target)
+
+    views_dir = package / "v"
+    views_dir.mkdir()
+    views = {
+        target: views_dir / f"{index:04d}.html"
+        for index, target in enumerate(sorted(targets))
+    }
 
     for html_path in sorted(package.rglob("*.html")):
         original = html_path.read_text(encoding="utf-8")
@@ -2153,22 +2191,12 @@ def prepare_evidence_text_views(package: Path, evidence: Path) -> int:
         def replace_href(match: re.Match[str]) -> str:
             raw_href = unescape(match.group("value"))
             link = urlsplit(raw_href)
-            if link.scheme or link.netloc or not link.path:
+            target = text_target(html_path, raw_href)
+            if target is None:
                 return match.group(0)
-            target = (html_path.parent / unquote(link.path)).resolve()
-            try:
-                target.relative_to(evidence_root)
-            except ValueError:
-                return match.group(0)
-            if target.suffix.lower() not in EVIDENCE_TEXT_SUFFIXES or not target.is_file():
-                return match.group(0)
-            try:
-                target.read_text(encoding="utf-8")
-            except UnicodeDecodeError:
-                return match.group(0)
-            view = Path(f"{target}.html")
-            views[target] = view
-            replacement = f"{link.path}.html"
+            replacement = os.path.relpath(views[target], html_path.parent).replace(
+                os.sep, "/"
+            )
             if link.query:
                 replacement += f"?{link.query}"
             if link.fragment:
@@ -2183,14 +2211,14 @@ def prepare_evidence_text_views(package: Path, evidence: Path) -> int:
         if updated != original:
             html_path.write_text(updated, encoding="utf-8")
 
-    for target, view in sorted(views.items()):
+    for target, view in views.items():
         css_href = os.path.relpath(package / "docs/artifact.css", view.parent).replace(
             os.sep, "/"
         )
         guide_href = os.path.relpath(package / "docs/index.html", view.parent).replace(
             os.sep, "/"
         )
-        label = target.relative_to(evidence_root).as_posix()
+        label = target.relative_to(package_root).as_posix()
         payload = target.read_text(encoding="utf-8")
         page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -2401,7 +2429,7 @@ def main() -> int:
             json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
 
-        evidence_text_views = prepare_evidence_text_views(package, evidence)
+        browser_text_views = prepare_browser_text_views(package)
         json_count = check_json(package)
         html_count = check_html_links(package)
         check_denylist(package)
@@ -2414,7 +2442,7 @@ def main() -> int:
     print(f"SHA-256: {sha256(output)}")
     print(f"validated JSON files: {json_count}")
     print(f"validated HTML files: {html_count}")
-    print(f"browser-readable evidence files: {evidence_text_views}")
+    print(f"browser-readable linked text files: {browser_text_views}")
     print(f"checksummed files: {checksummed}")
     return 0
 
