@@ -836,7 +836,7 @@ def observed_transformation(
     if lower_suite in {"unit", "proof gate", "build gate"}:
         return "None; infrastructure or proof-closure check"
     if lower_suite == "identity-iss-sensitive-search":
-        return "ISS sensitivity comparison; the per-fixture effect was not preserved"
+        return "ISS sensitivity comparison"
     if lower_suite == "direct-route" and lower_case == "frozen-diamond-phase-pair":
         return "Diamond tiling certificate accepted; no optimized program emitted"
     if lower_suite == "identity-diamond-sensitive-search":
@@ -1261,6 +1261,127 @@ def catalog_suite_name(suite: str) -> str:
     }.get(suite, suite)
 
 
+CATALOG_HIERARCHY = (
+    (
+        "Verified Transformations",
+        "Validator and effect checks for individual loop transformations.",
+        (
+            ("Affine Schedule Validation", ("affine schedule refinement",)),
+            (
+                "Index-Set Splitting (ISS)",
+                (
+                    "ISS validator",
+                    "ISS from live Pluto output",
+                    "ISS multi-cut validation",
+                    "identity-iss-sensitive-search",
+                ),
+            ),
+            (
+                "One-Level and Direct Tiling Validation",
+                (
+                    "one-level tiling configurations",
+                    "direct tiling-validator routes",
+                    "scalar-interleaved tiling",
+                ),
+            ),
+            (
+                "Two-Level Tiling",
+                ("two-level tiling configurations", "two-level tiling route checks"),
+            ),
+            (
+                "Diamond Tiling",
+                ("diamond tiling", "identity-diamond-sensitive-search"),
+            ),
+            (
+                "Parallel Loops",
+                ("parallel-loop validation", "innermost parallel-loop validation"),
+            ),
+            (
+                "Unroll and Jam",
+                ("unroll-and-jam exploration", "code-generation gap exploration"),
+            ),
+        ),
+    ),
+    (
+        "End-to-End Checks",
+        "Generated programs, executable comparisons, and typed instruction examples.",
+        (
+            (
+                "Observed Loop-Structure Effects",
+                ("default optimization structural effects",),
+            ),
+            (
+                "Executable Loop Comparisons",
+                (
+                    "generated execution: default-corpus",
+                    "generated execution: parallel-effect",
+                    "generated execution: second-level-effect",
+                    "generated execution: intratile-effect",
+                ),
+            ),
+            (
+                "Typed Instruction Programs",
+                (
+                    "handwritten C execution",
+                    "typed C instruction pipelines",
+                    "typed C refinement: matrix multiplication",
+                    "typed C refinement: covariance",
+                    "typed C refinement: GEMVER",
+                ),
+            ),
+        ),
+    ),
+    (
+        "Compiler Interface",
+        "Driver options, composition routes, and format adapters.",
+        (
+            ("Driver Options", ("driver option configurations",)),
+            ("Composition Routes", ("identity composition",)),
+            (
+                "Formats and Scheduler Adapter",
+                (
+                    "OpenScop round trips",
+                    "CPoly-to-OpenScop conversion",
+                    "scheduler conversion smoke test",
+                ),
+            ),
+        ),
+    ),
+    (
+        "Rejected Candidates",
+        "Candidates that PolCert rejects without emitting unchecked code.",
+        (
+            ("Tiling and Consumer Rejections", ("second-level rejection",)),
+            ("Optimizer-Output Witnesses", ("optimizer-output rejection",)),
+        ),
+    ),
+    (
+        "Test Harness",
+        "Unit checks and failure propagation for the artifact tooling.",
+        (
+            ("Unit Checks", ("unit",)),
+            ("Failure Propagation", ("legacy failure propagation",)),
+        ),
+    ),
+)
+
+
+SUITE_NOTES = {
+    "identity-iss-sensitive-search": (
+        "The search log contains only the totals: 42 equal outputs and 29 paired "
+        "failures. It does not identify the outcome for each input."
+    ),
+}
+
+
+def catalog_location(suite: str) -> tuple[str, str]:
+    for category, _description, families in CATALOG_HIERARCHY:
+        for family, suites in families:
+            if suite in suites:
+                return category, family
+    raise ValueError(f"unclassified test suite: {suite}")
+
+
 def prepare_test_catalog(
     destination: Path,
     source: Path,
@@ -1282,6 +1403,7 @@ def prepare_test_catalog(
     def add(record: dict) -> None:
         raw_suite = record["suite"]
         suite = catalog_suite_name(raw_suite)
+        category, family = catalog_location(suite)
         case = display_case_name(raw_suite, record["case"], record.get("expected", ""))
         expected = record.get("expected", "not separately recorded")
         actual = record.get("actual", "PASS")
@@ -1306,6 +1428,8 @@ def prepare_test_catalog(
             )
             return
         current = {
+            "category": category,
+            "family": family,
             "suite": suite,
             "case": case,
             "expected": expected,
@@ -1501,12 +1625,9 @@ def prepare_test_catalog(
                 "suite": "identity-iss-sensitive-search",
                 "case": name,
                 "expected": "compare identity tiling with and without ISS",
-                "actual": (
-                    "per-fixture result not preserved; the suite recorded 42 equal outputs "
-                    "and 29 paired failures across these 71 fixtures"
-                ),
+                "actual": "included in the suite-level result",
                 "coverage": "effect search",
-                "status": "AGGREGATE ONLY",
+                "status": "SUITE RESULT",
                 "source": ["local artifact run"],
                 "evidence": [
                     "raw-output/identity-composition-exploration.stdout.txt",
@@ -1546,7 +1667,20 @@ def prepare_test_catalog(
             }
         )
 
-    records.sort(key=lambda item: (item["suite"].lower(), item["case"].lower(), item["expected"]))
+    suite_order = {}
+    for category_index, (_category, _description, families) in enumerate(
+        CATALOG_HIERARCHY
+    ):
+        for family_index, (_family, suites) in enumerate(families):
+            for suite_index, suite in enumerate(suites):
+                suite_order[suite] = (category_index, family_index, suite_index)
+    records.sort(
+        key=lambda item: (
+            *suite_order[item["suite"]],
+            item["case"].lower(),
+            item["expected"],
+        )
+    )
     expected_suite_counts = {
         "driver option configurations": 189,
         "second-level rejection": 116,
@@ -1592,6 +1726,10 @@ def prepare_test_catalog(
         "complete test-catalog count mismatch:\n"
         f"expected={expected_suite_counts}\nactual={actual_suite_counts}",
     )
+    require(
+        set(suite_order) == set(actual_suite_counts),
+        "test-catalog hierarchy does not match the recorded suites",
+    )
     require(len(records) == 1003, f"expected 1003 test configurations, found {len(records)}")
     local_commands = []
     for result in artifact_results["results"]:
@@ -1607,6 +1745,41 @@ def prepare_test_catalog(
 
     recorded_results = sum(item["occurrences"] for item in records)
     require(recorded_results == 1508, f"expected 1508 recorded results, found {recorded_results}")
+    hierarchy = []
+    for category, description, families in CATALOG_HIERARCHY:
+        family_entries = []
+        for family, suites in families:
+            suite_entries = [
+                {
+                    "name": suite,
+                    "configurations": actual_suite_counts[suite],
+                    **({"note": SUITE_NOTES[suite]} if suite in SUITE_NOTES else {}),
+                }
+                for suite in suites
+            ]
+            family_entries.append(
+                {
+                    "name": family,
+                    "configurations": sum(
+                        entry["configurations"] for entry in suite_entries
+                    ),
+                    "suites": suite_entries,
+                }
+            )
+        hierarchy.append(
+            {
+                "name": category,
+                "description": description,
+                "configurations": sum(
+                    entry["configurations"] for entry in family_entries
+                ),
+                "families": family_entries,
+            }
+        )
+    family_count = sum(len(category["families"]) for category in hierarchy)
+    require(len(hierarchy) == 5, f"expected 5 catalog categories, found {len(hierarchy)}")
+    require(family_count == 17, f"expected 17 catalog families, found {family_count}")
+
     catalog = {
         "counts": {
             "listed_test_configurations": len(records),
@@ -1614,7 +1787,11 @@ def prepare_test_catalog(
             "local_artifact_commands": len(local_commands),
             "remote_ci_phases": len(remote_commands),
             "suites": len({item["suite"] for item in records}),
+            "categories": len(hierarchy),
+            "families": family_count,
         },
+        "hierarchy": hierarchy,
+        "suite_notes": SUITE_NOTES,
         "local_artifact_commands": local_commands,
         "remote_ci_phases": remote_commands,
         "cases": records,
@@ -1652,47 +1829,122 @@ def prepare_test_catalog(
             f"<td><a href=\"{escape(command['evidence'], quote=True)}\">CI results</a></td>"
             "</tr>"
         )
-    case_rows = []
-    for index, record in enumerate(records, start=1):
+    records_by_suite: dict[str, list[dict]] = {}
+    for record in records:
+        records_by_suite.setdefault(record["suite"], []).append(record)
+
+    def case_row(record: dict, compact: bool = False) -> str:
         search = " ".join(
             str(record[field])
-            for field in ("suite", "case", "expected", "observed_transformation", "actual")
+            for field in (
+                "category",
+                "family",
+                "suite",
+                "case",
+                "expected",
+                "observed_transformation",
+                "actual",
+            )
         ).lower()
         status_class = "status-pass" if record["status"] == "PASS" else "status-note"
-        case_rows.append(
+        if compact:
+            return (
+                f'<tr data-search="{escape(search, quote=True)}">'
+                f"<td><code>{escape(record['case'])}</code></td>"
+                f"<td>{evidence_links(record['evidence'])}</td>"
+                "</tr>"
+            )
+        return (
             f'<tr data-search="{escape(search, quote=True)}">'
-            f"<td>{index}</td>"
-            f"<td><code>{escape(record['suite'])}</code></td>"
             f"<td><code>{escape(record['case'])}</code></td>"
             f"<td>{escape(record['expected'])}</td>"
             f"<td>{escape(record['observed_transformation'])}</td>"
             f"<td>{escape(record['actual'])}</td>"
             f"<td class=\"{status_class}\">{escape(record['status'])}</td>"
-            f"<td>{escape(', '.join(record['source']))}</td>"
             f"<td>{evidence_links(record['evidence'])}</td>"
             "</tr>"
+        )
+
+    def html_slug(value: str) -> str:
+        return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+
+    category_links = []
+    category_sections = []
+    for category in hierarchy:
+        category_id = html_slug(category["name"])
+        category_links.append(
+            f'<li><a href="#{category_id}">{escape(category["name"])}</a>'
+            f'<span>{category["configurations"]} configurations</span></li>'
+        )
+        family_blocks = []
+        for family in category["families"]:
+            suite_blocks = []
+            for suite in family["suites"]:
+                suite_name = suite["name"]
+                note = (
+                    f'<p class="catalog-suite-note">{escape(suite["note"])}</p>'
+                    if "note" in suite
+                    else ""
+                )
+                compact = suite_name == "identity-iss-sensitive-search"
+                rows = "\n".join(
+                    case_row(record, compact) for record in records_by_suite[suite_name]
+                )
+                if compact:
+                    table_class = "compact-table"
+                    table_head = "<thead><tr><th>Input</th><th>Evidence</th></tr></thead>"
+                else:
+                    table_class = ""
+                    table_head = (
+                        "<thead><tr><th>Case</th><th>Expected result</th>"
+                        "<th>Observed transformation</th><th>Actual result</th>"
+                        "<th>Status</th><th>Evidence</th></tr></thead>"
+                    )
+                suite_blocks.append(
+                    '<details class="catalog-suite" data-catalog-suite>'
+                    '<summary><code>'
+                    f'{escape(suite_name)}</code><span>{suite["configurations"]} configurations</span>'
+                    f'</summary>{note}<div class="wide-table"><table class="{table_class}">'
+                    f'{table_head}<tbody>'
+                    f'{rows}</tbody></table></div></details>'
+                )
+            family_blocks.append(
+                '<details class="catalog-family" data-catalog-family>'
+                f'<summary><span>{escape(family["name"])}</span>'
+                f'<span>{family["configurations"]} configurations</span></summary>'
+                f'{chr(10).join(suite_blocks)}</details>'
+            )
+        category_sections.append(
+            f'<section id="{category_id}" class="catalog-section" data-catalog-section>'
+            f'<h2>{escape(category["name"])} '
+            f'<span>{category["configurations"]}</span></h2>'
+            f'<p>{escape(category["description"])}</p>'
+            f'{chr(10).join(family_blocks)}</section>'
         )
     counts = catalog["counts"]
     page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Complete Test Catalog</title><link rel="stylesheet" href="../../docs/artifact.css"></head>
-<body><main><h1>Complete Test Catalog</h1>
-<p class="lede">This page lists every test configuration executed by the frozen local artifact run and remote CI. Aggregate suites are expanded from their exact frozen test generators; executable comparisons and optimizer-output rejection checks are included as individual rows. When a search retained only aggregate results, the affected rows say so explicitly.</p>
-<p><strong>{counts['listed_test_configurations']} listed test configurations</strong> account for <strong>{counts['recorded_test_case_results']} recorded test-case results</strong>. Exact local/CI reruns share one row and retain both evidence links. The two command tables list all {counts['local_artifact_commands']} local checks and all {counts['remote_ci_phases']} timed remote CI phases, including aggregate gates that do not print per-case results.</p>
-<p>The <em>Observed transformation</em> column names the checked loop effect: ISS, loop fusion or fission, affine rescheduling, ordinary or two-level tiling, diamond tiling, parallelization, or unroll-and-jam. A rejection row says explicitly that no transformed program was emitted.</p>
+<title>Test Catalog</title><link rel="stylesheet" href="../../docs/artifact.css"></head>
+<body><main><h1>Test Catalog</h1>
+<p class="lede">Browse the tests by transformation or purpose. Each suite has one primary group; the <em>Observed transformation</em> column retains combined effects.</p>
+<p><strong>{counts['listed_test_configurations']} configurations</strong> in <strong>{counts['suites']} suites</strong>. Local and remote reruns share one row.</p>
+<ul class="catalog-index">{chr(10).join(category_links)}</ul>
 <label for="test-filter"><strong>Filter cases</strong></label>
-<input id="test-filter" type="search" placeholder="ISS, diamond, parallel, fusion, case name..." aria-controls="case-table">
-<p id="visible-count" aria-live="polite">Showing all {counts['listed_test_configurations']} configurations.</p>
-<div class="wide-table"><table id="case-table"><thead><tr><th>#</th><th>Suite</th><th>Case</th><th>Expected result</th><th>Observed transformation</th><th>Actual result</th><th>Status</th><th>Run</th><th>Evidence</th></tr></thead><tbody>
-{chr(10).join(case_rows)}
-</tbody></table></div>
+<input id="test-filter" type="search" placeholder="ISS, diamond, parallel, fusion, case name..." aria-controls="catalog-groups">
+<p id="visible-count" aria-live="polite">{counts['listed_test_configurations']} configurations.</p>
+<div id="catalog-groups">{chr(10).join(category_sections)}</div>
+<details class="run-metadata"><summary>Recorded Commands</summary>
 <h2>Local Artifact Commands</h2>
 <table><thead><tr><th>Check</th><th>Command</th><th>Time</th><th>Status</th><th>Evidence</th></tr></thead><tbody>{chr(10).join(command_rows)}</tbody></table>
 <h2>Remote CI Phases</h2>
 <table><thead><tr><th>Phase</th><th>Time</th><th>Status</th><th>Evidence</th></tr></thead><tbody>{chr(10).join(remote_rows)}</tbody></table>
+</details>
 </main><script>
 const input = document.getElementById('test-filter');
-const rows = [...document.querySelectorAll('#case-table tbody tr')];
+const rows = [...document.querySelectorAll('#catalog-groups tbody tr')];
+const suites = [...document.querySelectorAll('[data-catalog-suite]')];
+const families = [...document.querySelectorAll('[data-catalog-family]')];
+const sections = [...document.querySelectorAll('[data-catalog-section]')];
 const count = document.getElementById('visible-count');
 input.addEventListener('input', () => {{
   const query = input.value.trim().toLowerCase();
@@ -1702,7 +1954,22 @@ input.addEventListener('input', () => {{
     row.hidden = !show;
     if (show) visible += 1;
   }}
-  count.textContent = `Showing ${{visible}} of ${{rows.length}} cases.`;
+  for (const suite of suites) {{
+    const show = [...suite.querySelectorAll('tbody tr')].some(row => !row.hidden);
+    suite.hidden = !show;
+    if (query && show) suite.open = true;
+  }}
+  for (const family of families) {{
+    const show = [...family.querySelectorAll('[data-catalog-suite]')].some(suite => !suite.hidden);
+    family.hidden = !show;
+    if (query && show) family.open = true;
+  }}
+  for (const section of sections) {{
+    section.hidden = ![...section.querySelectorAll('[data-catalog-family]')].some(family => !family.hidden);
+  }}
+  count.textContent = query
+    ? `Showing ${{visible}} of ${{rows.length}} configurations.`
+    : `${{rows.length}} configurations.`;
 }});
 </script></body></html>\n"""
     (destination / "test-catalog.html").write_text(page, encoding="utf-8")

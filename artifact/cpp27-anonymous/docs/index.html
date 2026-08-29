@@ -10,7 +10,6 @@
 <div class="shell">
   <nav aria-label="Supplement guide sections">
     <strong>PolCert Guide</strong>
-    <a href="#reading-paths">Reading paths</a>
     <a href="#design">Compiler design</a>
     <a href="#contract">Correctness guarantee</a>
     <a href="#project-map">Project map</a>
@@ -47,29 +46,6 @@
       multiplied only by constants; this restriction is called affine.
     </div>
 
-    <section id="reading-paths">
-      <h2>Reading Paths</h2>
-      <div class="route-list">
-        <div class="route">
-          <strong>Overview</strong>
-          <p>Read Compiler Design, Correctness Guarantee, and Project Map.</p>
-        </div>
-        <div class="route">
-          <strong>Proof</strong>
-          <p>Read Top-Level Proof, Proof Structure, then Proof by Component.</p>
-        </div>
-        <div class="route">
-          <strong>Details</strong>
-          <p>Follow theorem links to the generated Rocq pages and source.</p>
-        </div>
-      </div>
-      <p>
-        The proof structure follows one representative path that checks an affine
-        schedule, tiling, and parallel execution. The component sections then
-        explain the optional transformations.
-      </p>
-    </section>
-
     <section id="design">
       <h2>Compiler Design</h2>
       <p>
@@ -81,13 +57,12 @@
         chosen configuration.
       </p>
 
-      <h3>Representative Verified Path</h3>
+      <h3>Typical Verified Pipeline</h3>
       <p>
-        The source calls this configuration
-        <code>VParallelCurrentDefault d</code>, where <code>d</code> selects the
-        loop dimension proposed for parallel execution.
+        A typical compilation validates an affine schedule, tiling, and one
+        parallel loop dimension before it generates the target loop.
       </p>
-      <div class="pipeline" role="img" aria-label="VParallelCurrentDefault route from source Loop to ParallelLoop">
+      <div class="pipeline" role="img" aria-label="Typical verified pipeline from source loop to parallel target loop">
         <div class="stage verified"><b>Source Loop</b>bounded loop nest</div>
         <div class="stage verified"><b>Build Model</b>one point per statement instance</div>
         <div class="stage verified"><b>Add Bounds</b>make loop constraints explicit</div>
@@ -337,10 +312,9 @@
     <section id="proof-spine">
       <h2>Proof Structure</h2>
       <p>
-        The steps below show how the representative
-        <code>VParallelCurrentDefault d</code> proof is assembled. This path
-        checks a proposed schedule, tiling, and one parallel dimension before
-        generating the target loop.
+        The steps below assemble the proof for the typical pipeline shown
+        above. The proof connects the source loop to the checked schedule,
+        tiling, generated loop, and parallel target.
       </p>
 
       <div class="proof-step">
@@ -412,7 +386,7 @@
         </tbody>
       </table>
       <p>
-        The representative path does not use the optional ISS proof, so the
+        The typical path does not use the optional ISS proof, so the
         total is not the size of a single compiler path. The exact files and
         counting rule are in <a href="reading-budget.json"><code>reading-budget.json</code></a>.
       </p>

@@ -12,12 +12,8 @@ transformation need not be trusted.
 
 This archive contains the source snapshot, proof scripts for the Rocq proof
 assistant, readable proof documentation, and recorded validation results for
-*End-to-End Verified Polyhedral Compilation*. Start with
-[`docs/index.html`](docs/index.html):
-
-- **Overview:** read Compiler Design, Correctness Guarantee, and Project Map.
-- **Proof:** read Top-Level Proof, Proof Structure, and Proof by Component.
-- **Details:** follow theorem links to the generated Rocq pages and source.
+*End-to-End Verified Polyhedral Compilation*. [`docs/index.html`](docs/index.html)
+links the compiler pipeline, correctness theorem, proof structure, and source.
 
 For the complete test inventory, open
 [`evidence/proof-and-test-results/test-catalog.html`](evidence/proof-and-test-results/test-catalog.html).
