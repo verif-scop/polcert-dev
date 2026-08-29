@@ -6,7 +6,7 @@ both, and compares their results.
 
 The standard test covers all 62 cases. Five focused tests for parallel loops,
 two-level tiling, and optimization inside a tile also check that the requested
-transformation occurred. Results are under `evidence/executable-checks/`.
+transformation occurred. Results are under `evidence/execution-comparisons/`.
 
 Run the default suite with:
 

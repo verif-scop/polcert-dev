@@ -1,4 +1,4 @@
-# Generated Executable Checks
+# Program Output Comparisons
 
 These records run the baseline and optimized C programs generated from each
 `.loop` input and compare their results.

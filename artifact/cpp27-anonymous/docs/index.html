@@ -468,47 +468,47 @@
     <section id="crosswalk">
       <h2>Paper Claims</h2>
       <table>
-        <thead><tr><th>Claim</th><th>Proof entry</th><th>Executable evidence</th></tr></thead>
+        <thead><tr><th>Claim</th><th>Proof entry</th><th>Recorded checks</th></tr></thead>
         <tbody>
           <tr>
             <td>End-to-end verified compilation</td>
-            <td><a href="#claim-e2e"><code>compile_correct</code> and extracted bridge</a></td>
-            <td><a href="../evidence/artifact-check/proof-report.md">proof inventory</a>; <a href="../evidence/executable-checks/results.json">generated executable checks</a></td>
+            <td><a href="#claim-e2e">main theorem and executable compiler theorem</a></td>
+            <td><a href="../evidence/proof-and-test-results/proof-report.md">proof status</a>; <a href="../evidence/execution-comparisons/results.json">program-output comparisons</a></td>
           </tr>
           <tr>
             <td>Verified extraction</td>
             <td><a href="#claim-extraction"><code>extractor_correct</code></a></td>
-            <td><a href="../evidence/artifact-check/proof-report.md">proof inventory</a></td>
+            <td><a href="../evidence/proof-and-test-results/proof-report.md">proof status</a></td>
           </tr>
           <tr>
             <td>Index-set splitting</td>
             <td><a href="#claim-iss">complete, non-overlapping split</a></td>
-            <td><a href="../evidence/artifact-check/iss-suite.stdout.txt">ISS suite log</a></td>
+            <td><a href="../evidence/proof-and-test-results/raw-output/iss-suite.stdout.txt">index-set splitting tests</a></td>
           </tr>
           <tr>
             <td>Schedule checking and tiling</td>
             <td><a href="#claim-affine">schedule proof</a>; <a href="#claim-tiling">tiling proof</a></td>
-            <td><a href="../evidence/artifact-check/pluto-compat-suite.stdout.txt">schedule tests</a>; <a href="../evidence/artifact-check/tiling-route-summary.json">tiling summary</a></td>
+            <td><a href="../evidence/proof-and-test-results/raw-output/pluto-compat-suite.stdout.txt">schedule tests</a>; <a href="../evidence/proof-and-test-results/tiling-tests.json">tiling tests</a></td>
           </tr>
           <tr>
             <td>Parallel loops</td>
             <td><a href="#claim-parallel">all parallel executions refine the source</a></td>
-            <td><a href="../evidence/artifact-check/parallel-current-suite.stdout.txt">parallel suite</a></td>
+            <td><a href="../evidence/proof-and-test-results/raw-output/parallel-current-suite.stdout.txt">parallel-loop tests</a></td>
           </tr>
           <tr>
             <td>Vector annotations</td>
             <td><a href="#claim-parallel">innermost-loop check with a sequential target model</a></td>
-            <td><a href="../evidence/artifact-check/vector-current-suite.stdout.txt">vector suite</a></td>
+            <td><a href="../evidence/proof-and-test-results/raw-output/vector-current-suite.stdout.txt">vector-annotation tests</a></td>
           </tr>
           <tr>
             <td>Unrolling and supported loop fusion</td>
             <td><a href="#claim-unroll">loop rewrite proofs</a></td>
-            <td><a href="../evidence/artifact-check/unrolljam-effect-corpus.stdout.txt">effect corpus</a></td>
+            <td><a href="../evidence/proof-and-test-results/raw-output/unrolljam-effect-corpus.stdout.txt">unrolling and fusion tests</a></td>
           </tr>
           <tr>
             <td>Unsafe optimizer proposals are rejected</td>
-            <td><a href="#claim-affine">affine soundness</a>; <a href="#claim-tiling">tiling soundness</a>; <a href="#claim-parallel">parallel soundness</a>; <a href="#claim-unroll">jam soundness</a></td>
-            <td><a href="../evidence/pluto-bug-witnesses/witness-results.json">seven recorded results</a>; <a href="../evidence/pluto-bug-witnesses/validation.log">validation log</a></td>
+            <td><a href="#claim-affine">schedule proof</a>; <a href="#claim-tiling">tiling proof</a>; <a href="#claim-parallel">parallel proof</a>; <a href="#claim-unroll">loop-fusion proof</a></td>
+            <td><a href="../evidence/rejected-optimizer-outputs/results.json">seven recorded results</a>; <a href="../evidence/rejected-optimizer-outputs/validation.log">detailed log</a></td>
           </tr>
         </tbody>
       </table>
@@ -517,46 +517,47 @@
     <section id="evidence">
       <h2>Evidence Guide</h2>
       <p>
-        Start with the short summary below. Use the individual logs only when
-        checking a particular result.
+        Choose a row by the question you want to answer. Raw command logs are
+        available from the complete run record but are not needed for a first
+        review.
       </p>
       <table>
-        <thead><tr><th>Evidence</th><th>What it establishes</th><th>Result</th></tr></thead>
+        <thead><tr><th>Question</th><th>Where to look</th><th>Recorded result</th></tr></thead>
         <tbody>
           <tr>
-            <td><a href="../evidence/validation-summary.json"><code>validation-summary.json</code></a></td>
-            <td>Counts for the packaged source, proof, and tests.</td>
+            <td>Did the complete validation run pass?</td>
+            <td><a href="../evidence/summary.json"><code>summary.json</code></a></td>
             <td class="status-pass">PASS</td>
           </tr>
           <tr>
-            <td><a href="../evidence/artifact-check/artifact-results.json"><code>artifact-results.json</code></a></td>
-            <td>Packaged record of all commands, statuses, durations, and log paths in the full artifact run.</td>
-            <td class="status-pass">30/30</td>
+            <td>Which commands ran, and where is their output?</td>
+            <td><a href="../evidence/proof-and-test-results/run-results.json"><code>proof-and-test-results/run-results.json</code></a></td>
+            <td class="status-pass">complete run passed</td>
           </tr>
           <tr>
-            <td><a href="../evidence/artifact-check/proof-report.md"><code>proof-report.md</code></a></td>
-            <td>Proof files and checks for unfinished or missing proofs.</td>
+            <td>Are any proofs unfinished or missing?</td>
+            <td><a href="../evidence/proof-and-test-results/proof-report.md"><code>proof-and-test-results/proof-report.md</code></a></td>
             <td class="status-pass">0 gaps</td>
           </tr>
           <tr>
-            <td><a href="../evidence/artifact-check/capability-matrix.md"><code>capability-matrix.md</code></a></td>
-            <td>Supported configurations and the tests that exercise them.</td>
-            <td class="status-pass">all recorded rows have expected outcomes</td>
+            <td>Which compiler configurations were tested?</td>
+            <td><a href="../evidence/proof-and-test-results/tested-configurations.md"><code>proof-and-test-results/tested-configurations.md</code></a></td>
+            <td class="status-pass">supported and rejected cases behaved as expected</td>
           </tr>
           <tr>
-            <td><a href="../evidence/transformation-examples/index.html"><code>transformation-examples/</code></a></td>
-            <td>Input, output, status, and change for each loop example.</td>
+            <td>What code did optimization produce?</td>
+            <td><a href="../evidence/optimized-loop-examples/index.html"><code>optimized-loop-examples/</code></a></td>
             <td class="status-pass">62 examples</td>
           </tr>
           <tr>
-            <td><a href="../evidence/executable-checks/results.json"><code>executable-checks/</code></a></td>
-            <td>Baseline and optimized executions, plus checks that requested transformations occurred.</td>
-            <td class="status-pass">62/62 + 5 focused runs</td>
+            <td>Did original and optimized programs return the same result?</td>
+            <td><a href="../evidence/execution-comparisons/results.json"><code>execution-comparisons/</code></a></td>
+            <td class="status-pass">62 comparisons passed; 5 transformations confirmed</td>
           </tr>
           <tr>
-            <td><a href="../evidence/pluto-bug-witnesses/witness-results.json"><code>pluto-bug-witnesses/</code></a></td>
-            <td>Unsafe or malformed optimizer proposals and where PolCert rejects them.</td>
-            <td class="status-pass">7 cases</td>
+            <td>Does PolCert reject invalid optimizer output?</td>
+            <td><a href="../evidence/rejected-optimizer-outputs/results.json"><code>rejected-optimizer-outputs/</code></a></td>
+            <td class="status-pass">7 invalid proposals handled as expected</td>
           </tr>
         </tbody>
       </table>

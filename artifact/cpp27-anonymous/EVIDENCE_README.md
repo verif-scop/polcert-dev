@@ -1,27 +1,23 @@
-# Validation Evidence
+# Proof and Test Results
 
-This directory contains recorded results from the validated source snapshot.
+This directory contains the results used to check the proof build and compiler
+behavior. Choose the question you want to answer:
 
-Start with `validation-summary.json`, then inspect:
+- **Did all proofs build without unfinished proofs?**
+  Read `proof-and-test-results/proof-report.md`.
+- **Which compiler features were tested?**
+  Read `proof-and-test-results/tested-configurations.md`.
+- **What loops did the optimizer produce?**
+  Open `optimized-loop-examples/index.html` for 62 before-and-after examples.
+- **Did the original and optimized programs return the same result?**
+  Read `execution-comparisons/results.json`.
+- **Does PolCert reject invalid optimizer output?**
+  Read `rejected-optimizer-outputs/README.md` and its `results.json`.
 
-- `artifact-check/artifact-results.json` for the packaged record of all 30
-  commands, statuses, and timings;
-- `artifact-check/proof-report.md` for the proof inventory and main theorems;
-- `artifact-check/capability-matrix.md` for tested configurations and options;
-- `artifact-check/tiling-route-summary.json` for tiling results;
-- `artifact-check/*.stdout.txt` and `*.stderr.txt` for raw per-check output;
-- `transformation-examples/index.html` for each test input, optimized
-  output, status, and diff;
-- `executable-checks/results.json` for 62 baseline-vs-optimized executable
-  comparisons and five additional effect-focused runs;
-- `pluto-bug-witnesses/` for seven unsafe or malformed optimizer proposals and
-  their expected rejection;
-- `pluto-bug-witnesses/witness-results.json` and `validation.log` for the
-  structured and concise results of all seven witnesses.
-
-Paths in `artifact-results.json` are relative to `artifact-check/`. Its
-`formal_source_hash_manifest_sha256` binds the run record to the formal-source
-hash manifest at the archive root.
+`summary.json` provides a short machine-readable overview. The complete command
+record is `proof-and-test-results/run-results.json`; files ending in
+`.stdout.txt` or `.stderr.txt` under `proof-and-test-results/raw-output/`
+contain the corresponding raw output.
 
 These results support the paper's correctness and test-coverage claims. They
 do not claim a performance improvement.

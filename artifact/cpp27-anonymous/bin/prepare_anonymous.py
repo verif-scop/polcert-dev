@@ -311,11 +311,11 @@ def normalize_artifact_results(path: Path, formal_manifest_sha256: str) -> None:
         for key in ("coq_version", "ocaml_version")
         if key in environment
     }
-    record["output_root"] = "artifact-check"
+    record["output_root"] = "proof-and-test-results"
     for result in record.get("results", []):
         for field in ("stdout_path", "stderr_path"):
             if result.get(field):
-                result[field] = Path(result[field]).name
+                result[field] = f"raw-output/{Path(result[field]).name}"
     path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
@@ -438,9 +438,9 @@ def prepare_transformation_index(destination: Path) -> dict:
     )
     page = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Transformation Examples</title><link rel="stylesheet" href="../../docs/artifact.css"></head>
-<body><main><h1>Transformation Examples</h1>
-<p>Each row links the strict-suite input, checked output, structural diff, and route status.</p>
+<title>Optimized Loop Examples</title><link rel="stylesheet" href="../../docs/artifact.css"></head>
+<body><main><h1>Optimized Loop Examples</h1>
+<p>Each row shows one input loop, the loop produced after optimization, their differences, and whether PolCert accepted the result.</p>
 <table><thead><tr><th>Case</th><th>Effect</th><th>Files</th></tr></thead><tbody>
 """ + "\n".join(rows) + "\n</tbody></table></main></body></html>\n"
     (destination / "index.html").write_text(page, encoding="utf-8")
@@ -470,7 +470,7 @@ def prepare_witness_results(destination: Path) -> dict:
             }
         )
     summary = {"passed": len(results), "total": len(expected), "results": results}
-    (destination / "witness-results.json").write_text(
+    (destination / "results.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     return summary
@@ -509,30 +509,93 @@ def prepare_evidence(
     proof_report: dict,
     formal_manifest_sha256: str,
 ) -> dict:
-    shutil.copytree(release_dir / "polcert-artifact-check", destination / "artifact-check")
+    details = destination / "proof-and-test-results"
+    shutil.copytree(release_dir / "polcert-artifact-check", details)
+    (details / "artifact-results.json").rename(details / "run-results.json")
+    (details / "capability-matrix.md").rename(details / "tested-configurations.md")
+    (details / "capability-matrix.json").rename(details / "tested-configurations.json")
+    (details / "tiling-route-summary.json").rename(details / "tiling-tests.json")
+    tested_configurations = details / "tested-configurations.md"
+    tested_text = tested_configurations.read_text(encoding="utf-8")
+    require(
+        tested_text.startswith("# Pluto/PolOpt Capability Matrix"),
+        "tested configuration report has an unexpected heading",
+    )
+    tested_configurations.write_text(
+        tested_text.replace(
+            "# Pluto/PolOpt Capability Matrix",
+            "# Tested Compiler Configurations",
+            1,
+        )
+        .replace(
+            "- Pluto-style filtered entry: `./polopt --pluto-compat`",
+            "This report covers the `./polopt --pluto-compat` command-line interface.",
+            1,
+        )
+        .replace("## Capability Surface", "## Supported Options", 1),
+        encoding="utf-8",
+    )
+    supported_start = "## Supported Options"
+    supported_end = "## Remaining Semantic Gaps"
+    tested_text = tested_configurations.read_text(encoding="utf-8")
+    before, supported = tested_text.split(supported_start, 1)
+    supported, after = supported.split(supported_end, 1)
+    supported_lines = []
+    for line in supported.splitlines():
+        if line.startswith("|"):
+            cells = line.split("|")
+            require(len(cells) == 7, "unexpected supported-options table row")
+            line = "|".join(cells[:-2]) + "|"
+        supported_lines.append(line)
+    tested_configurations.write_text(
+        before
+        + supported_start
+        + "\n\nThis table records the supported, limited, and rejected command-line options.\n"
+        + "Each row identifies the corresponding test or theorem.\n"
+        + "\n".join(supported_lines[1:])
+        + "\n"
+        + supported_end
+        + after,
+        encoding="utf-8",
+    )
+    raw_output = details / "raw-output"
+    raw_output.mkdir()
+    summaries = {
+        "proof-report.json",
+        "proof-report.md",
+        "run-results.json",
+        "tested-configurations.json",
+        "tested-configurations.md",
+        "tiling-tests.json",
+    }
+    for path in list(details.iterdir()):
+        if path.name not in summaries and path != raw_output:
+            shutil.move(path, raw_output / path.name)
+    shutil.copy2(PACKAGE_DIR / "PROOF_TEST_RESULTS_README.md", details / "README.md")
     normalize_artifact_results(
-        destination / "artifact-check/artifact-results.json",
+        details / "run-results.json",
         formal_manifest_sha256,
     )
-    remove_elf_outputs(destination / "artifact-check")
+    remove_elf_outputs(details)
     shutil.copytree(
         release_dir / "polopt-generated-cases",
-        destination / "transformation-examples",
+        destination / "optimized-loop-examples",
     )
     transformation_summary = prepare_transformation_index(
-        destination / "transformation-examples"
+        destination / "optimized-loop-examples"
     )
     executable_summary = prepare_executable_checks(
         release_dir,
-        destination / "executable-checks",
+        destination / "execution-comparisons",
     )
-    copy_bug_witnesses(source, destination / "pluto-bug-witnesses", release_dir)
-    witness_summary = prepare_witness_results(destination / "pluto-bug-witnesses")
+    rejected = destination / "rejected-optimizer-outputs"
+    copy_bug_witnesses(source, rejected, release_dir)
+    witness_summary = prepare_witness_results(rejected)
     shutil.copy2(PACKAGE_DIR / "EVIDENCE_README.md", destination / "README.md")
 
     checks = artifact_results["results"]
     summary = {
-        "artifact_check": {
+        "proof_and_test_run": {
             "mode": "full",
             "passed": sum(bool(check.get("ok")) for check in checks),
             "total": len(checks),
@@ -545,23 +608,23 @@ def prepare_evidence(
             "extraction_axioms": proof_report["extraction_axiom_count"],
             "missing_route_theorems": proof_report["missing_route_theorem_count"],
         },
-        "transformation_examples": {
+        "optimized_loop_examples": {
             key: transformation_summary[key]
             for key in ("total", "changed", "unchanged")
         },
-        "executable_checks": {
+        "execution_comparisons": {
             "baseline_vs_optimized": executable_summary["baseline_vs_optimized"],
             "effect_focused_additional_runs": executable_summary[
                 "effect_focused_additional_runs"
             ],
         },
-        "pluto_bug_witnesses": {
+        "rejected_optimizer_outputs": {
             "passed": witness_summary["passed"],
             "total": witness_summary["total"],
         },
         "toolchain": {"ocaml": "4.13.1", "rocq_coq": "8.13.2"},
     }
-    (destination / "validation-summary.json").write_text(
+    (destination / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     return summary

@@ -27,11 +27,11 @@ assistant, readable proof documentation, and recorded validation results for
 | `docs/proof/` | Generated Rocq pages for the main proof modules. |
 | `source/` | The validated source and proof snapshot. |
 | `environment/Dockerfile.proof` | Reproducible proof-build environment. |
-| `evidence/artifact-check/` | Results and logs from all 30 artifact checks. |
-| `evidence/transformation-examples/` | Inputs and outputs for 62 loop examples. |
-| `evidence/executable-checks/` | Baseline and optimized execution comparisons. |
-| `evidence/pluto-bug-witnesses/` | Optimizer outputs that PolCert correctly rejects. |
-| `evidence/validation-summary.json` | Short machine-readable result summary. |
+| `evidence/README.md` | Guide to the recorded proof and test results. |
+| `evidence/proof-and-test-results/` | Proof status and detailed compiler test results. |
+| `evidence/optimized-loop-examples/` | 62 loops shown before and after optimization. |
+| `evidence/execution-comparisons/` | Checks that original and optimized programs return the same result. |
+| `evidence/rejected-optimizer-outputs/` | Seven invalid Pluto proposals and PolCert's response to each one. |
 | `THIRD_PARTY.md` | Third-party attribution and license map. |
 | `MANIFEST.json` | Snapshot metadata and content counts. |
 | `FORMAL_SOURCE_SHA256SUMS` | Per-file hashes for every packaged `.v` file. |

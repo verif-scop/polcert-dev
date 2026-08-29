@@ -1,4 +1,4 @@
-# Candidate-Validation Witnesses
+# Rejected Optimizer Outputs
 
 These seven cases give PolCert unsafe or malformed output from Pluto. Depending
 on the configuration, PolCert either rejects compilation or drops only the
@@ -14,6 +14,6 @@ unsafe parallel or loop-fusion step and keeps a verified sequential result.
 | `vanished-outer-parallel` | Parallel loop | Unsafe replacement dimension rejected. |
 | `notile-unrolljam-nonpermutable` | Unroll-and-jam | Unrolling retained; unsafe loop fusion rejected. |
 
-The recorded outcomes are in `witness-results.json` and `validation.log`.
+The recorded outcomes are in `results.json` and `validation.log`.
 Each case directory contains its input and explanation; shared test runners
 are under `runners/`.

@@ -11,4 +11,4 @@ code generation. A separate `diamond-stencil` case confirms that PolCert
 accepts a valid diamond tiling.
 
 The runner records Pluto's result and PolCert's rejection in
-`evidence/pluto-bug-witnesses/validation.log` from the archive root.
+`evidence/rejected-optimizer-outputs/validation.log` from the archive root.
