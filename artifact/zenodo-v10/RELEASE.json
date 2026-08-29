@@ -1,0 +1,40 @@
+{
+  "artifact_title": "PolCert: End-to-End Verified Polyhedral Compilation",
+  "artifact_version": "v10",
+  "release_date": "2026-08-29",
+  "license": "LGPL-2.1-or-later",
+  "polcert": {
+    "branch": "artifact/verified-compilation-v10-driver-finalization",
+    "commit": "9d612d02ac8f27d46c5ec632f912f8a67939e748",
+    "tag": "state-eq-polyhedral-verification-complete-2026-08-29-v10",
+    "source_archive": "polcert-9d612d02ac8f27d46c5ec632f912f8a67939e748.tar",
+    "source_archive_sha256": "ed4a1cce93b3332bf2b2b80fdb01d7203dddc887f249fff95503d0205c31928c"
+  },
+  "pluto": {
+    "validated_commit": "8c43c210c9c08c5958198f22db4b54000380925e",
+    "bug_witness_commit": "6f43860b6c4cddeeca09189bf3073f05b78b14a5"
+  },
+  "docker": {
+    "archive": "polcert-artifact-v10.docker.tar",
+    "archive_sha256": "a512da60ab561fa54419e7fdc049c7e8881bbf0833cb8b6286fd70d8aafa1887",
+    "image": "polcert-artifact:state-eq-polyhedral-verification-complete-2026-08-29-v10",
+    "image_id": "sha256:6404668840fdac7333abf47f8784b5514e7ca94baa7d47d48fc6e6c6b7d9510a"
+  },
+  "ci": {
+    "run_id": 33243898549,
+    "url": "https://github.com/Hughshine/PolCert/actions/runs/33243898549",
+    "conclusion": "success",
+    "isolated_shards": 7
+  },
+  "artifact_check": {
+    "mode": "full",
+    "passed": 30,
+    "total": 30,
+    "elapsed_seconds": 2169.037730657903
+  },
+  "upload_files": {
+    "source": "polcert-v10-source-9d612d0.tar.gz",
+    "docker": "polcert-v10-docker-image.tar",
+    "evidence": "polcert-v10-evidence.zip"
+  }
+}
