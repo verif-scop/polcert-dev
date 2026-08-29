@@ -2,6 +2,7 @@
 
 Start with these files:
 
+- `test-overview.md`: the main test groups, case counts, and purpose;
 - `proof-report.md`: whether any Rocq proof is unfinished or missing;
 - `tested-configurations.md`: supported command-line configurations and the
   tests that exercise them;
@@ -10,4 +11,5 @@ Start with these files:
   output path.
 
 Detailed command output and generated intermediate files are under
-`raw-output/`.
+`raw-output/`. That directory also contains the short
+`typed-c-pipeline.stdout.txt` excerpt from remote CI.

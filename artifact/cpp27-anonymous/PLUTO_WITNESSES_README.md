@@ -1,19 +1,20 @@
 # Rejected Optimizer Outputs
 
-These seven cases give PolCert unsafe or malformed output from Pluto. Depending
-on the configuration, PolCert either rejects compilation or drops only the
-unsafe parallel or loop-fusion step and keeps a verified sequential result.
+Open `index.html` for the shortest case-by-case account. It states why each
+proposal is invalid, what PolCert did, and where the relevant Pluto logic
+resides. The recorded checks are in `results.json` and `validation.log`.
 
-| Case | Boundary exercised | Recorded outcome |
-| --- | --- | --- |
-| `auto-affine-lp-cc-scaling` | Execution order | Illegal automatic schedule rejected. |
-| `affine-fst-reversed` | Execution order | Deliberately reversed producer/consumer order rejected. |
-| `tiling-innerpar-satvec` | Tiling plus parallel loop | Legal tiling retained; unsafe parallel annotation removed or rejected. |
-| `diamond-nointratile-reschedule` | Diamond tiling | Invalid tiling schedule rejected. |
-| `matmul-parallel-hint` | Parallel dimension | Unsafe hinted dimension rejected. |
-| `vanished-outer-parallel` | Parallel loop | Unsafe replacement dimension rejected. |
-| `notile-unrolljam-nonpermutable` | Unroll-and-jam | Unrolling retained; unsafe loop fusion rejected. |
+The cases have three different statuses:
 
-The recorded outcomes are in `results.json` and `validation.log`.
-Each case directory contains its input and explanation; shared test runners
-are under `runners/`.
+| Cases | Status |
+| --- | --- |
+| `auto-affine-lp-cc-scaling`, `vanished-outer-parallel`, `notile-unrolljam-nonpermutable`, `tiling-innerpar-satvec` | Confirmed silent miscompilations in the checked official Pluto revision. |
+| `affine-fst-reversed` | An unsafe optional control interface; this is not an automatic-scheduler witness. |
+| `diamond-nointratile-reschedule` | A phase-dump fork regression, absent from official Pluto and fixed in the ordinary artifact version. |
+| `matmul-parallel-hint` | A non-certifiable hint that PolCert handles conservatively; no Pluto miscompilation is claimed. |
+
+`BUG_REPORT_DRAFT.md` contains the executable witnesses, observed wrong
+results, source-level root causes, and official-version rechecks for the four
+confirmed official defects and the unsafe control interface. Each case
+directory contains its input and a focused explanation. Shared runners are
+under `runners/`.

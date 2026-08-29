@@ -31,7 +31,7 @@ assistant, readable proof documentation, and recorded validation results for
 | `evidence/proof-and-test-results/` | Proof status and detailed compiler test results. |
 | `evidence/optimized-loop-examples/` | 62 loops shown before and after optimization. |
 | `evidence/execution-comparisons/` | Checks that original and optimized programs return the same result. |
-| `evidence/rejected-optimizer-outputs/` | Seven invalid Pluto proposals and PolCert's response to each one. |
+| `evidence/rejected-optimizer-outputs/` | Unsafe or non-certifiable optimizer proposals, their causes, and PolCert's response. |
 | `THIRD_PARTY.md` | Third-party attribution and license map. |
 | `MANIFEST.json` | Snapshot metadata and content counts. |
 | `FORMAL_SOURCE_SHA256SUMS` | Per-file hashes for every packaged `.v` file. |

@@ -1,10 +1,14 @@
 # Matrix-Multiplication Parallel Hint
 
-This case records a loop dimension that Pluto proposes to run in parallel for
-matrix multiplication when read-after-read dependences are included. PolCert
-rejects that dimension because it cannot prove it safe. A permissive
-configuration may choose a different, verified dimension; a strict
-configuration keeps the loop sequential.
+This is a conservative-validation example, not a demonstrated Pluto
+miscompilation. With explicit read-after-read dependences, Pluto's hint names a
+schedule coordinate that PolCert cannot certify as a safe generated parallel
+loop for this matrix-multiplication schedule.
+
+Strict mode rejects the requested optimization and emits no optimized loop.
+Permissive mode ignores the non-certifiable hint and chooses a different
+dimension that passes the parallel-loop check. The recorded test requires both
+outcomes.
 
 Files:
 

@@ -40,23 +40,24 @@ REPLACEMENTS = {
     "state-eq-polyhedral-verification-complete-2026-08-29-v10": "validated-source-snapshot",
     "artifact/verified-compilation-v10-driver-finalization": "validated-source-snapshot",
     "9d612d0": "validated-source-snapshot",
-    "8c43c210c9c08c5958198f22db4b54000380925e": "fixed-pluto-snapshot",
-    "8c43c210": "fixed-pluto-snapshot",
-    "8c43c21": "fixed-pluto-snapshot",
-    "6f43860b6c4cddeeca09189bf3073f05b78b14a5": "bug-witness-pluto-snapshot",
-    "6f43860b": "bug-witness-pluto-snapshot",
-    "6f43860": "bug-witness-pluto-snapshot",
-    "7d6fae8": "historical diamond snapshot",
-    "488ea2f0c3b7d5e7f6b849809f312aa4a6bcad02": "validated Pluto snapshot",
-    "488ea2f": "validated Pluto snapshot",
-    "56b66690edeed1ef17ddc018bbf67666795a3fd4": "fixed diamond snapshot",
-    "56b6669": "fixed diamond snapshot",
-    "fix/diamond-reschedule-with-nointratileopt": "fixed diamond snapshot",
-    "https://github.com/verif-scop/pluto.git": "bundled Pluto snapshot",
-    "https://github.com/verif-scop/pluto": "bundled Pluto snapshot",
-    "verif-scop/pluto": "bundled Pluto snapshot",
-    "verif-scop/master": "the fixed Pluto snapshot",
-    "verif-scop/": "Pluto snapshot/",
+    "8c43c210c9c08c5958198f22db4b54000380925e": "ordinary-fixed-pluto-snapshot",
+    "8c43c210": "ordinary-fixed-pluto-snapshot",
+    "8c43c21": "ordinary-fixed-pluto-snapshot",
+    "6f43860b6c4cddeeca09189bf3073f05b78b14a5": "historical-bug-witness-pluto-snapshot",
+    "6f43860b": "historical-bug-witness-pluto-snapshot",
+    "6f43860": "historical-bug-witness-pluto-snapshot",
+    "7d6fae8": "diamond-regression-introduction-snapshot",
+    "488ea2f0c3b7d5e7f6b849809f312aa4a6bcad02": "diamond-regression-snapshot",
+    "488ea2f": "diamond-regression-snapshot",
+    "56b66690edeed1ef17ddc018bbf67666795a3fd4": "diamond-fix-snapshot",
+    "56b6669": "diamond-fix-snapshot",
+    "fix/diamond-reschedule-with-nointratileopt": "diamond-fix-branch",
+    "https://github.com/verif-scop/pluto.git": "phase-dump-pluto-fork",
+    "https://github.com/verif-scop/pluto": "phase-dump-pluto-fork",
+    "verif-scop/pluto": "phase-dump-pluto-fork",
+    "verif-scop/master": "historical-phase-dump-branch",
+    "verif-scop/": "phase-dump-fork/",
+    "verif-scop": "phase-dump-fork",
     "hughshine/pluto-verif": "pluto-build",
     "hughshine/polcert": "polcert-build",
     "Hughshine/PolCert": "PolCert",
@@ -69,6 +70,7 @@ DENYLIST = (
     "li5274@purdue.edu",
     "github.com/verif-scop",
     "verif-scop/",
+    "verif-scop",
     "9d612d02ac8f27d46c5ec632f912f8a67939e748",
     "9d612d0",
     "8c43c210c9c08c5958198f22db4b54000380925e",
@@ -203,11 +205,7 @@ def prune_source(source: Path) -> None:
         else:
             path.unlink()
     shutil.copy2(
-        PACKAGE_DIR / "DIAMOND_WITNESS_README.md",
-        source / "tests/pluto-bugs/diamond-nointratile-reschedule/README.md",
-    )
-    shutil.copy2(
-        PACKAGE_DIR / "PLUTO_WITNESSES_README.md",
+        PACKAGE_DIR / "SOURCE_PLUTO_BUGS_README.md",
         source / "tests/pluto-bugs/README.md",
     )
 
@@ -415,33 +413,78 @@ def prepare_transformation_index(destination: Path) -> dict:
     rows = []
     for path in examples:
         changed = (path / "diff.patch").is_file() and (path / "diff.patch").stat().st_size > 0
-        records.append({"case": path.name, "changed": changed})
+        input_text = (path / "input.pretty.loop").read_text(encoding="utf-8")
+        output_text = (path / "optimized.loop").read_text(encoding="utf-8")
+        source_loop_count = sum(line.startswith("for ") for line in input_text.splitlines())
+        if not changed:
+            transformation = "No loop transformation; output is identical"
+        elif path.name == "seq":
+            transformation = "Domain guard inserted; loop order is unchanged"
+        elif path.name in {"fusion1", "fusion6", "multi-stmt-stencil-seq"}:
+            transformation = "Producer-consumer loop fusion and pipelining"
+        elif path.name == "tricky2":
+            transformation = "Loop fusion with parameter-dependent domain splitting"
+        elif path.name == "tricky3":
+            transformation = "Inner-loop fusion and splitting with parameter guards"
+        elif any(
+            marker in output_text
+            for marker in ("32 *", "/ 32", "64 *", "/ 64", "313")
+        ):
+            if source_loop_count > 1:
+                transformation = (
+                    "Tiling or strip-mining in a program with multiple source loops"
+                )
+            else:
+                transformation = "Tiling or strip-mining of the loop nest"
+        else:
+            transformation = "Affine loop reordering and bound reconstruction"
+        records.append(
+            {
+                "case": path.name,
+                "changed": changed,
+                "observed_transformation": transformation,
+            }
+        )
         name = escape(path.name)
         rows.append(
             "<tr>"
             f"<td><code>{name}</code></td>"
-            f"<td>{'changed' if changed else 'unchanged'}</td>"
+            f"<td>{escape(transformation)}</td>"
             f'<td><a href="{name}/input.pretty.loop">input</a> &middot; '
-            f'<a href="{name}/optimized.loop">output</a> &middot; '
+            f'<a href="{name}/optimized.loop">optimized loop</a> &middot; '
             f'<a href="{name}/diff.patch">diff</a> &middot; '
-            f'<a href="{name}/status.txt">status</a></td>'
+            f'<a href="{name}/status.txt">compiler result</a></td>'
             "</tr>"
         )
+    transformation_counts: dict[str, int] = {}
+    for record in records:
+        label = record["observed_transformation"]
+        transformation_counts[label] = transformation_counts.get(label, 0) + 1
     summary = {
         "total": len(records),
         "changed": sum(record["changed"] for record in records),
         "unchanged": sum(not record["changed"] for record in records),
+        "transformation_counts": transformation_counts,
         "cases": records,
     }
     (destination / "index.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    count_rows = "\n".join(
+        f"<tr><td>{escape(label)}</td><td>{count}</td></tr>"
+        for label, count in sorted(
+            transformation_counts.items(), key=lambda item: (-item[1], item[0])
+        )
+    )
     page = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Optimized Loop Examples</title><link rel="stylesheet" href="../../docs/artifact.css"></head>
 <body><main><h1>Optimized Loop Examples</h1>
-<p>Each row shows one input loop, the loop produced after optimization, their differences, and whether PolCert accepted the result.</p>
-<table><thead><tr><th>Case</th><th>Effect</th><th>Files</th></tr></thead><tbody>
+<p>The classification describes loop-structure changes visible in the generated Loop program. It does not infer a performance improvement.</p>
+<table><thead><tr><th>Observed transformation</th><th>Cases</th></tr></thead><tbody>
+""" + count_rows + """
+</tbody></table>
+<table><thead><tr><th>Case</th><th>Observed loop transformation</th><th>Files</th></tr></thead><tbody>
 """ + "\n".join(rows) + "\n</tbody></table></main></body></html>\n"
     (destination / "index.html").write_text(page, encoding="utf-8")
     return summary
@@ -449,34 +492,158 @@ def prepare_transformation_index(destination: Path) -> dict:
 
 def prepare_witness_results(destination: Path) -> dict:
     log = (destination / "validation.log").read_text(encoding="utf-8")
-    expected = (
-        ("matmul-parallel-hint", "[pluto-bug] explicit-RAR matmul parallel-hint case reproduced"),
-        ("auto-affine-lp-cc-scaling", "[pluto-auto-affine-lp] OK"),
-        ("affine-fst-reversed", "[pluto-affine-bug] OK"),
-        ("tiling-innerpar-satvec", "[pluto-tiling-bug] OK"),
-        ("diamond-nointratile-reschedule", "[pluto-diamond-nointra] OK"),
-        ("vanished-outer-parallel", "[pluto-miscompile] OK"),
-        ("notile-unrolljam-nonpermutable", "[pluto-unrolljam-bug] OK"),
+    cases = (
+        {
+            "case": "auto-affine-lp-cc-scaling",
+            "log_marker": "[pluto-auto-affine-lp] OK",
+            "kind": "Confirmed official Pluto miscompilation",
+            "reason_not_accepted": (
+                "A real S3-to-S1 dependence is reversed after connected-component "
+                "relabeling lets LP integerization scale its endpoints differently."
+            ),
+            "polcert_outcome": (
+                "The affine checker rejects the before/after schedule; the complete "
+                "default no-RAR route emits no optimized loop."
+            ),
+            "pluto_location": "lib/pluto.c:1983-2015; lib/framework.cpp:1374-1413",
+            "draft_section": "P1",
+        },
+        {
+            "case": "affine-fst-reversed",
+            "log_marker": "[pluto-affine-bug] OK",
+            "kind": "Unsafe Pluto control interface",
+            "reason_not_accepted": (
+                "The supplied .fst grouping places a consumer before its producer, "
+                "but Pluto accepts the complete lexicographically illegal schedule."
+            ),
+            "polcert_outcome": (
+                "The affine checker rejects the schedule and the complete route emits "
+                "no optimized loop."
+            ),
+            "pluto_location": "lib/pluto.c:873-940",
+            "draft_section": "C1",
+        },
+        {
+            "case": "vanished-outer-parallel",
+            "log_marker": "[pluto-miscompile] OK",
+            "kind": "Confirmed official Pluto miscompilation",
+            "reason_not_accepted": (
+                "After a one-trip outer coordinate disappears, an off-by-one band "
+                "test transfers its parallel annotation to a dependent inner recurrence."
+            ),
+            "polcert_outcome": (
+                "Strict hint mapping rejects the vanished loop, and a direct check also "
+                "rejects the dependent inner loop."
+            ),
+            "pluto_location": "tool/ast_transform.c:75-95",
+            "draft_section": "P2",
+        },
+        {
+            "case": "notile-unrolljam-nonpermutable",
+            "log_marker": "[pluto-unrolljam-bug] OK",
+            "kind": "Confirmed official Pluto miscompilation",
+            "reason_not_accepted": (
+                "Under --notile, candidate discovery assumes one tiled level and crosses "
+                "the real permutable-band boundary, jamming a dependence-carrying loop."
+            ),
+            "polcert_outcome": (
+                "Proved block unrolling is retained, but the unsafe local jam is refused."
+            ),
+            "pluto_location": "lib/polyloop.c:575-605",
+            "draft_section": "P3",
+        },
+        {
+            "case": "tiling-innerpar-satvec",
+            "log_marker": "[pluto-tiling-bug] OK",
+            "kind": "Confirmed official Pluto miscompilation",
+            "reason_not_accepted": (
+                "Pluto moves dependence-satisfaction bits to a tile dimension without "
+                "constructing the schedule that would satisfy those dependences."
+            ),
+            "polcert_outcome": (
+                "The legal rectangular tiling is accepted; the unsafe parallel loop is "
+                "removed or rejected in strict mode."
+            ),
+            "pluto_location": "lib/tile.c:433-478",
+            "draft_section": "P4",
+        },
+        {
+            "case": "diamond-nointratile-reschedule",
+            "log_marker": "[pluto-diamond-nointra] OK",
+            "kind": "Fork-specific regression, fixed in the ordinary artifact Pluto",
+            "reason_not_accepted": (
+                "A phase-dump patch made a mandatory diamond-schedule restore depend on "
+                "the optional intra-tile pass, producing a wrong execution order."
+            ),
+            "polcert_outcome": (
+                "The corresponding mixed-scalar candidate is conservatively rejected; "
+                "a separate pure-diamond case is accepted."
+            ),
+            "pluto_location": "diamond reschedule call in the phase-dump fork",
+            "draft_section": "F1",
+        },
+        {
+            "case": "matmul-parallel-hint",
+            "log_marker": "[pluto-bug] explicit-RAR matmul parallel-hint case reproduced",
+            "kind": "Non-certifiable hint, not a demonstrated Pluto miscompilation",
+            "reason_not_accepted": (
+                "The hinted coordinate cannot be certified as a safe generated parallel "
+                "loop for this matrix-multiplication schedule."
+            ),
+            "polcert_outcome": (
+                "Strict mode rejects with no output; permissive mode chooses a different "
+                "certified dimension."
+            ),
+            "pluto_location": "No Pluto defect claimed",
+            "draft_section": "not in the upstream bug draft",
+        },
     )
     results = []
-    for name, marker in expected:
-        require(marker in log, f"missing witness result marker: {name}")
-        results.append(
-            {
-                "case": name,
-                "log_marker": marker,
-                "status": "PASS",
-                "validation_log": "validation.log",
-            }
+    rows = []
+    for case in cases:
+        require(
+            case["log_marker"] in log,
+            f"missing witness result marker: {case['case']}",
         )
-    summary = {"passed": len(results), "total": len(expected), "results": results}
+        result = {
+            **case,
+            "status": "PASS",
+            "validation_log": "validation.log",
+            "case_explanation": f"{case['case']}/README.md",
+        }
+        results.append(result)
+        name = escape(case["case"])
+        rows.append(
+            "<tr>"
+            f'<td><a href="{name}/README.md"><code>{name}</code></a><br>'
+            f'{escape(case["kind"])}</td>'
+            f'<td>{escape(case["reason_not_accepted"])}</td>'
+            f'<td>{escape(case["polcert_outcome"])}</td>'
+            f'<td><code>{escape(case["pluto_location"])}</code><br>'
+            f'Draft: {escape(case["draft_section"])}</td>'
+            "</tr>"
+        )
+    summary = {"passed": len(results), "total": len(cases), "results": results}
     (destination / "results.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    page = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rejected Optimizer Outputs</title><link rel="stylesheet" href="../../docs/artifact.css"></head>
+<body><main><h1>Rejected Optimizer Outputs</h1>
+<p>Each row states either the violated condition or the missing certificate, followed by the observed PolCert response. The <a href="BUG_REPORT_DRAFT.md">upstream bug-report draft</a> gives reproduction commands, wrong results, root causes, and official-version checks for P1-P4 and C1; F1 belongs only to the development fork.</p>
+<table><thead><tr><th>Case</th><th>Why PolCert cannot accept it</th><th>PolCert result</th><th>Pluto source or status</th></tr></thead><tbody>
+""" + "\n".join(rows) + "\n</tbody></table></main></body></html>\n"
+    (destination / "index.html").write_text(page, encoding="utf-8")
     return summary
 
 
-def copy_bug_witnesses(source: Path, destination: Path, release_dir: Path) -> None:
+def copy_bug_witnesses(
+    source: Path,
+    destination: Path,
+    release_dir: Path,
+    bug_report_draft: str,
+) -> None:
     shutil.copytree(source / "tests/pluto-bugs", destination)
     shutil.copy2(PACKAGE_DIR / "PLUTO_WITNESSES_README.md", destination / "README.md")
     matmul = destination / "matmul-parallel-hint"
@@ -484,9 +651,17 @@ def copy_bug_witnesses(source: Path, destination: Path, release_dir: Path) -> No
     shutil.copy2(source / "tests/polopt-generated/inputs/matmul.loop", matmul / "matmul.loop")
     shutil.copy2(source / "tools/pluto_bugs/run_matmul_parallel_hint.py", matmul / "run.py")
     shutil.copy2(PACKAGE_DIR / "MATMUL_WITNESS_README.md", matmul / "README.md")
-    shutil.copy2(
-        PACKAGE_DIR / "DIAMOND_WITNESS_README.md",
-        destination / "diamond-nointratile-reschedule/README.md",
+    (destination / "BUG_REPORT_DRAFT.md").write_text(
+        bug_report_draft
+        .replace(
+            "parallel and innermost-vector annotations require a fresh check of the",
+            "parallel annotations require a fresh check of the",
+        )
+        .replace(
+            "SIMD instructions, scalar privatization, storage expansion, state-changing",
+            "Machine-level vector lowering, scalar privatization, storage expansion, state-changing",
+        ),
+        encoding="utf-8",
     )
 
     runners = destination / "runners"
@@ -501,6 +676,60 @@ def copy_bug_witnesses(source: Path, destination: Path, release_dir: Path) -> No
     (destination / "validation.log").write_text(witness_log, encoding="utf-8")
 
 
+def validate_test_overview(source: Path, raw_output: Path) -> None:
+    markers = {
+        "pluto-compat-suite.stdout.txt": "PASS expected=189 actual=189",
+        "strict-loop-suite.stdout.txt": "total=62",
+        "second-level-suite.stdout.txt": "PASS expected=58 actual=58",
+        "non-second-level-tiling-routes.stdout.txt": (
+            "PASS expected=permutable-band:84,fallbacks:0,vector-rejections:6 "
+            "actual=permutable-band:84,fallbacks:0,vector-rejections:6"
+        ),
+        "diamond-suite.stdout.txt": "PASS expected=19 actual=19",
+        "parallel-current-suite.stdout.txt": "PASS expected=9 actual=9",
+        "vector-current-suite.stdout.txt": "PASS expected=12 actual=12",
+        "iss-suite.stdout.txt": (
+            "[ISS-SUITE] PASS expected=accepted:4,rejected:3 "
+            "actual=accepted:4,rejected:3"
+        ),
+        "unrolljam-effect-corpus.stdout.txt": '"cases": 11',
+        "typed-c-pipeline.stdout.txt": "PASS expected=6 actual=6",
+    }
+    for filename, marker in markers.items():
+        text = (raw_output / filename).read_text(encoding="utf-8")
+        require(marker in text, f"test overview marker is missing from {filename}")
+    iss_log = (raw_output / "iss-suite.stdout.txt").read_text(encoding="utf-8")
+    require(
+        "[ISS-MULTICUT] PASS expected=accepted:1,rejected:2 "
+        "actual=accepted:1,rejected:2" in iss_log,
+        "ISS multicut summary is missing",
+    )
+    typed_cases = [
+        path for path in (source / "tests/end-to-end-c/cases").iterdir()
+        if path.is_dir()
+    ]
+    require(len(typed_cases) == 10, f"expected 10 handwritten C cases, found {len(typed_cases)}")
+
+
+def copy_typed_pipeline_ci_result(release_dir: Path, raw_output: Path) -> None:
+    ci_logs = sorted(release_dir.glob("github-actions-*.log"))
+    require(len(ci_logs) == 1, f"expected one GitHub Actions log, found {len(ci_logs)}")
+    lines = []
+    for line in ci_logs[0].read_text(encoding="utf-8").splitlines():
+        marker = line.find("[typed-c-pipeline]")
+        if marker >= 0:
+            lines.append(line[marker:])
+    require(len(lines) == 7, f"expected seven typed-C result lines, found {len(lines)}")
+    require(
+        "PASS expected=6 actual=6" in lines[-1],
+        "typed-C pipeline did not finish with its six-case summary",
+    )
+    (raw_output / "typed-c-pipeline.stdout.txt").write_text(
+        "\n".join(lines) + "\n",
+        encoding="utf-8",
+    )
+
+
 def prepare_evidence(
     release_dir: Path,
     source: Path,
@@ -508,6 +737,7 @@ def prepare_evidence(
     artifact_results: dict,
     proof_report: dict,
     formal_manifest_sha256: str,
+    bug_report_draft: str,
 ) -> dict:
     details = destination / "proof-and-test-results"
     shutil.copytree(release_dir / "polcert-artifact-check", details)
@@ -577,6 +807,9 @@ def prepare_evidence(
         formal_manifest_sha256,
     )
     remove_elf_outputs(details)
+    copy_typed_pipeline_ci_result(release_dir, raw_output)
+    validate_test_overview(source, raw_output)
+    shutil.copy2(PACKAGE_DIR / "TEST_OVERVIEW.md", details / "test-overview.md")
     shutil.copytree(
         release_dir / "polopt-generated-cases",
         destination / "optimized-loop-examples",
@@ -589,7 +822,7 @@ def prepare_evidence(
         destination / "execution-comparisons",
     )
     rejected = destination / "rejected-optimizer-outputs"
-    copy_bug_witnesses(source, rejected, release_dir)
+    copy_bug_witnesses(source, rejected, release_dir, bug_report_draft)
     witness_summary = prepare_witness_results(rejected)
     shutil.copy2(PACKAGE_DIR / "EVIDENCE_README.md", destination / "README.md")
 
@@ -609,8 +842,11 @@ def prepare_evidence(
             "missing_route_theorems": proof_report["missing_route_theorem_count"],
         },
         "optimized_loop_examples": {
-            key: transformation_summary[key]
-            for key in ("total", "changed", "unchanged")
+            **{
+                key: transformation_summary[key]
+                for key in ("total", "changed", "unchanged")
+            },
+            "observed_transformations": transformation_summary["transformation_counts"],
         },
         "execution_comparisons": {
             "baseline_vs_optimized": executable_summary["baseline_vs_optimized"],
@@ -779,6 +1015,9 @@ def main() -> int:
         package.mkdir()
 
         extract_source(release_dir / SOURCE_ARCHIVE, source)
+        bug_report_draft = (
+            source / "doc/pluto-upstream-miscompilation-report-draft.md"
+        ).read_text(encoding="utf-8")
         formal_before = file_hashes(source, ".v")
         prune_source(source)
         sanitize_tree(source)
@@ -801,6 +1040,7 @@ def main() -> int:
             artifact_results,
             proof_report,
             formal_manifest_sha256,
+            bug_report_draft,
         )
         sanitize_tree(evidence)
 

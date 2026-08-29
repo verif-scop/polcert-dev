@@ -104,8 +104,9 @@
       <p>
         Other configurations add index-set splitting (ISS), a second tiling
         level, diamond tiling, or another checked schedule after tiling.
-        Vector configurations use the same parallelism check but restrict it
-        to the innermost loop; their formal target still executes sequentially.
+        The implementation also retains vector-named configurations for an
+        innermost-only use of the same independence check. This guide treats
+        them as a restricted form of parallel eligibility.
       </p>
 
       <h3>What Each Stage Establishes</h3>
@@ -154,6 +155,58 @@
         inside the tile. PolCert first proves that this coordinate change loses
         or duplicates nothing, then checks that the tile order is safe.
       </div>
+
+      <h3>Reusable Instruction Interface</h3>
+      <p>
+        PolCert does not hard-code one instruction language into its validators.
+        The <a href="../source/polygen/InstrTy.v"><code>INSTR</code></a>
+        interface supplies an instruction's execution relation, modeled state,
+        read and write footprints, and a proof that instructions with
+        non-conflicting footprints may exchange order. The polyhedral checks
+        then reason about statement instances and these memory effects.
+      </p>
+      <p>
+        The text <code>.loop</code> frontend uses the lightweight model in
+        <a href="../source/syntax/SInstr.v"><code>SInstr.v</code></a>. Its
+        results are meaningful under that model, but a hand-written input does
+        not independently establish that its declared accesses match an
+        external C program. The typed
+        <a href="../source/src/CInstr.v"><code>CInstr.v</code></a> instance and
+        the following hand-constructed Rocq examples show how the same
+        validators apply to C-like scalar and array instructions:
+      </p>
+      <table>
+        <thead><tr><th>Rocq example</th><th>Reference computation</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><a href="../source/samples/CSample1.v"><code>CSample1.v</code></a></td>
+            <td><a href="../source/samples/CSample1.c">matrix multiplication</a></td>
+            <td>Typed array accesses and schedule validation.</td>
+          </tr>
+          <tr>
+            <td><a href="../source/samples/CSample2.v"><code>CSample2.v</code></a></td>
+            <td><a href="../source/samples/CSample2.c">covariance kernel</a></td>
+            <td>Two statements with a producer-consumer dependence.</td>
+          </tr>
+          <tr>
+            <td><a href="../source/samples/CSample3.v"><code>CSample3.v</code></a></td>
+            <td><a href="../source/samples/CSample3.c">GEMVER kernel</a></td>
+            <td>Four statement domains and their memory effects.</td>
+          </tr>
+          <tr>
+            <td><a href="../source/samples/CTypedLoopSamples.v"><code>CTypedLoopSamples.v</code></a></td>
+            <td>Compact C-like loop nests</td>
+            <td>Extraction, ISS, tiling, diamond tiling, and parallel-loop cases.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        These examples instantiate the formal instruction interface by hand;
+        they do not make C parsing part of the theorem. The
+        <a href="../evidence/proof-and-test-results/raw-output/typed-c-pipeline.stdout.txt">six-case typed pipeline record</a>
+        shows the accepted transformations and their observed structural
+        effects in remote CI.
+      </p>
     </section>
 
     <section id="contract">
@@ -224,6 +277,11 @@
             <td><a href="../source/tests/"><code>tests/</code></a></td>
             <td>Loop examples, executable comparisons, and rejected optimizer proposals.</td>
             <td><a href="../source/tests/end-to-end-c/README.md"><code>end-to-end-c/README.md</code></a></td>
+          </tr>
+          <tr>
+            <td><a href="../source/samples/"><code>samples/</code></a></td>
+            <td>Concrete typed instruction instances and C reference computations.</td>
+            <td><a href="../source/samples/CTypedLoopSamples.v"><code>CTypedLoopSamples.v</code></a></td>
           </tr>
           <tr>
             <td><a href="../source/tools/artifact/"><code>tools/artifact/</code></a></td>
@@ -428,7 +486,7 @@
       </article>
 
       <article class="component" id="claim-parallel">
-        <h3>Parallel Annotation and Code Generation</h3>
+        <h3>Parallel Loops and Code Generation</h3>
         <dl>
           <dt>Question</dt>
           <dd>Does every possible execution of the generated parallel loop match a source execution?</dd>
@@ -442,9 +500,9 @@
           <dd><a href="../source/polygen/ParallelLoop.v"><code>ParallelLoop.v</code></a>, <a href="../source/src/ParallelValidator.v"><code>ParallelValidator.v</code></a>, <a href="../source/src/RawCodegenOrigin.v"><code>RawCodegenOrigin.v</code></a>, <a href="../source/src/ParallelCodegenCorrect.v"><code>ParallelCodegenCorrect.v</code></a></dd>
         </dl>
         <p>
-          Vector annotation uses the same check and additionally requires the
-          innermost loop. Its formal target remains sequential; this theorem
-          does not cover SIMD instruction generation.
+          Vector-named configurations reuse this eligibility check and also
+          require the innermost generated loop. Their target retains ordinary
+          loop semantics.
         </p>
       </article>
 
@@ -491,14 +549,9 @@
             <td><a href="../evidence/proof-and-test-results/raw-output/pluto-compat-suite.stdout.txt">schedule tests</a>; <a href="../evidence/proof-and-test-results/tiling-tests.json">tiling tests</a></td>
           </tr>
           <tr>
-            <td>Parallel loops</td>
-            <td><a href="#claim-parallel">all parallel executions refine the source</a></td>
-            <td><a href="../evidence/proof-and-test-results/raw-output/parallel-current-suite.stdout.txt">parallel-loop tests</a></td>
-          </tr>
-          <tr>
-            <td>Vector annotations</td>
-            <td><a href="#claim-parallel">innermost-loop check with a sequential target model</a></td>
-            <td><a href="../evidence/proof-and-test-results/raw-output/vector-current-suite.stdout.txt">vector-annotation tests</a></td>
+            <td>Parallel eligibility, including innermost-restricted configurations</td>
+            <td><a href="#claim-parallel">parallel interleavings refine the source; restricted configurations reuse the eligibility check with ordinary loop semantics</a></td>
+            <td><a href="../evidence/proof-and-test-results/raw-output/parallel-current-suite.stdout.txt">general cases</a>; <a href="../evidence/proof-and-test-results/raw-output/vector-current-suite.stdout.txt">innermost-restricted cases</a></td>
           </tr>
           <tr>
             <td>Unrolling and supported loop fusion</td>
@@ -508,7 +561,7 @@
           <tr>
             <td>Unsafe optimizer proposals are rejected</td>
             <td><a href="#claim-affine">schedule proof</a>; <a href="#claim-tiling">tiling proof</a>; <a href="#claim-parallel">parallel proof</a>; <a href="#claim-unroll">loop-fusion proof</a></td>
-            <td><a href="../evidence/rejected-optimizer-outputs/results.json">seven recorded results</a>; <a href="../evidence/rejected-optimizer-outputs/validation.log">detailed log</a></td>
+            <td><a href="../evidence/rejected-optimizer-outputs/index.html">case explanations and results</a>; <a href="../evidence/rejected-optimizer-outputs/BUG_REPORT_DRAFT.md">bug-report draft</a></td>
           </tr>
         </tbody>
       </table>
@@ -540,6 +593,11 @@
             <td class="status-pass">0 gaps</td>
           </tr>
           <tr>
+            <td>How broad is the test suite?</td>
+            <td><a href="../evidence/proof-and-test-results/test-overview.md"><code>proof-and-test-results/test-overview.md</code></a></td>
+            <td class="status-pass">major transformation groups and recorded case counts</td>
+          </tr>
+          <tr>
             <td>Which compiler configurations were tested?</td>
             <td><a href="../evidence/proof-and-test-results/tested-configurations.md"><code>proof-and-test-results/tested-configurations.md</code></a></td>
             <td class="status-pass">supported and rejected cases behaved as expected</td>
@@ -556,8 +614,8 @@
           </tr>
           <tr>
             <td>Does PolCert reject invalid optimizer output?</td>
-            <td><a href="../evidence/rejected-optimizer-outputs/results.json"><code>rejected-optimizer-outputs/</code></a></td>
-            <td class="status-pass">7 invalid proposals handled as expected</td>
+            <td><a href="../evidence/rejected-optimizer-outputs/index.html"><code>rejected-optimizer-outputs/</code></a></td>
+            <td class="status-pass">each violated condition rejected or removed as recorded</td>
           </tr>
         </tbody>
       </table>
@@ -573,7 +631,6 @@
         <li>the optimizer's search algorithm, although its proposals are checked;</li>
         <li>text parsing and printing;</li>
         <li>the external C compiler, runtime system, and hardware;</li>
-        <li>SIMD instruction generation;</li>
         <li>transformations that change storage or the set of executed statement instances.</li>
       </ul>
       <p>
