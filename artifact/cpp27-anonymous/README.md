@@ -1,29 +1,37 @@
 # PolCert Supplementary Material
 
-This archive contains the proof scripts, source snapshot, proof documentation,
-and validation evidence for the CPP submission *End-to-End Verified
-Polyhedral Compilation*.
+PolCert verifies loop optimizations proposed by an external optimizer. It
+represents each execution of a loop statement as an integer point, checks the
+proposed execution order, tiling, and parallel loops, and generates code only
+after the required checks succeed.
 
-Start by opening [`docs/index.html`](docs/index.html) in a browser. The handbook
-offers three reading paths:
+The main theorem is end to end: whenever PolCert accepts a compilation, every
+execution of the generated program has a matching execution of the source
+program with the same modeled memory. The optimizer that searches for a good
+transformation need not be trusted.
 
-- **10-minute design pass:** tool design, trust boundary, and project map.
-- **30-60 minute proof pass:** final refinement theorem and one complete route.
-- **Deep review:** generated Rocq pages, formal source, and per-check evidence.
+This archive contains the source snapshot, proof scripts for the Rocq proof
+assistant, readable proof documentation, and recorded validation results for
+*End-to-End Verified Polyhedral Compilation*. Start with
+[`docs/index.html`](docs/index.html):
+
+- **Overview:** read Compiler Design, Correctness Guarantee, and Project Map.
+- **Proof:** read Top-Level Proof, Proof Structure, and Proof by Component.
+- **Details:** follow theorem links to the generated Rocq pages and source.
 
 ## Contents
 
 | Path | Contents |
 | --- | --- |
-| `docs/index.html` | Main offline handbook and paper-to-artifact crosswalk. |
-| `docs/proof/` | Generated Rocq documentation for the proof-critical modules. |
-| `source/` | Source snapshot. Formal source files match the validated snapshot. |
-| `environment/Dockerfile.proof` | Fixed proof and extraction build environment. |
-| `evidence/artifact-check/` | Record and logs from the complete 30-check local run. |
-| `evidence/transformation-examples/` | Indexed inputs, optimized outputs, and diffs for the 62-example strict suite. |
-| `evidence/executable-checks/` | 62 baseline-vs-optimized comparisons plus five effect-focused runs. |
-| `evidence/pluto-bug-witnesses/` | Inputs and explanations for invalid candidates rejected by PolCert. |
-| `evidence/validation-summary.json` | Compact machine-readable acceptance summary. |
+| `docs/index.html` | Offline guide to the compiler, proof, and evidence. |
+| `docs/proof/` | Generated Rocq pages for the main proof modules. |
+| `source/` | The validated source and proof snapshot. |
+| `environment/Dockerfile.proof` | Reproducible proof-build environment. |
+| `evidence/artifact-check/` | Results and logs from all 30 artifact checks. |
+| `evidence/transformation-examples/` | Inputs and outputs for 62 loop examples. |
+| `evidence/executable-checks/` | Baseline and optimized execution comparisons. |
+| `evidence/pluto-bug-witnesses/` | Optimizer outputs that PolCert correctly rejects. |
+| `evidence/validation-summary.json` | Short machine-readable result summary. |
 | `THIRD_PARTY.md` | Third-party attribution and license map. |
 | `MANIFEST.json` | Snapshot metadata and content counts. |
 | `FORMAL_SOURCE_SHA256SUMS` | Per-file hashes for every packaged `.v` file. |
@@ -56,8 +64,5 @@ From the extracted archive root:
 sha256sum -c SHA256SUMS
 ```
 
-The packaging gate verifies that all formal `.v` files match the validated
-source snapshot. It also checks HTML links, JSON files, archive paths, and the
-internal file hashes. The per-file formal-source inputs are recorded in
-`FORMAL_SOURCE_SHA256SUMS`; its own digest is recorded in `MANIFEST.json` and
-the packaged artifact result record.
+This command checks every packaged file. Formal-source hashes are also listed
+separately in `FORMAL_SOURCE_SHA256SUMS` and recorded in `MANIFEST.json`.

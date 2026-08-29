@@ -1,26 +1,25 @@
 # PolCert Source Snapshot
 
-This directory contains the proof, compiler, extraction, test, and support
-source used by the CPP supplement. All formal `.v` files are byte-for-byte
-identical to the validated source snapshot; their hashes are listed in
+This directory contains the compiler, its Rocq proofs, and its tests. All
+formal `.v` files exactly match the validated snapshot; their hashes are in
 `../FORMAL_SOURCE_SHA256SUMS`.
 
 The main source directories are:
 
 | Directory | Responsibility |
 | --- | --- |
-| `src/` | Polyhedral semantics, extraction correctness, validators, and semantic bridges. |
-| `polygen/` | Structured target languages, loop generation, and verified loop rewrites. |
-| `driver/` | Composition of checked components into complete compiler routes. |
-| `syntax/` | Concrete instantiation and the extracted command-line pipeline. |
+| `src/` | The polyhedral model and checks for schedules, tiling, and parallel loops. |
+| `polygen/` | Source and target loop languages, loop generation, and unrolling. |
+| `driver/` | Complete compiler configurations and top-level correctness theorems. |
+| `syntax/` | Concrete instructions, text input, and the extracted command-line tool. |
 | `common/`, `cfrontend/`, `cparser/`, `lib/` | Reused CompCert infrastructure. |
 | `VPL/`, `flocq/`, `MenhirLib/` | Vendored third-party proof and parsing libraries. |
-| `tests/`, `tools/` | Test inputs and artifact runners. |
+| `tests/`, `tools/` | Test inputs and validation tools. |
 
-The paper-facing generic endpoint is
+The main reusable theorem is
 `VerifiedParallelCompilerConfig.compile_correct` in
-`driver/VerifiedParallelCompilerConfig.v`. The closest theorem to the extracted
-pipeline is `extracted_parallel_compile_correct` in
+`driver/VerifiedParallelCompilerConfig.v`. The corresponding theorem for the
+executable compiler is `extracted_parallel_compile_correct` in
 `driver/ExtractedPipelineCorrect.v`.
 
 The validated toolchain used OCaml 4.13.1 and Rocq/Coq 8.13.2. Run:
@@ -35,6 +34,5 @@ make extraction
 For a fixed proof environment, run the Docker build described in
 `../environment/README.md` from the archive root.
 
-The optimizer's Pluto-dependent executable tests require a compatible Pluto
-installation in addition to this source. Their validated outputs are provided
-under `../evidence/`.
+Tests that run the external Pluto optimizer require a compatible Pluto
+installation. Their recorded results are under `../evidence/`.

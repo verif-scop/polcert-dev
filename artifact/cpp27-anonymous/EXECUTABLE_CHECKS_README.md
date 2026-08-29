@@ -1,13 +1,12 @@
 # Generated Executable Checks
 
-These records compare each generated optimized C program with the generated
-baseline for the same `.loop` input.
+These records run the baseline and optimized C programs generated from each
+`.loop` input and compare their results.
 
-- `results.json` contains 62 default-corpus comparisons and five additional
-  effect-focused runs for parallel, second-level tiling, and intra-tile routes.
+- `results.json` contains 62 standard comparisons and five additional checks
+  for parallel loops, two-level tiling, and optimization inside a tile.
 - `validation.log` contains the corresponding concise per-case results.
 
-The 62 default comparisons establish executable agreement for the full strict
-input corpus. The additional runs require both executable agreement and the
-requested structural effect. These runtime checks complement, but do not
-replace, the Rocq refinement theorem.
+The 62 standard comparisons check that baseline and optimized programs agree.
+The five additional runs also check that the requested optimization occurred.
+These tests complement, but do not replace, the Rocq theorem.

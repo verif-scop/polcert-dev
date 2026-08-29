@@ -1,16 +1,16 @@
 # Proof Build Environment
 
-`Dockerfile.proof` fixes the operating-system base, OCaml switch, Rocq/Coq
-version, and OCaml package versions used for the proof and extraction build.
-From the extracted archive root, run:
+`Dockerfile.proof` records the operating system, OCaml, Rocq/Coq, and package
+versions used to build the proofs and extracted compiler. From the archive
+root, run:
 
 ```sh
 docker build -f environment/Dockerfile.proof -t polcert-proof .
 ```
 
-The image build runs `configure`, dependency generation, the clean proof build,
-the admitted-proof scan, and extraction. It does not require Pluto because
-optimizer search is outside the formal proof build.
+The image configures the source, builds all proofs, checks for unfinished
+proofs, and extracts the compiler. It does not require Pluto because the
+external optimizer is not needed to check the proofs.
 
-The frozen optimizer-facing and executable tests are indexed under
-`evidence/`; those tests additionally require the external Pluto toolchain.
+Recorded optimizer and executable tests are under `evidence/`. Running those
+tests again requires Pluto.

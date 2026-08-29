@@ -1,22 +1,19 @@
 # Candidate-Validation Witnesses
 
-These seven cases exercise checked boundaries with unsafe or malformed
-optimizer output. They do not all reject the whole compilation: a checked
-route may reject only the unsafe annotation or jam and retain a certified
-sequential result.
+These seven cases give PolCert unsafe or malformed output from Pluto. Depending
+on the configuration, PolCert either rejects compilation or drops only the
+unsafe parallel or loop-fusion step and keeps a verified sequential result.
 
 | Case | Boundary exercised | Recorded outcome |
 | --- | --- | --- |
-| `auto-affine-lp-cc-scaling` | Affine schedule | Illegal automatic schedule rejected. |
-| `affine-fst-reversed` | Affine schedule | Deliberately reversed producer/consumer schedule rejected. |
-| `tiling-innerpar-satvec` | Tiling plus parallel overlay | Legal tiling retained; unsafe parallel overlay removed or rejected. |
-| `diamond-nointratile-reschedule` | Diamond tiling | Malformed mixed-scalar candidate rejected. |
+| `auto-affine-lp-cc-scaling` | Execution order | Illegal automatic schedule rejected. |
+| `affine-fst-reversed` | Execution order | Deliberately reversed producer/consumer order rejected. |
+| `tiling-innerpar-satvec` | Tiling plus parallel loop | Legal tiling retained; unsafe parallel annotation removed or rejected. |
+| `diamond-nointratile-reschedule` | Diamond tiling | Invalid tiling schedule rejected. |
 | `matmul-parallel-hint` | Parallel dimension | Unsafe hinted dimension rejected. |
-| `vanished-outer-parallel` | Parallel annotation | Dependence-carrying replacement dimension rejected. |
-| `notile-unrolljam-nonpermutable` | Unroll-and-jam | Unroll retained; unsafe jam rejected. |
+| `vanished-outer-parallel` | Parallel loop | Unsafe replacement dimension rejected. |
+| `notile-unrolljam-nonpermutable` | Unroll-and-jam | Unrolling retained; unsafe loop fusion rejected. |
 
-The archive records structured statuses in
-`evidence/pluto-bug-witnesses/witness-results.json` and concise producer,
-numerical, and checked-pipeline results in the adjacent `validation.log`. Case
-directories contain inputs and detailed notes; shared runners are collected
-under `runners/`, with the matmul runner also beside its input.
+The recorded outcomes are in `witness-results.json` and `validation.log`.
+Each case directory contains its input and explanation; shared test runners
+are under `runners/`.

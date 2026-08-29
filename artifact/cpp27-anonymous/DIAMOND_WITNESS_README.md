@@ -1,15 +1,14 @@
 # Diamond Tiling without Intra-Tile Rescheduling
 
-A historical phase-dump implementation made restoration of a mandatory
-diamond schedule hyperplane conditional on the optional intra-tile locality
-pass. With intra-tile rescheduling disabled, the resulting mixed-scalar
-schedule changed the numerical result.
+A historical Pluto version restored part of a diamond-tiling schedule only
+when an optional optimization inside each tile was enabled. Disabling that
+optimization could therefore produce an invalid schedule and a wrong
+numerical result.
 
-The ordinary fixed Pluto snapshot used by the main tests contains the repair;
-the historical bug-witness snapshot does not. PolCert rejects the malformed
-mixed-scalar tiling candidate before code generation. A separate typed
-`diamond-stencil` case confirms that the supported pure diamond route is
-accepted.
+The Pluto version used by the main tests contains the repair. The historical
+version kept for this case does not. PolCert rejects its invalid tiling before
+code generation. A separate `diamond-stencil` case confirms that PolCert
+accepts a valid diamond tiling.
 
-The runner records the producer result and the checked-pipeline rejection in
+The runner records Pluto's result and PolCert's rejection in
 `evidence/pluto-bug-witnesses/validation.log` from the archive root.

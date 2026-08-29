@@ -1,13 +1,13 @@
 # Matrix-Multiplication Parallel Hint
 
-This case records a candidate parallel dimension proposed for matrix
-multiplication when read-after-read dependences are explicitly included. The
-checked parallel route rejects that dimension. The non-strict frontend can
-select a different certified dimension, while the strict route leaves the loop
-sequential.
+This case records a loop dimension that Pluto proposes to run in parallel for
+matrix multiplication when read-after-read dependences are included. PolCert
+rejects that dimension because it cannot prove it safe. A permissive
+configuration may choose a different, verified dimension; a strict
+configuration keeps the loop sequential.
 
 Files:
 
 - `matmul.loop`: structured-loop input;
-- `run.py`: witness runner;
+- `run.py`: test runner;
 - `../validation.log`: recorded result from the complete witness run.

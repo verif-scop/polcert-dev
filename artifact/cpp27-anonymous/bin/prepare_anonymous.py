@@ -264,7 +264,7 @@ def add_proof_navigation(path: Path) -> None:
         '<div id="artifact-handbook-link" style="padding:8px 12px;'
         'border-bottom:1px solid #cbd3d8;background:#f4f6f7;'
         'font:14px system-ui,sans-serif">'
-        '<a href="../index.html">Artifact handbook</a> &middot; '
+        '<a href="../index.html">Plain-language guide</a> &middot; '
         '<a href="toc.html">Modules</a> &middot; '
         '<a href="declarations.html">Declarations</a></div>'
     )

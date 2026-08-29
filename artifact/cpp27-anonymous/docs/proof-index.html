@@ -10,9 +10,9 @@
 <main>
   <h1>PolCert Proof Reader</h1>
   <p class="lede">
-    Generated Rocq documentation for the proof-critical modules. The
-    <a href="../index.html#proof-spine">artifact handbook</a> explains the
-    proof order and the role of each theorem.
+    These pages are generated from the Rocq proof source. Start with the
+    <a href="../index.html#proof-spine">proof guide</a> for a plain-language
+    explanation of the argument, then use this page to find the exact theorem.
   </p>
 
   <div class="route-list">
@@ -25,8 +25,8 @@
       <p><a href="declarations.html">Open the generated declaration index</a>.</p>
     </div>
     <div class="route">
-      <strong>Return to the argument</strong>
-      <p><a href="../index.html#components">Open the component proof guide</a>.</p>
+      <strong>Read the proof guide</strong>
+      <p><a href="../index.html#components">Open the plain-language component guide</a>.</p>
     </div>
   </div>
 
@@ -34,14 +34,14 @@
   <table>
     <thead><tr><th>Stage</th><th>Theorem</th></tr></thead>
     <tbody>
-      <tr><td>Extraction</td><td><a href="polcert.src.ExtractorCorrect.html#ExtractorCorrect.extractor_correct"><code>ExtractorCorrect.extractor_correct</code></a></td></tr>
-      <tr><td>ISS</td><td><a href="polcert.src.ISSValidatorCorrect.html#ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct"><code>checked_iss_complete_cut_shape_validate_semantics_correct</code></a></td></tr>
-      <tr><td>Affine scheduling</td><td><a href="polcert.src.AffineValidator.html#AffineValidator.validate_correct"><code>AffineValidator.validate_correct</code></a></td></tr>
-      <tr><td>Tiling correspondence</td><td><a href="polcert.src.TilingRelation.html#TilingRelation.tiling_retiled_old_to_before_instance_correct_source"><code>tiling_retiled_old_to_before_instance_correct_source</code></a></td></tr>
-      <tr><td>Permutable band</td><td><a href="polcert.src.TilingBandScheduleValidator.html#TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe"><code>semantic_componentwise_permutable_implies_reordering_safe</code></a></td></tr>
-      <tr><td>Parallel code generation</td><td><a href="polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.annotated_codegen_many_raw_semantics_ordered"><code>annotated_codegen_many_raw_semantics_ordered</code></a></td></tr>
-      <tr><td>Generic compiler</td><td><a href="polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_correct"><code>VerifiedParallelCompilerConfig.compile_correct</code></a></td></tr>
-      <tr><td>Extracted compiler</td><td><a href="polcert.driver.ExtractedPipelineCorrect.html#extracted_parallel_compile_correct"><code>extracted_parallel_compile_correct</code></a></td></tr>
+      <tr><td>Source loop to polyhedral model</td><td><a href="polcert.src.ExtractorCorrect.html#ExtractorCorrect.extractor_correct"><code>ExtractorCorrect.extractor_correct</code></a></td></tr>
+      <tr><td>Index-set splitting</td><td><a href="polcert.src.ISSValidatorCorrect.html#ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct"><code>checked_iss_complete_cut_shape_validate_semantics_correct</code></a></td></tr>
+      <tr><td>Proposed execution order</td><td><a href="polcert.src.AffineValidator.html#AffineValidator.validate_correct"><code>AffineValidator.validate_correct</code></a></td></tr>
+      <tr><td>Original and tiled instances</td><td><a href="polcert.src.TilingRelation.html#TilingRelation.tiling_retiled_old_to_before_instance_correct_source"><code>tiling_retiled_old_to_before_instance_correct_source</code></a></td></tr>
+      <tr><td>Safe tile order</td><td><a href="polcert.src.TilingBandScheduleValidator.html#TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe"><code>semantic_componentwise_permutable_implies_reordering_safe</code></a></td></tr>
+      <tr><td>Generated parallel loops</td><td><a href="polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.annotated_codegen_many_raw_semantics_ordered"><code>annotated_codegen_many_raw_semantics_ordered</code></a></td></tr>
+      <tr><td>Main compiler theorem</td><td><a href="polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_correct"><code>VerifiedParallelCompilerConfig.compile_correct</code></a></td></tr>
+      <tr><td>Executable compiler theorem</td><td><a href="polcert.driver.ExtractedPipelineCorrect.html#extracted_parallel_compile_correct"><code>extracted_parallel_compile_correct</code></a></td></tr>
     </tbody>
   </table>
 </main>
