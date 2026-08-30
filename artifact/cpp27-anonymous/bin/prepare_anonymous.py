@@ -52,6 +52,7 @@ REPLACEMENTS = {
     "488ea2f": "diamond-regression-snapshot",
     "56b66690edeed1ef17ddc018bbf67666795a3fd4": "diamond-fix-snapshot",
     "56b6669": "diamond-fix-snapshot",
+    "fix/polcert-known-miscompilations": "fixed-regression-branch",
     "fix/diamond-reschedule-with-nointratileopt": "diamond-fix-branch",
     "https://github.com/verif-scop/pluto.git": "phase-dump-pluto-fork",
     "https://github.com/verif-scop/pluto": "phase-dump-pluto-fork",
@@ -67,8 +68,13 @@ REPLACEMENTS = {
 
 DENYLIST = (
     "hughshine",
+    "hugh",
     "/home/hugh",
+    "xuyang",
+    "li5274",
     "li5274@purdue.edu",
+    "purdue",
+    "lxy10",
     "github.com/verif-scop",
     "verif-scop/",
     "verif-scop",
@@ -83,6 +89,7 @@ DENYLIST = (
     "488ea2f",
     "56b66690edeed1ef17ddc018bbf67666795a3fd4",
     "56b6669",
+    "fix/polcert-known-miscompilations",
     "fix/diamond-reschedule-with-nointratileopt",
     "0661fe0a",
     "6404668840fdac7333abf47f8784b5514e7ca94baa7d47d48fc6e6c6b7d9510a",
@@ -411,7 +418,10 @@ def prepare_executable_checks(release_dir: Path, destination: Path) -> dict:
 
     require(not current, "generated checks ended without a suite summary")
     require(len(suites) == 4, f"expected four generated suites, found {len(suites)}")
-    require([suite["passed"] for suite in suites] == list(expected_counts), "generated suite coverage mismatch")
+    require(
+        [suite["passed"] for suite in suites] == list(expected_counts),
+        "generated suite coverage mismatch",
+    )
 
     destination.mkdir()
     shutil.copy2(PACKAGE_DIR / "EXECUTABLE_CHECKS_README.md", destination / "README.md")
@@ -493,16 +503,40 @@ def prepare_transformation_index(destination: Path) -> dict:
             transformation_counts.items(), key=lambda item: (-item[1], item[0])
         )
     )
-    page = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Optimized Loop Examples</title><link rel="stylesheet" href="../../docs/artifact.css"></head>
-<body><main><h1>Optimized Loop Examples</h1>
-<p>The classification describes loop-structure changes visible in the generated Loop program. It does not infer a performance improvement.</p>
-<table><thead><tr><th>Observed transformation</th><th>Cases</th></tr></thead><tbody>
-""" + count_rows + """
-</tbody></table>
-<table><thead><tr><th>Case</th><th>Observed loop transformation</th><th>Files</th></tr></thead><tbody>
-""" + "\n".join(rows) + "\n</tbody></table></main></body></html>\n"
+    case_rows = "\n".join(rows)
+    page = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Optimized Loop Examples</title>
+  <link rel="stylesheet" href="../../docs/artifact.css">
+</head>
+<body>
+<main>
+  <h1>Optimized Loop Examples</h1>
+  <p>
+    The classification describes loop-structure changes visible in the generated
+    Loop program. It does not infer a performance improvement.
+  </p>
+  <table>
+    <thead><tr><th>Observed transformation</th><th>Cases</th></tr></thead>
+    <tbody>
+{count_rows}
+    </tbody>
+  </table>
+  <table>
+    <thead>
+      <tr><th>Case</th><th>Observed loop transformation</th><th>Files</th></tr>
+    </thead>
+    <tbody>
+{case_rows}
+    </tbody>
+  </table>
+</main>
+</body>
+</html>
+"""
     (destination / "index.html").write_text(page, encoding="utf-8")
     return summary
 
@@ -644,13 +678,42 @@ def prepare_witness_results(destination: Path) -> dict:
     (destination / "results.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-    page = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rejected Optimizer Outputs</title><link rel="stylesheet" href="../../docs/artifact.css"></head>
-<body><main><h1>Rejected Optimizer Outputs</h1>
-<p>Each row states either the violated condition or the missing certificate, followed by the observed PolCert response. The <a href="BUG_REPORT_DRAFT.md">upstream bug-report draft</a> gives reproduction commands, wrong results, root causes, and official-version checks for P1-P4 and C1; F1 belongs only to the development fork.</p>
-<table><thead><tr><th>Case</th><th>Why PolCert cannot accept it</th><th>PolCert result</th><th>Pluto source or status</th></tr></thead><tbody>
-""" + "\n".join(rows) + "\n</tbody></table></main></body></html>\n"
+    result_rows = "\n".join(rows)
+    page = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rejected or Replaced Optimizer Effects</title>
+  <link rel="stylesheet" href="../../docs/artifact.css">
+</head>
+<body>
+<main>
+  <h1>Rejected or Replaced Optimizer Effects</h1>
+  <p>
+    Each row states either the violated condition or the missing certificate,
+    followed by the observed PolCert response. The
+    <a href="BUG_REPORT_DRAFT.md">upstream bug-report draft</a> gives
+    reproduction commands, wrong results, root causes, and official-version
+    checks for P1-P4 and C1; F1 belongs only to the development fork.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Case</th>
+        <th>Why PolCert cannot accept it</th>
+        <th>PolCert result</th>
+        <th>Pluto source or status</th>
+      </tr>
+    </thead>
+    <tbody>
+{result_rows}
+    </tbody>
+  </table>
+</main>
+</body>
+</html>
+"""
     (destination / "index.html").write_text(page, encoding="utf-8")
     return summary
 
@@ -676,7 +739,8 @@ def copy_bug_witnesses(
         )
         .replace(
             "SIMD instructions, scalar privatization, storage expansion, state-changing",
-            "Machine-level vector lowering, scalar privatization, storage expansion, state-changing",
+            "Machine-level vector lowering, scalar privatization, storage expansion, "
+            "state-changing",
         ),
         encoding="utf-8",
     )
@@ -1040,7 +1104,10 @@ def second_level_rejection_records() -> list[dict]:
                 "Two-level tiling; no innermost parallel annotation because the hint "
                 "was not certifiable"
                 if second_level
-                else "Ordinary tiling; no innermost parallel annotation because the hint was not certifiable"
+                else (
+                    "Ordinary tiling; no innermost parallel annotation because the hint "
+                    "was not certifiable"
+                )
             )
             add(name, "keep verified tiling and skip the optional annotation", observed)
 
@@ -1174,12 +1241,15 @@ def unit_test_records() -> list[dict]:
             "preserves_line_numbers_across_nested_comments",
             "gate_exit_statuses",
         )),
-        "strict transformation effects": ("tests/polopt-generated/tools/test_check_polopt_cases.py", (
-            "changed-case-satisfies-all-effects",
-            "unchanged-case-satisfies-all-effects",
-            "missing-nontrivial-and-tiling-effects-rejected",
-            "unexpected-change-rejected",
-        )),
+        "strict transformation effects": (
+            "tests/polopt-generated/tools/test_check_polopt_cases.py",
+            (
+                "changed-case-satisfies-all-effects",
+                "unchanged-case-satisfies-all-effects",
+                "missing-nontrivial-and-tiling-effects-rejected",
+                "unexpected-change-rejected",
+            ),
+        ),
         "generated C harness": ("tools/end_to_end_c/test_generated_harness.py", (
             "positive-stride-range",
             "negative-stride-range",
@@ -1612,8 +1682,14 @@ def prepare_test_catalog(
         }
     )
     diamond_root = raw_output / "identity-compositions/identity-diamond-search"
-    fixture_names = sorted(path.stem for path in (source / "tests/polopt-regression/inputs").glob("*.loop"))
-    require(len(fixture_names) == diamond_search["fixtures_checked"] == 71, "identity search size mismatch")
+    fixture_names = sorted(
+        path.stem
+        for path in (source / "tests/polopt-regression/inputs").glob("*.loop")
+    )
+    require(
+        len(fixture_names) == diamond_search["fixtures_checked"] == 71,
+        "identity search size mismatch",
+    )
     for name in fixture_names:
         case_root = diamond_root / name
         exported = any(case_root.glob("*.scop"))
@@ -1919,7 +1995,8 @@ def prepare_test_catalog(
                 suite_blocks.append(
                     '<details class="catalog-suite" data-catalog-suite>'
                     '<summary><code>'
-                    f'{escape(suite_name)}</code><span>{suite["configurations"]} configurations</span>'
+                    f'{escape(suite_name)}</code>'
+                    f'<span>{suite["configurations"]} configurations</span>'
                     f'</summary>{note}<div class="wide-table"><table class="{table_class}">'
                     f'{table_head}<tbody>'
                     f'{rows}</tbody></table></div></details>'
@@ -1939,23 +2016,55 @@ def prepare_test_catalog(
         )
     counts = catalog["counts"]
     page = f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Test Catalog</title><link rel="stylesheet" href="../../docs/artifact.css"></head>
-<body><main><h1>Test Catalog</h1>
-<p class="lede">Browse the tests by transformation or purpose. Each suite has one primary group; the <em>Observed transformation</em> column retains combined effects.</p>
-<p><strong>{counts['listed_test_configurations']} configurations</strong> in <strong>{counts['suites']} suites</strong>. Local and remote reruns share one row.</p>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test Catalog</title>
+  <link rel="stylesheet" href="../../docs/artifact.css">
+</head>
+<body>
+<main>
+<h1>Test Catalog</h1>
+<p class="lede">
+  Browse the tests by transformation or purpose. Each suite has one primary
+  group; the <em>Observed transformation</em> column retains combined effects.
+</p>
+<p>
+  <strong>{counts['listed_test_configurations']} configurations</strong> in
+  <strong>{counts['suites']} suites</strong>. Local and remote reruns share one row.
+</p>
 <ul class="catalog-index">{chr(10).join(category_links)}</ul>
 <label for="test-filter"><strong>Filter cases</strong></label>
-<input id="test-filter" type="search" placeholder="ISS, diamond, parallel, fusion, case name..." aria-controls="catalog-groups">
-<p id="visible-count" aria-live="polite">{counts['listed_test_configurations']} configurations.</p>
+<input
+  id="test-filter"
+  type="search"
+  placeholder="ISS, diamond, parallel, fusion, case name..."
+  aria-controls="catalog-groups"
+>
+<p id="visible-count" aria-live="polite">
+  {counts['listed_test_configurations']} configurations.
+</p>
 <div id="catalog-groups">{chr(10).join(category_sections)}</div>
-<details class="run-metadata"><summary>Recorded Commands</summary>
+<details class="run-metadata">
+<summary>Recorded Commands</summary>
 <h2>Local Artifact Commands</h2>
-<table><thead><tr><th>Check</th><th>Command</th><th>Time</th><th>Status</th><th>Evidence</th></tr></thead><tbody>{chr(10).join(command_rows)}</tbody></table>
+<table>
+  <thead>
+    <tr><th>Check</th><th>Command</th><th>Time</th><th>Status</th><th>Evidence</th></tr>
+  </thead>
+  <tbody>{chr(10).join(command_rows)}</tbody>
+</table>
 <h2>Remote CI Phases</h2>
-<table><thead><tr><th>Phase</th><th>Time</th><th>Status</th><th>Evidence</th></tr></thead><tbody>{chr(10).join(remote_rows)}</tbody></table>
+<table>
+  <thead>
+    <tr><th>Phase</th><th>Time</th><th>Status</th><th>Evidence</th></tr>
+  </thead>
+  <tbody>{chr(10).join(remote_rows)}</tbody>
+</table>
 </details>
-</main><script>
+</main>
+<script>
 const input = document.getElementById('test-filter');
 const rows = [...document.querySelectorAll('#catalog-groups tbody tr')];
 const suites = [...document.querySelectorAll('[data-catalog-suite]')];
@@ -1976,18 +2085,23 @@ input.addEventListener('input', () => {{
     if (query && show) suite.open = true;
   }}
   for (const family of families) {{
-    const show = [...family.querySelectorAll('[data-catalog-suite]')].some(suite => !suite.hidden);
+    const show = [...family.querySelectorAll('[data-catalog-suite]')]
+      .some(suite => !suite.hidden);
     family.hidden = !show;
     if (query && show) family.open = true;
   }}
   for (const section of sections) {{
-    section.hidden = ![...section.querySelectorAll('[data-catalog-family]')].some(family => !family.hidden);
+    section.hidden = ![...section.querySelectorAll('[data-catalog-family]')]
+      .some(family => !family.hidden);
   }}
   count.textContent = query
     ? `Showing ${{visible}} of ${{rows.length}} configurations.`
     : `${{rows.length}} configurations.`;
 }});
-</script></body></html>\n"""
+</script>
+</body>
+</html>
+"""
     (destination / "test-catalog.html").write_text(page, encoding="utf-8")
     return catalog
 
@@ -2145,7 +2259,11 @@ def parse_html(path: Path) -> LinkCollector:
 
 
 def prepare_browser_text_views(package: Path) -> int:
-    """Replace linked text files with short, self-contained HTML views."""
+    """Replace linked UTF-8 text files with stable, shallow HTML views.
+
+    The sorted two-pass mapping keeps the ``v/NNNN.html`` paths deterministic
+    and short enough for local ``file://`` and WSL UNC browsing.
+    """
     package_root = package.resolve()
     href_pattern = re.compile(
         r'(?P<prefix>\bhref\s*=\s*)(?P<quote>["\'])(?P<value>.*?)(?P=quote)',
@@ -2221,12 +2339,21 @@ def prepare_browser_text_views(package: Path) -> int:
         label = target.relative_to(package_root).as_posix()
         payload = target.read_text(encoding="utf-8")
         page = f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{escape(target.name)}</title><link rel="stylesheet" href="{escape(css_href, quote=True)}"></head>
-<body><main><p><a href="{escape(guide_href, quote=True)}">Supplement guide</a></p>
-<h1><code>{escape(label)}</code></h1>
-<pre>{escape(payload)}</pre>
-</main></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{escape(target.name)}</title>
+  <link rel="stylesheet" href="{escape(css_href, quote=True)}">
+</head>
+<body>
+<main>
+  <p><a href="{escape(guide_href, quote=True)}">Supplement guide</a></p>
+  <h1><code>{escape(label)}</code></h1>
+  <pre>{escape(payload)}</pre>
+</main>
+</body>
+</html>
 """
         view.write_text(page, encoding="utf-8")
     return len(views)

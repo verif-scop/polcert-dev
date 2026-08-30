@@ -22,8 +22,7 @@ local `file://` page, serve the extracted directory instead:
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Then open <http://127.0.0.1:8000/docs/index.html>. This avoids browser
-restrictions on links below a `file://` page.
+Then open <http://127.0.0.1:8000/docs/index.html>.
 
 For the complete test inventory, open
 [`evidence/proof-and-test-results/test-catalog.html`](evidence/proof-and-test-results/test-catalog.html).
@@ -35,9 +34,9 @@ For the complete test inventory, open
 | `docs/index.html` | Offline guide to the compiler, proof, and evidence. |
 | `docs/proof/` | Generated Rocq pages for the main proof modules. |
 | `source/` | The validated source and proof snapshot. |
-| `environment/Dockerfile.proof` | Reproducible proof-build environment. |
+| `environment/Dockerfile.proof` | Versioned proof-build environment. |
 | `evidence/README.md` | Guide to the recorded proof and test results. |
-| `evidence/proof-and-test-results/` | Complete test catalog, proof status, commands, and raw output. |
+| `evidence/proof-and-test-results/` | Test catalog, proof-closure inventory, commands, and raw output. |
 | `evidence/optimized-loop-examples/` | Before-and-after loop outputs, labeled by transformation. |
 | `evidence/execution-comparisons/` | Checks that original and optimized programs return the same result. |
 | `evidence/rejected-optimizer-outputs/` | Unsafe or non-certifiable optimizer proposals, their causes, and PolCert's response. |
@@ -48,12 +47,19 @@ For the complete test inventory, open
 
 ## Build Information
 
-The validated environment used OCaml 4.13.1 and Rocq/Coq 8.13.2. The fixed
-proof environment can be built from the extracted archive root:
+The validated environment used OCaml 4.13.1 and Rocq/Coq 8.13.2. Its Docker
+environment can be built from the extracted archive root:
 
 ```sh
 docker build -f environment/Dockerfile.proof -t polcert-proof .
 ```
+
+This build requires network access and an x86-64 Docker environment. It
+configures the source, runs the full proof target, rejects unfinished proofs,
+and extracts the compiler.
+
+Re-running tests that invoke Pluto requires a compatible Pluto installation.
+The archive contains their inputs, scripts, and recorded results.
 
 With the listed dependencies already installed, the equivalent source build is:
 

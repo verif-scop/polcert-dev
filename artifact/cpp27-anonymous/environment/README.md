@@ -8,6 +8,8 @@ root, run:
 docker build -f environment/Dockerfile.proof -t polcert-proof .
 ```
 
+The build requires network access and an x86-64 Docker environment.
+
 The image configures the source, builds all proofs, checks for unfinished
 proofs, and extracts the compiler. It does not require Pluto because the
 external optimizer is not needed to check the proofs.

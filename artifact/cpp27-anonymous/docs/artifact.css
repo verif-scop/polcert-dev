@@ -8,8 +8,8 @@
   --blue-soft: #e8f3f6;
   --green: #286241;
   --green-soft: #eaf4ed;
-  --amber: #765300;
-  --amber-soft: #fff5d8;
+  --note: #65737c;
+  --note-soft: #f0f3f5;
   --red: #8a3030;
 }
 
@@ -47,6 +47,7 @@ pre {
   line-height: 1.5;
 }
 
+/* Guide navigation and main reading column. */
 .shell {
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr);
@@ -133,6 +134,7 @@ li { margin: 5px 0; }
 .route strong { display: block; margin-bottom: 5px; }
 .route p { margin: 0; color: var(--muted); font-size: 0.94rem; }
 
+/* Compiler route diagram and status legend. */
 .pipeline {
   display: grid;
   grid-template-columns: repeat(8, minmax(105px, 1fr));
@@ -156,7 +158,6 @@ li { margin: 5px 0; }
 .stage:first-child { border-radius: 4px 0 0 4px; }
 .stage:last-child { border-right: 1px solid var(--line); border-radius: 0 4px 4px 0; }
 .stage.verified { background: var(--blue-soft); border-color: #8bbbc7; }
-.stage.optional { border-style: dashed; background: var(--amber-soft); }
 .stage.inherited { background: var(--green-soft); }
 .stage b { display: block; margin-bottom: 3px; }
 
@@ -180,8 +181,6 @@ li { margin: 5px 0; }
 
 .legend .new::before { background: var(--blue-soft); border-color: #8bbbc7; }
 .legend .old::before { background: var(--green-soft); }
-.legend .opt::before { background: var(--amber-soft); border-style: dashed; }
-
 .contract {
   margin: 22px 0;
   padding: 16px 18px;
@@ -194,8 +193,8 @@ li { margin: 5px 0; }
 .note {
   margin: 20px 0;
   padding: 13px 16px;
-  border-left: 4px solid var(--amber);
-  background: var(--amber-soft);
+  border-left: 4px solid var(--note);
+  background: var(--note-soft);
 }
 
 table {
@@ -326,6 +325,7 @@ th { background: var(--soft); }
 .status-note { color: var(--muted); font-weight: 700; }
 .boundary { color: var(--red); }
 
+/* Numbered proof path and component reading entries. */
 .proof-step {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
@@ -346,6 +346,13 @@ th { background: var(--soft); }
 
 .proof-step h3 { margin: 2px 0 4px; }
 .proof-step p { margin: 4px 0; }
+.proof-step > div:last-child { min-width: 0; }
+
+.proof-step code,
+.component code,
+td code {
+  overflow-wrap: anywhere;
+}
 
 .component {
   margin: 30px 0;
@@ -366,6 +373,7 @@ th { background: var(--soft); }
 }
 
 .component dd {
+  min-width: 0;
   margin: 0;
   padding: 7px 0;
 }
@@ -378,9 +386,16 @@ th { background: var(--soft); }
   font-size: 0.9rem;
 }
 
+/* Collapse navigation and wide tables for narrow screens. */
 @media (max-width: 900px) {
   .shell { display: block; }
-  nav { position: static; width: auto; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  nav {
+    position: static;
+    width: auto;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
   nav a { display: inline-block; margin-right: 16px; }
   nav .minor { display: none; }
   main { width: min(100% - 28px, 1120px); padding-top: 30px; }
@@ -393,7 +408,7 @@ th { background: var(--soft); }
   tr { margin-bottom: 13px; border: 1px solid var(--line); }
   td { border: 0; border-bottom: 1px solid var(--line); }
   td:last-child { border-bottom: 0; }
-  .component dl { grid-template-columns: 1fr; }
+  .component dl { grid-template-columns: minmax(0, 1fr); }
   .component dt { padding-bottom: 0; }
   .catalog-family > summary span:last-child,
   .catalog-suite > summary span:last-child {

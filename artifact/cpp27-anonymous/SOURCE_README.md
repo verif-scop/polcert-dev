@@ -54,7 +54,7 @@ make proof
 make extraction
 ```
 
-For a fixed proof environment, run the Docker build described in
+For the packaged proof environment, run the Docker build described in
 `../environment/README.md` from the archive root.
 
 Tests that run the external Pluto optimizer require a compatible Pluto

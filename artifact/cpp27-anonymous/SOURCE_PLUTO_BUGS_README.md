@@ -9,7 +9,7 @@ non-certifiable parallel hint without claiming a Pluto defect.
 Each case README explains the violated dependence or transformation condition
 and PolCert's response. The reviewer-facing table, recorded results, and
 bug-report draft are under
-`../../../evidence/rejected-optimizer-outputs/` from the archive root.
+`../../../evidence/rejected-optimizer-outputs/`, relative to this README.
 
 Run the source tests with:
 
