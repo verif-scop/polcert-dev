@@ -34,7 +34,8 @@ For the complete test inventory, open
 | `docs/index.html` | Offline guide to the compiler, proof, and evidence. |
 | `docs/proof/` | Generated Rocq pages for the main proof modules. |
 | `source/` | The validated source and proof snapshot. |
-| `environment/Dockerfile.proof` | Versioned proof-build environment. |
+| `third_party/pluto/` | Source snapshots used for ordinary tests and historical bug witnesses. |
+| `environment/Dockerfile` | Rebuilds Pluto, the proofs, and the extracted compiler. |
 | `evidence/README.md` | Guide to the recorded proof and test results. |
 | `evidence/proof-and-test-results/` | Test catalog, proof-closure inventory, commands, and raw output. |
 | `evidence/optimized-loop-examples/` | Before-and-after loop outputs, labeled by transformation. |
@@ -47,27 +48,40 @@ For the complete test inventory, open
 
 ## Build Information
 
-The validated environment used OCaml 4.13.1 and Rocq/Coq 8.13.2. Its Docker
-environment can be built from the extracted archive root:
+The Docker environment builds both Pluto snapshots, OCaml 4.13.1, Rocq/Coq
+8.13.2, every proof, and the extracted `polcert` and `polopt` executables. From
+the extracted archive root, run:
 
 ```sh
-docker build -f environment/Dockerfile.proof -t polcert-proof .
+docker build -f environment/Dockerfile -t polcert-artifact .
+docker run --rm polcert-artifact
 ```
 
-This build requires network access and an x86-64 Docker environment. It
-configures the source, runs the full proof target, rejects unfinished proofs,
-and extracts the compiler.
+The build requires network access for Ubuntu and opam packages and requires an
+x86-64 Docker environment. The default container command runs 25 compiler,
+executable, and regression checks. These commands run the longer checks:
 
-Re-running tests that invoke Pluto requires a compatible Pluto installation.
-The archive contains their inputs, scripts, and recorded results.
+```sh
+docker run --rm polcert-artifact full   # all 30 artifact checks
+docker run --rm polcert-artifact ci     # all seven CI test groups
+docker run --rm polcert-artifact bugs   # seven Pluto regression/witness checks
+docker run --rm polcert-artifact proof  # clean proof and extraction rebuild
+```
 
-With the listed dependencies already installed, the equivalent source build is:
+`docker run --rm polcert-artifact ci base` runs one CI test group. Run
+`docker run --rm polcert-artifact all` only when both the full artifact
+validation and every CI test group are required; it does not repeat the clean
+proof rebuild.
+
+With the listed dependencies already installed, this proof-only source check is
+also available:
 
 ```sh
 cd source
 ./configure x86_64-linux
 make depend
 make proof
+make check-admitted
 make extraction
 ```
 
@@ -79,5 +93,5 @@ From the extracted archive root:
 sha256sum -c SHA256SUMS
 ```
 
-This command checks every packaged file. Formal-source hashes are also listed
-separately in `FORMAL_SOURCE_SHA256SUMS` and recorded in `MANIFEST.json`.
+This command checks every other packaged file. Formal-source hashes are also
+listed separately in `FORMAL_SOURCE_SHA256SUMS` and recorded in `MANIFEST.json`.

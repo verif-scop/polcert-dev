@@ -33,6 +33,35 @@ DEFAULT_OUTPUT = RELEASE_ROOT / "cpp27-anonymous/polcert-cpp27-supplement.zip"
 
 SOURCE_ARCHIVE = "polcert-9d612d02ac8f27d46c5ec632f912f8a67939e748.tar"
 SOURCE_SHA256 = "ed4a1cce93b3332bf2b2b80fdb01d7203dddc887f249fff95503d0205c31928c"
+PLUTO_SOURCE_ARCHIVES = {
+    "fixed": (
+        "pluto-fixed-source.tar.xz",
+        "5d04579f13add5ba6838fd8a8e617eec63d46186a8756e2946abbf471e6e3eb0",
+    ),
+    "historical": (
+        "pluto-historical-source.tar.xz",
+        "76f78f578e37aa4d2c229b268f7888522fb0414d66c7c7151908e3fbc485167b",
+    ),
+}
+PLUTO_RECURSIVE_COMPONENTS = (
+    "candl",
+    "candl/osl",
+    "candl/piplib",
+    "clan",
+    "clan/osl",
+    "cloog-isl",
+    "cloog-isl/isl",
+    "cloog-isl/isl/imath",
+    "cloog-isl/osl",
+    "isl",
+    "isl/imath",
+    "openscop",
+    "pet",
+    "pet/isl",
+    "pet/isl/imath",
+    "piplib",
+    "polylib",
+)
 ARCHIVE_ROOT = "polcert-cpp27-supplement"
 ZIP_TIMESTAMP = (2026, 8, 29, 0, 0, 0)
 
@@ -166,16 +195,75 @@ def validate_tar_member(member: tarfile.TarInfo) -> None:
 
 
 def extract_source(archive_path: Path, destination: Path) -> None:
-    with tarfile.open(archive_path, "r:") as archive:
+    with tarfile.open(archive_path, "r:*") as archive:
         for member in archive.getmembers():
             validate_tar_member(member)
         archive.extractall(destination)
+
+
+def prepare_pluto_sources(destination: Path) -> dict[str, object]:
+    destination.mkdir(parents=True)
+    snapshots = {}
+    for role, (filename, expected_sha256) in PLUTO_SOURCE_ARCHIVES.items():
+        archive_path = PACKAGE_DIR / "vendor" / filename
+        require(archive_path.is_file(), f"missing Pluto source archive: {archive_path}")
+        require(
+            sha256(archive_path) == expected_sha256,
+            f"Pluto source archive hash mismatch: {filename}",
+        )
+        snapshot = destination / role
+        snapshot.mkdir()
+        extract_source(archive_path, snapshot)
+        require((snapshot / "LICENSE").is_file(), f"missing Pluto license: {role}")
+        require((snapshot / "autogen.sh").is_file(), f"missing Pluto build script: {role}")
+        missing_components = [
+            component
+            for component in PLUTO_RECURSIVE_COMPONENTS
+            if not (snapshot / component).is_dir()
+            or not any(path.is_file() for path in (snapshot / component).rglob("*"))
+        ]
+        require(
+            not missing_components,
+            f"incomplete recursive Pluto source snapshot {role}: "
+            + ", ".join(missing_components),
+        )
+        require(
+            not any(path.name == ".git" for path in snapshot.rglob("*")),
+            f"Pluto snapshot retains Git metadata: {role}",
+        )
+        elf_files = []
+        for path in snapshot.rglob("*"):
+            if path.is_file():
+                with path.open("rb") as handle:
+                    if handle.read(4) == b"\x7fELF":
+                        elf_files.append(path.relative_to(snapshot).as_posix())
+        require(
+            not elf_files,
+            f"Pluto snapshot contains prebuilt ELF files {role}: "
+            + ", ".join(elf_files),
+        )
+        hashes = all_file_hashes(snapshot)
+        snapshots[role] = {
+            "files": len(hashes),
+            "tree_sha256": tree_hash(hashes),
+            "packaging_archive_sha256": expected_sha256,
+        }
+    shutil.copy2(PACKAGE_DIR / "PLUTO_SOURCES_README.md", destination / "README.md")
+    return snapshots
 
 
 def file_hashes(root: Path, suffix: str) -> dict[str, str]:
     return {
         path.relative_to(root).as_posix(): sha256(path)
         for path in sorted(root.rglob(f"*{suffix}"))
+        if path.is_file()
+    }
+
+
+def all_file_hashes(root: Path) -> dict[str, str]:
+    return {
+        path.relative_to(root).as_posix(): sha256(path)
+        for path in sorted(root.rglob("*"))
         if path.is_file()
     }
 
@@ -228,6 +316,9 @@ def prune_source(source: Path) -> None:
         if path.name in {
             "check_legacy_failure_exit.sh",
             "check_open_proofs.py",
+            "ci_resources.sh",
+            "run_ci_shard.sh",
+            "run_legacy_tests.sh",
             "test_check_open_proofs.py",
         }:
             continue
@@ -239,6 +330,52 @@ def prune_source(source: Path) -> None:
         PACKAGE_DIR / "SOURCE_PLUTO_BUGS_README.md",
         source / "tests/pluto-bugs/README.md",
     )
+
+
+def patch_anonymous_artifact_runner(source: Path) -> None:
+    path = source / "tools/artifact/run_artifact_check.py"
+    text = path.read_text(encoding="utf-8")
+    replacements = (
+        (
+            "    provenance_errors = check_build_provenance(environment, provenance)\n"
+            "    if provenance_errors:\n",
+            "    provenance_errors = check_build_provenance(environment, provenance)\n"
+            "    provenance_required = environment[\"POLCERT_REQUIRE_PROVENANCE\"] == \"1\"\n"
+            "    if provenance_errors:\n",
+        ),
+        (
+            '            "build_provenance": {\n'
+            '                "manifest": provenance,\n'
+            '                "verified": False,\n'
+            '                "errors": provenance_errors,\n'
+            "            },\n",
+            '            "build_provenance": {\n'
+            '                "required": provenance_required,\n'
+            '                "manifest_present": provenance is not None,\n'
+            '                "manifest": provenance,\n'
+            '                "verified": False,\n'
+            '                "errors": provenance_errors,\n'
+            "            },\n",
+        ),
+        (
+            '        "build_provenance": {\n'
+            '            "manifest": provenance,\n'
+            '            "verified": not provenance_errors,\n'
+            '            "errors": provenance_errors,\n'
+            "        },\n",
+            '        "build_provenance": {\n'
+            '            "required": provenance_required,\n'
+            '            "manifest_present": provenance is not None,\n'
+            '            "manifest": provenance,\n'
+            '            "verified": provenance_required and not provenance_errors,\n'
+            '            "errors": provenance_errors,\n'
+            "        },\n",
+        ),
+    )
+    for old, new in replacements:
+        require(text.count(old) == 1, "unexpected artifact-runner source shape")
+        text = text.replace(old, new)
+    path.write_text(text, encoding="utf-8")
 
 
 def sanitize_file(path: Path) -> None:
@@ -2508,6 +2645,7 @@ def main() -> int:
         formal_before = file_hashes(source, ".v")
         prune_source(source)
         sanitize_tree(source)
+        patch_anonymous_artifact_runner(source)
         formal_after = file_hashes(source, ".v")
         require(formal_after == formal_before, "formal source changed during packaging")
         formal_hash_lines = [
@@ -2516,6 +2654,8 @@ def main() -> int:
         formal_hash_manifest = package / "FORMAL_SOURCE_SHA256SUMS"
         formal_hash_manifest.write_text("".join(formal_hash_lines), encoding="ascii")
         formal_manifest_sha256 = sha256(formal_hash_manifest)
+
+        pluto_sources = prepare_pluto_sources(package / "third_party/pluto")
 
         docs.mkdir()
         prepare_docs(proof_html_dir, docs)
@@ -2540,6 +2680,7 @@ def main() -> int:
         shutil.copy2(PACKAGE_DIR / "PLUTO_MIT_LICENSE.txt", licenses / "Pluto-MIT.txt")
         environment = package / "environment"
         shutil.copytree(PACKAGE_DIR / "environment", environment)
+        shutil.copy2(PACKAGE_DIR / "DOCKERIGNORE", package / ".dockerignore")
         manifest = {
             "snapshot": "cpp-supplement-r1",
             "formal_source": {
@@ -2550,6 +2691,7 @@ def main() -> int:
             "proof_documentation": {
                 "generated_pages": len(list((docs / "proof").glob("*.html"))),
             },
+            "pluto_sources": pluto_sources,
             "validation": summary,
         }
         (package / "MANIFEST.json").write_text(

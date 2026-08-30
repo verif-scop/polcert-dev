@@ -5,9 +5,10 @@ submission archive.
 
 ## Inputs
 
-The packager consumes the frozen source tar, full local artifact result tree,
-transformation examples, bug-witness log, and generated Rocq HTML. Generate the
-Rocq HTML from the frozen image before packaging:
+The packager consumes the frozen PolCert source tar, both Pluto source archives,
+the local artifact result tree, transformation examples, bug-witness log, and
+generated Rocq HTML. Generate the Rocq HTML from the frozen image before
+packaging:
 
 ```sh
 docker run --name polcert-proof-doc --entrypoint bash \
@@ -29,10 +30,11 @@ python3 artifact/cpp27-anonymous/bin/prepare_anonymous.py --force
 
 ## Packaging Boundary
 
-The submission archive includes formal source, proof HTML, and local evidence.
-It excludes the release Docker image and GitHub Actions records because those
-objects carry account, repository, and Git-history metadata. The publication
-package under `artifact/zenodo-v10/` retains those exact identities.
+The submission archive includes formal source, both Pluto source snapshots,
+proof HTML, and local evidence. It excludes the release Docker image and GitHub
+Actions records because those objects carry account, repository, and Git-history
+metadata. The publication package under `artifact/zenodo-v10/` retains those
+exact identities.
 
 The source filter removes release orchestration, historical proof audits, and a
 tracked local ELF containing its build path. It must not modify any `.v` file;
@@ -48,6 +50,7 @@ The packager checks:
 - every relative HTML target and fragment;
 - every extracted-file SHA-256 hash;
 - archive paths and symlink targets;
+- complete recursive Pluto components and absence of prebuilt ELF files;
 - names, accounts, repository coordinates, public revisions, and CI run IDs;
 - binary payloads as well as decoded text.
 
