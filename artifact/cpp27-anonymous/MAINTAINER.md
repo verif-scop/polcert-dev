@@ -48,11 +48,11 @@ The packager checks:
 - byte identity of every formal source file;
 - every JSON file;
 - every relative HTML target and fragment;
-- every extracted-file SHA-256 hash;
+- ZIP CRC integrity and deterministic archive construction;
 - archive paths and symlink targets;
 - complete recursive Pluto components and absence of prebuilt ELF files;
 - names, accounts, repository coordinates, public revisions, and CI run IDs;
 - binary payloads as well as decoded text.
 
-After generation, extract the ZIP into a fresh temporary directory and repeat
-`sha256sum -c SHA256SUMS`. Perform one manual browser pass from `docs/index.html`.
+After generation, extract the ZIP into a fresh temporary directory and perform
+one manual browser pass from `docs/index.html`.

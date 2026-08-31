@@ -1,8 +1,8 @@
 # PolCert Source Snapshot
 
-This directory contains the compiler, its Rocq proofs, and its tests. All
-formal `.v` files exactly match the validated snapshot; their hashes are in
-`../FORMAL_SOURCE_SHA256SUMS`.
+This directory contains the compiler, its Rocq proofs, and its tests. The
+packager checks that every formal `.v` file exactly matches the validated
+snapshot.
 
 The main source directories are:
 

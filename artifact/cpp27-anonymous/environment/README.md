@@ -49,6 +49,6 @@ CI groups use group-specific paths under `/tmp` and generated cases under
 `/polcert/tests`. To retain them, omit `--rm`, name the container, and use
 `docker cp` after the run.
 The submitted evidence includes the release-image provenance check. A new image
-correctly reports that gate as not required; `SHA256SUMS` identifies its inputs.
+correctly reports that gate as not required; `MANIFEST.json` describes its inputs.
 For a low-memory build, reduce `PLUTO_BUILD_JOBS`, `PROOF_JOBS`, or `BUILD_JOBS`
 with `docker build --build-arg NAME=VALUE ...`.

@@ -13,7 +13,7 @@ documentation, and build products have been removed. Nested `.gitmodules`
 files remain as third-party attribution; the build does not use their URLs.
 `environment/Dockerfile` builds both snapshots from source. It assigns each
 tree a local Git revision because Pluto embeds a revision in its version output;
-the packaged source and `SHA256SUMS` remain the authoritative identities.
+the packaged source trees are the artifact inputs.
 
 `MANIFEST.json` records each tree's file count and a deterministic tree hash.
 That hash covers the sorted relative path, a NUL byte, the file's SHA-256, and a

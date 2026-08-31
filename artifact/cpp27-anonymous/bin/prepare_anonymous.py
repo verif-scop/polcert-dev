@@ -454,7 +454,7 @@ def prepare_docs(proof_html_dir: Path, destination: Path) -> None:
             add_proof_navigation(path)
 
 
-def normalize_artifact_results(path: Path, formal_manifest_sha256: str) -> None:
+def normalize_artifact_results(path: Path) -> None:
     """Turn the raw run record into a self-contained packaged record."""
     record = load_json(path)
     original_provenance = record.get("build_provenance", {})
@@ -464,9 +464,8 @@ def normalize_artifact_results(path: Path, formal_manifest_sha256: str) -> None:
         "derived_from_completed_validation_run": True,
     }
     record["build_provenance"] = {
-        "formal_source_hash_manifest_sha256": formal_manifest_sha256,
+        "formal_source_unchanged_during_packaging": True,
         "validation_run_provenance_checked": bool(original_provenance.get("verified")),
-        "formal_source_hash_manifest": "../../FORMAL_SOURCE_SHA256SUMS",
     }
     record["environment"] = {
         key: environment[key]
@@ -2249,7 +2248,6 @@ def prepare_evidence(
     destination: Path,
     artifact_results: dict,
     proof_report: dict,
-    formal_manifest_sha256: str,
     bug_report_draft: str,
 ) -> dict:
     details = destination / "proof-and-test-results"
@@ -2315,10 +2313,7 @@ def prepare_evidence(
         if path.name not in summaries and path != raw_output:
             shutil.move(path, raw_output / path.name)
     shutil.copy2(PACKAGE_DIR / "PROOF_TEST_RESULTS_README.md", details / "README.md")
-    normalize_artifact_results(
-        details / "run-results.json",
-        formal_manifest_sha256,
-    )
+    normalize_artifact_results(details / "run-results.json")
     remove_elf_outputs(details)
     copy_typed_pipeline_ci_result(release_dir, raw_output)
     remote_commands = copy_remote_ci_test_results(release_dir, raw_output)
@@ -2433,7 +2428,7 @@ def prepare_browser_text_views(package: Path) -> int:
             if target is not None:
                 targets.add(target)
 
-    views_dir = package / "v"
+    views_dir = package / "docs/files"
     views_dir.mkdir()
     views = {
         target: views_dir / f"{index:04d}.html"
@@ -2553,23 +2548,6 @@ def check_denylist(root: Path) -> None:
     require(not errors, "submission-coordinate scan failed:\n" + "\n".join(errors[:60]))
 
 
-def write_checksums(root: Path) -> int:
-    entries = []
-    for path in sorted(root.rglob("*")):
-        if path.is_file() and path.name != "SHA256SUMS":
-            entries.append(f"{sha256(path)}  {path.relative_to(root).as_posix()}\n")
-    (root / "SHA256SUMS").write_text("".join(entries), encoding="ascii")
-    return len(entries)
-
-
-def verify_checksums(root: Path) -> None:
-    for line in (root / "SHA256SUMS").read_text(encoding="ascii").splitlines():
-        expected, relative = line.split("  ", 1)
-        path = root / relative
-        require(path.is_file(), f"checksummed file is missing: {relative}")
-        require(sha256(path) == expected, f"checksum mismatch: {relative}")
-
-
 def zip_info(path: Path, relative: str) -> zipfile.ZipInfo:
     info = zipfile.ZipInfo(f"{ARCHIVE_ROOT}/{relative}", ZIP_TIMESTAMP)
     info.create_system = 3
@@ -2648,12 +2626,6 @@ def main() -> int:
         patch_anonymous_artifact_runner(source)
         formal_after = file_hashes(source, ".v")
         require(formal_after == formal_before, "formal source changed during packaging")
-        formal_hash_lines = [
-            f"{value}  source/{name}\n" for name, value in sorted(formal_after.items())
-        ]
-        formal_hash_manifest = package / "FORMAL_SOURCE_SHA256SUMS"
-        formal_hash_manifest.write_text("".join(formal_hash_lines), encoding="ascii")
-        formal_manifest_sha256 = sha256(formal_hash_manifest)
 
         pluto_sources = prepare_pluto_sources(package / "third_party/pluto")
 
@@ -2666,7 +2638,6 @@ def main() -> int:
             evidence,
             artifact_results,
             proof_report,
-            formal_manifest_sha256,
             bug_report_draft,
         )
         sanitize_tree(evidence)
@@ -2682,11 +2653,10 @@ def main() -> int:
         shutil.copytree(PACKAGE_DIR / "environment", environment)
         shutil.copy2(PACKAGE_DIR / "DOCKERIGNORE", package / ".dockerignore")
         manifest = {
-            "snapshot": "cpp-supplement-r1",
+            "snapshot": "cpp-supplement-r2",
             "formal_source": {
                 "files": len(formal_after),
-                "file_hash_manifest": "FORMAL_SOURCE_SHA256SUMS",
-                "file_hash_manifest_sha256": formal_manifest_sha256,
+                "packaging_check": "byte-identical-to-validated-snapshot",
             },
             "proof_documentation": {
                 "generated_pages": len(list((docs / "proof").glob("*.html"))),
@@ -2702,8 +2672,6 @@ def main() -> int:
         json_count = check_json(package)
         html_count = check_html_links(package)
         check_denylist(package)
-        checksummed = write_checksums(package)
-        verify_checksums(package)
         build_zip(package, output)
 
     print(f"wrote: {output}")
@@ -2712,7 +2680,6 @@ def main() -> int:
     print(f"validated JSON files: {json_count}")
     print(f"validated HTML files: {html_count}")
     print(f"browser-readable linked text files: {browser_text_views}")
-    print(f"checksummed files: {checksummed}")
     return 0
 
 

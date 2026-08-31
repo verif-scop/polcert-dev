@@ -8,5 +8,4 @@
 
 Raw output and generated intermediates are under `raw-output/`.
 `raw-output/remote-ci-test-results.stdout.txt` records the complete proof and
-extraction build phases. `FORMAL_SOURCE_SHA256SUMS` at the archive root covers
-every packaged Rocq source file.
+extraction build phases.

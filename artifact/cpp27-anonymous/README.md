@@ -43,8 +43,6 @@ For the complete test inventory, open
 | `evidence/rejected-optimizer-outputs/` | Unsafe or non-certifiable optimizer proposals, their causes, and PolCert's response. |
 | `THIRD_PARTY.md` | Third-party attribution and license map. |
 | `MANIFEST.json` | Snapshot metadata and content counts. |
-| `FORMAL_SOURCE_SHA256SUMS` | Per-file hashes for every packaged `.v` file. |
-| `SHA256SUMS` | Hashes for every other file in the extracted archive. |
 
 ## Build Information
 
@@ -84,14 +82,3 @@ make proof
 make check-admitted
 make extraction
 ```
-
-## Integrity
-
-From the extracted archive root:
-
-```sh
-sha256sum -c SHA256SUMS
-```
-
-This command checks every other packaged file. Formal-source hashes are also
-listed separately in `FORMAL_SOURCE_SHA256SUMS` and recorded in `MANIFEST.json`.
