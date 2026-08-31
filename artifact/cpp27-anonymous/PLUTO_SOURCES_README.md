@@ -4,8 +4,8 @@ PolCert treats Pluto as an untrusted producer of optimization proposals. The
 two source snapshots here make the optimizer-dependent checks reproducible:
 
 - `fixed/` is used for ordinary compilation and tests.
-- `historical/` preserves the earlier behavior exercised by the rejected-output
-  witnesses.
+- `historical/` reproduces earlier Pluto behavior used to test how PolCert
+  handles invalid optimization proposals.
 
 Both directories contain Pluto and all of its recursively pinned submodules.
 Git repositories and history, configured remotes, CI files, fork-specific
