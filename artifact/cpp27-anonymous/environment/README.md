@@ -1,6 +1,6 @@
 # Build and Test Environment
 
-`Dockerfile` builds the two packaged Pluto source snapshots, the Rocq proofs,
+`Dockerfile` builds the two packaged Pluto source archives, the Rocq proofs,
 and the extracted compiler. From the archive root, run:
 
 ```sh
@@ -9,8 +9,9 @@ docker run --rm polcert-artifact
 ```
 
 The build requires network access for Ubuntu and opam packages and requires an
-x86-64 Docker environment. Pluto itself is built from `third_party/pluto`; the
-build does not fetch an optimizer repository or use a prebuilt optimizer image.
+x86-64 Docker environment. Pluto itself is extracted and built from
+`third_party/pluto`; the build does not fetch an optimizer repository or use a
+prebuilt optimizer image.
 The Ubuntu base image is digest-pinned; apt and opam still use online package
 repositories.
 

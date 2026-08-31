@@ -9,7 +9,7 @@ and background citations.
 | Verified Polyhedra Library (VPL) | `source/VPL` | `source/VPL/LICENSE` and source headers |
 | Flocq | `source/flocq` | Source headers and `licenses/LGPL-3.0.txt` |
 | MenhirLib | `source/MenhirLib` | Source headers and `licenses/LGPL-3.0.txt` |
-| Pluto and its pinned dependencies | `third_party/pluto` | License and attribution files in each source tree |
+| Pluto and its pinned dependencies | `third_party/pluto` | License and attribution files in each source archive |
 | Pluto-derived test inputs | `source/tests`, `evidence/rejected-optimizer-outputs`, `evidence/optimized-loop-examples` | Pluto benchmark corpus; `licenses/Pluto-MIT.txt` |
 | Other external benchmark samples | `source/tests` | Source comments and local provenance records where supplied |
 

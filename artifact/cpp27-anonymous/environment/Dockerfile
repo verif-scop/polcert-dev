@@ -7,7 +7,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        autoconf automake bison build-essential ca-certificates flex git \
        libclang-10-dev libeigen3-dev libglpk-dev libgmp-dev \
-       libtool-bin llvm-10-dev m4 patch pkg-config python3 texinfo unzip wget \
+       libtool-bin llvm-10-dev m4 patch pkg-config python3 texinfo unzip wget xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 RUN update-alternatives --install /usr/bin/FileCheck FileCheck /usr/bin/FileCheck-10 100 \
@@ -33,7 +33,10 @@ RUN opam init -y --disable-sandboxing --bare \
 FROM pluto-base AS pluto-fixed-builder
 
 ARG PLUTO_BUILD_JOBS
-COPY third_party/pluto/fixed /pluto
+COPY third_party/pluto/fixed.tar.xz /tmp/pluto-fixed.tar.xz
+RUN mkdir -p /pluto \
+    && tar -xJf /tmp/pluto-fixed.tar.xz -C /pluto \
+    && rm /tmp/pluto-fixed.tar.xz
 WORKDIR /pluto
 RUN git init -q \
     && git config user.name "Anonymous Artifact" \
@@ -52,7 +55,10 @@ RUN git init -q \
 FROM pluto-base AS pluto-historical-builder
 
 ARG PLUTO_BUILD_JOBS
-COPY third_party/pluto/historical /opt/polcert/pluto-historical
+COPY third_party/pluto/historical.tar.xz /tmp/pluto-historical.tar.xz
+RUN mkdir -p /opt/polcert/pluto-historical \
+    && tar -xJf /tmp/pluto-historical.tar.xz -C /opt/polcert/pluto-historical \
+    && rm /tmp/pluto-historical.tar.xz
 WORKDIR /opt/polcert/pluto-historical
 RUN git init -q \
     && git config user.name "Anonymous Artifact" \

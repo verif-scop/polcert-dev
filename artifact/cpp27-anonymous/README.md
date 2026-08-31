@@ -25,7 +25,7 @@ python3 -m http.server 8000 --bind 127.0.0.1
 Then open <http://127.0.0.1:8000/docs/index.html>.
 
 For the complete test inventory, open
-[`evidence/proof-and-test-results/test-catalog.html`](evidence/proof-and-test-results/test-catalog.html).
+[`evidence/results/test-catalog.html`](evidence/results/test-catalog.html).
 
 ## Contents
 
@@ -34,10 +34,10 @@ For the complete test inventory, open
 | `docs/index.html` | Offline guide to the compiler, proof, and evidence. |
 | `docs/proof/` | Generated Rocq pages for the main proof modules. |
 | `source/` | The validated source and proof snapshot. |
-| `third_party/pluto/` | Source snapshots used for ordinary tests and historical bug witnesses. |
+| `third_party/pluto/` | Pluto source archives used for ordinary tests and invalid-proposal cases. |
 | `environment/Dockerfile` | Rebuilds Pluto, the proofs, and the extracted compiler. |
 | `evidence/README.md` | Guide to the recorded proof and test results. |
-| `evidence/proof-and-test-results/` | Test catalog, proof-closure inventory, commands, and raw output. |
+| `evidence/results/` | Test catalog, proof-closure inventory, commands, and raw output. |
 | `evidence/optimized-loop-examples/` | Before-and-after loop outputs, labeled by transformation. |
 | `evidence/execution-comparisons/` | Checks that original and optimized programs return the same result. |
 | `evidence/rejected-optimizer-outputs/` | Unsafe or non-certifiable optimizer proposals, their causes, and PolCert's response. |

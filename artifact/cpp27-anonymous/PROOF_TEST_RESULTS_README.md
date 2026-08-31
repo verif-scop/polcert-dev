@@ -6,6 +6,6 @@
 - `tested-configurations.md`: command-line options and their tests.
 - `run-results.json`: local commands, status, duration, and output path.
 
-Raw output and generated intermediates are under `raw-output/`.
-`raw-output/remote-ci-test-results.stdout.txt` records the complete proof and
+Raw output and generated intermediates are under `raw/`.
+`raw/remote-ci-test-results.stdout.txt` records the complete proof and
 extraction build phases.

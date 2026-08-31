@@ -62,7 +62,8 @@ PLUTO_RECURSIVE_COMPONENTS = (
     "piplib",
     "polylib",
 )
-ARCHIVE_ROOT = "polcert-cpp27-supplement"
+ARCHIVE_ROOT = "polcert"
+MAX_ARCHIVE_PATH_CHARS = 160
 ZIP_TIMESTAMP = (2026, 8, 29, 0, 0, 0)
 
 REPLACEMENTS = {
@@ -211,39 +212,43 @@ def prepare_pluto_sources(destination: Path) -> dict[str, object]:
             sha256(archive_path) == expected_sha256,
             f"Pluto source archive hash mismatch: {filename}",
         )
-        snapshot = destination / role
-        snapshot.mkdir()
-        extract_source(archive_path, snapshot)
-        require((snapshot / "LICENSE").is_file(), f"missing Pluto license: {role}")
-        require((snapshot / "autogen.sh").is_file(), f"missing Pluto build script: {role}")
-        missing_components = [
-            component
-            for component in PLUTO_RECURSIVE_COMPONENTS
-            if not (snapshot / component).is_dir()
-            or not any(path.is_file() for path in (snapshot / component).rglob("*"))
-        ]
-        require(
-            not missing_components,
-            f"incomplete recursive Pluto source snapshot {role}: "
-            + ", ".join(missing_components),
-        )
-        require(
-            not any(path.name == ".git" for path in snapshot.rglob("*")),
-            f"Pluto snapshot retains Git metadata: {role}",
-        )
-        elf_files = []
-        for path in snapshot.rglob("*"):
-            if path.is_file():
-                with path.open("rb") as handle:
-                    if handle.read(4) == b"\x7fELF":
-                        elf_files.append(path.relative_to(snapshot).as_posix())
-        require(
-            not elf_files,
-            f"Pluto snapshot contains prebuilt ELF files {role}: "
-            + ", ".join(elf_files),
-        )
-        hashes = all_file_hashes(snapshot)
+        with tempfile.TemporaryDirectory(prefix=f"polcert-pluto-{role}-") as temporary:
+            snapshot = Path(temporary)
+            extract_source(archive_path, snapshot)
+            require((snapshot / "LICENSE").is_file(), f"missing Pluto license: {role}")
+            require((snapshot / "autogen.sh").is_file(), f"missing Pluto build script: {role}")
+            missing_components = [
+                component
+                for component in PLUTO_RECURSIVE_COMPONENTS
+                if not (snapshot / component).is_dir()
+                or not any(path.is_file() for path in (snapshot / component).rglob("*"))
+            ]
+            require(
+                not missing_components,
+                f"incomplete recursive Pluto source snapshot {role}: "
+                + ", ".join(missing_components),
+            )
+            require(
+                not any(path.name == ".git" for path in snapshot.rglob("*")),
+                f"Pluto snapshot retains Git metadata: {role}",
+            )
+            elf_files = []
+            for path in snapshot.rglob("*"):
+                if path.is_file():
+                    with path.open("rb") as handle:
+                        if handle.read(4) == b"\x7fELF":
+                            elf_files.append(path.relative_to(snapshot).as_posix())
+            require(
+                not elf_files,
+                f"Pluto snapshot contains prebuilt ELF files {role}: "
+                + ", ".join(elf_files),
+            )
+            check_denylist(snapshot)
+            hashes = all_file_hashes(snapshot)
+        packaged_name = f"{role}.tar.xz"
+        shutil.copy2(archive_path, destination / packaged_name)
         snapshots[role] = {
+            "archive": f"third_party/pluto/{packaged_name}",
             "files": len(hashes),
             "tree_sha256": tree_hash(hashes),
             "packaging_archive_sha256": expected_sha256,
@@ -472,11 +477,11 @@ def normalize_artifact_results(path: Path) -> None:
         for key in ("coq_version", "ocaml_version")
         if key in environment
     }
-    record["output_root"] = "proof-and-test-results"
+    record["output_root"] = "results"
     for result in record.get("results", []):
         for field in ("stdout_path", "stderr_path"):
             if result.get(field):
-                result[field] = f"raw-output/{Path(result[field]).name}"
+                result[field] = f"raw/{Path(result[field]).name}"
     path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
@@ -987,7 +992,7 @@ def copy_remote_ci_test_results(release_dir: Path, raw_output: Path) -> list[dic
             "name": name,
             "elapsed": elapsed[name],
             "status": "PASS",
-            "evidence": "raw-output/remote-ci-test-results.stdout.txt",
+            "evidence": "raw/remote-ci-test-results.stdout.txt",
         }
         for name in starts
     ]
@@ -1203,7 +1208,7 @@ def second_level_rejection_records() -> list[dict]:
                 "coverage": "rejection-contract",
                 "observed_transformation": observed,
                 "evidence": [
-                    "raw-output/remote-ci-test-results.stdout.txt",
+                    "raw/remote-ci-test-results.stdout.txt",
                     "../../source/tools/second_level_tiling/check_rejected_tiling_route.py",
                 ],
                 "source": ["remote CI"],
@@ -1410,7 +1415,7 @@ def unit_test_records() -> list[dict]:
                     "actual": "PASS",
                     "coverage": "unit",
                     "evidence": [
-                        "raw-output/remote-ci-test-results.stdout.txt",
+                        "raw/remote-ci-test-results.stdout.txt",
                         f"../../source/{source_path}",
                     ],
                     "source": ["remote CI"],
@@ -1434,8 +1439,8 @@ def unit_test_records() -> list[dict]:
                 "actual": "PASS",
                 "coverage": "unit",
                 "evidence": [
-                    "raw-output/extracted-zero-fallback-gate.stdout.txt",
-                    "raw-output/remote-ci-test-results.stdout.txt",
+                    "raw/extracted-zero-fallback-gate.stdout.txt",
+                    "raw/remote-ci-test-results.stdout.txt",
                     "../../source/tests/extracted-zero-fallback/test.ml",
                 ],
                 "source": ["local artifact run", "remote CI"],
@@ -1613,7 +1618,7 @@ def prepare_test_catalog(
     witness_summary: dict,
 ) -> dict:
     """Generate a reviewer-facing inventory of every recorded test case."""
-    raw_output = destination / "raw-output"
+    raw_output = destination / "raw"
     transformation_by_case = {
         item["case"]: item["observed_transformation"]
         for item in transformation_summary["cases"]
@@ -1682,7 +1687,7 @@ def prepare_test_catalog(
                         "actual": fields.get("actual", "PASS"),
                         "coverage": fields.get("coverage", "recorded result"),
                         "source": ["local artifact run"],
-                        "evidence": [f"raw-output/{filename}"],
+                        "evidence": [f"raw/{filename}"],
                     }
                 )
                 continue
@@ -1697,7 +1702,7 @@ def prepare_test_catalog(
                         "actual": "accepted" if positive else "rejected",
                         "coverage": "effect" if positive else "rejection-contract",
                         "source": ["local artifact run"],
-                        "evidence": [f"raw-output/{filename}"],
+                        "evidence": [f"raw/{filename}"],
                     }
                 )
 
@@ -1716,7 +1721,7 @@ def prepare_test_catalog(
                     "actual": fields.get("actual", "PASS"),
                     "coverage": fields.get("coverage", "recorded result"),
                     "source": ["remote CI"],
-                    "evidence": ["raw-output/remote-ci-test-results.stdout.txt"],
+                    "evidence": ["raw/remote-ci-test-results.stdout.txt"],
                 }
             )
             continue
@@ -1731,7 +1736,7 @@ def prepare_test_catalog(
                     "actual": fields.get("actual", "PASS"),
                     "coverage": "refinement",
                     "source": ["remote CI"],
-                    "evidence": ["raw-output/remote-ci-test-results.stdout.txt"],
+                    "evidence": ["raw/remote-ci-test-results.stdout.txt"],
                 }
             )
     for suite, case, expected, actual in (
@@ -1751,7 +1756,7 @@ def prepare_test_catalog(
                 "actual": actual,
                 "coverage": "smoke",
                 "source": ["remote CI"],
-                "evidence": ["raw-output/remote-ci-test-results.stdout.txt"],
+                "evidence": ["raw/remote-ci-test-results.stdout.txt"],
             }
         )
 
@@ -1760,7 +1765,7 @@ def prepare_test_catalog(
     for record in second_level_rejection_records():
         add(record)
 
-    unroll = load_json(raw_output / "unrolljam-effect-corpus/summary.json")
+    unroll = load_json(raw_output / "unrolljam/summary.json")
     for case in unroll["cases"]:
         effect = bool(case["polopt_checked_effect"])
         add(
@@ -1772,7 +1777,7 @@ def prepare_test_catalog(
                 "coverage": "effect",
                 "source": ["local artifact run"],
                 "evidence": [
-                    "raw-output/unrolljam-effect-corpus/summary.json",
+                    "raw/unrolljam/summary.json",
                     f"../../source/{case['fixture']}",
                 ],
             }
@@ -1788,7 +1793,7 @@ def prepare_test_catalog(
             "coverage": "effect",
             "observed_transformation": "Block unrolling and validated loop jamming",
             "source": ["local artifact run"],
-            "evidence": ["raw-output/codegen-gap-exploration.stdout.txt"],
+            "evidence": ["raw/codegen-gap-exploration.stdout.txt"],
         }
     )
 
@@ -1803,7 +1808,7 @@ def prepare_test_catalog(
             "coverage": "effect",
             "observed_transformation": "Two-level tiling",
             "source": ["local artifact run"],
-            "evidence": ["raw-output/identity-composition-exploration.stdout.txt"],
+            "evidence": ["raw/identity-composition-exploration.stdout.txt"],
         }
     )
     add(
@@ -1814,10 +1819,10 @@ def prepare_test_catalog(
             "actual": "rejected; no optimized loop emitted",
             "coverage": "rejection-contract",
             "source": ["local artifact run"],
-            "evidence": ["raw-output/identity-composition-exploration.stdout.txt"],
+            "evidence": ["raw/identity-composition-exploration.stdout.txt"],
         }
     )
-    diamond_root = raw_output / "identity-compositions/identity-diamond-search"
+    diamond_root = raw_output / "identity/diamond"
     fixture_names = sorted(
         path.stem
         for path in (source / "tests/polopt-regression/inputs").glob("*.loop")
@@ -1842,7 +1847,7 @@ def prepare_test_catalog(
                 "coverage": "effect search",
                 "source": ["local artifact run"],
                 "evidence": [
-                    "raw-output/identity-composition-exploration.stdout.txt",
+                    "raw/identity-composition-exploration.stdout.txt",
                     f"../../source/tests/polopt-regression/inputs/{name}.loop",
                 ],
             }
@@ -1857,7 +1862,7 @@ def prepare_test_catalog(
                 "status": "SUITE RESULT",
                 "source": ["local artifact run"],
                 "evidence": [
-                    "raw-output/identity-composition-exploration.stdout.txt",
+                    "raw/identity-composition-exploration.stdout.txt",
                     f"../../source/tests/polopt-regression/inputs/{name}.loop",
                 ],
             }
@@ -1888,7 +1893,7 @@ def prepare_test_catalog(
                 "source": ["local release validation", "remote CI"],
                 "evidence": [
                     "../rejected-optimizer-outputs/index.html",
-                    "raw-output/remote-ci-test-results.stdout.txt",
+                    "raw/remote-ci-test-results.stdout.txt",
                 ],
                 "occurrences": 2,
             }
@@ -1966,7 +1971,7 @@ def prepare_test_catalog(
                 "command": " ".join(result["command"]),
                 "elapsed_seconds": result["elapsed_seconds"],
                 "status": "PASS" if result["ok"] else "FAIL",
-                "evidence": f"raw-output/{Path(result['stdout_path']).name}",
+                "evidence": f"raw/{Path(result['stdout_path']).name}",
             }
         )
 
@@ -2250,7 +2255,7 @@ def prepare_evidence(
     proof_report: dict,
     bug_report_draft: str,
 ) -> dict:
-    details = destination / "proof-and-test-results"
+    details = destination / "results"
     shutil.copytree(release_dir / "polcert-artifact-check", details)
     (details / "artifact-results.json").rename(details / "run-results.json")
     (details / "capability-matrix.md").rename(details / "tested-configurations.md")
@@ -2299,7 +2304,7 @@ def prepare_evidence(
         + after,
         encoding="utf-8",
     )
-    raw_output = details / "raw-output"
+    raw_output = details / "raw"
     raw_output.mkdir()
     summaries = {
         "proof-report.json",
@@ -2312,6 +2317,15 @@ def prepare_evidence(
     for path in list(details.iterdir()):
         if path.name not in summaries and path != raw_output:
             shutil.move(path, raw_output / path.name)
+    identity = raw_output / "identity-compositions"
+    if identity.is_dir():
+        identity.rename(raw_output / "identity")
+        diamond = raw_output / "identity/identity-diamond-search"
+        if diamond.is_dir():
+            diamond.rename(raw_output / "identity/diamond")
+    unrolljam = raw_output / "unrolljam-effect-corpus"
+    if unrolljam.is_dir():
+        unrolljam.rename(raw_output / "unrolljam")
     shutil.copy2(PACKAGE_DIR / "PROOF_TEST_RESULTS_README.md", details / "README.md")
     normalize_artifact_results(details / "run-results.json")
     remove_elf_outputs(details)
@@ -2548,6 +2562,33 @@ def check_denylist(root: Path) -> None:
     require(not errors, "submission-coordinate scan failed:\n" + "\n".join(errors[:60]))
 
 
+def check_portable_archive_paths(root: Path) -> int:
+    invalid = '<>:"/\\|?*'
+    reserved = {
+        "CON", "PRN", "AUX", "NUL",
+        *(f"COM{index}" for index in range(1, 10)),
+        *(f"LPT{index}" for index in range(1, 10)),
+    }
+    longest = 0
+    errors = []
+    for path in sorted(root.rglob("*")):
+        if not (path.is_file() or path.is_symlink()):
+            continue
+        relative = path.relative_to(root).as_posix()
+        archive_path = f"{ARCHIVE_ROOT}/{relative}"
+        longest = max(longest, len(archive_path))
+        if len(archive_path) > MAX_ARCHIVE_PATH_CHARS:
+            errors.append(f"path has {len(archive_path)} characters: {archive_path}")
+        for component in PurePosixPath(archive_path).parts:
+            stem = component.split(".", 1)[0].upper()
+            if any(character in invalid for character in component):
+                errors.append(f"Windows-invalid character in path: {archive_path}")
+            if component.rstrip(" .") != component or stem in reserved:
+                errors.append(f"Windows-invalid path component: {archive_path}")
+    require(not errors, "non-portable archive paths:\n" + "\n".join(errors[:40]))
+    return longest
+
+
 def zip_info(path: Path, relative: str) -> zipfile.ZipInfo:
     info = zipfile.ZipInfo(f"{ARCHIVE_ROOT}/{relative}", ZIP_TIMESTAMP)
     info.create_system = 3
@@ -2653,7 +2694,7 @@ def main() -> int:
         shutil.copytree(PACKAGE_DIR / "environment", environment)
         shutil.copy2(PACKAGE_DIR / "DOCKERIGNORE", package / ".dockerignore")
         manifest = {
-            "snapshot": "cpp-supplement-r2",
+            "snapshot": "cpp-supplement-r3",
             "formal_source": {
                 "files": len(formal_after),
                 "packaging_check": "byte-identical-to-validated-snapshot",
@@ -2672,6 +2713,7 @@ def main() -> int:
         json_count = check_json(package)
         html_count = check_html_links(package)
         check_denylist(package)
+        longest_archive_path = check_portable_archive_paths(package)
         build_zip(package, output)
 
     print(f"wrote: {output}")
@@ -2680,6 +2722,7 @@ def main() -> int:
     print(f"validated JSON files: {json_count}")
     print(f"validated HTML files: {html_count}")
     print(f"browser-readable linked text files: {browser_text_views}")
+    print(f"longest archive path: {longest_archive_path} characters")
     return 0
 
 
