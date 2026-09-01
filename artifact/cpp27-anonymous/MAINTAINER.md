@@ -22,6 +22,27 @@ docker cp \
 docker rm polcert-proof-doc
 ```
 
+Regenerate the reviewer-facing program comparisons from the
+frozen Release image. The collector checks the exact `polopt`, fixed Pluto, and
+historical Pluto binary hashes. It stores accepted outputs and rejected
+candidates under the release result tree:
+
+```sh
+docker run --rm --entrypoint /bin/sh \
+  -v "$PWD:/workspace" -w /polcert \
+  -e POLCERT_PLUTO=/pluto/tool/pluto \
+  polcert-artifact:state-eq-polyhedral-verification-complete-2026-08-29-v10 \
+  -lc 'python3 /workspace/artifact/cpp27-anonymous/bin/collect_program_comparisons.py \
+    --source /polcert \
+    --output /workspace/output/releases/state-eq-polyhedral-verification-complete-2026-08-29-v10/final/polcert-artifact-check/program-comparisons \
+    --force'
+```
+
+`collect_typed_program_views.py` runs against a configured build of the same
+source commit and writes `typed-program-comparisons/`. Running the three
+`csample` tests produces the `orig.cpol` and `opt.cpol` files copied under
+`typed-refinement-comparisons/`.
+
 Then build the single upload:
 
 ```sh
@@ -46,6 +67,7 @@ The packager checks:
 
 - exact frozen source and 30/30 artifact acceptance;
 - byte identity of every formal source file;
+- all 1003 case pages, including the exact accepted/rejected/result view counts;
 - every JSON file;
 - every relative HTML target and fragment;
 - ZIP CRC integrity and deterministic archive construction;

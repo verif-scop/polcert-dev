@@ -264,6 +264,42 @@ table {
 .case-side-by-side dd { margin: 3px 0 12px; }
 .case-links { margin-top: 24px; }
 
+.comparison-note,
+.result-summary,
+.comparison-result,
+.single-program {
+  max-width: 760px;
+}
+
+.result-summary,
+.comparison-result,
+.single-program {
+  margin-top: 24px;
+  padding-top: 2px;
+  border-top: 3px solid var(--line);
+}
+
+.result-summary dt,
+.comparison-result dt {
+  margin-top: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.result-summary dd,
+.comparison-result dd { margin: 3px 0 12px; }
+
+.supporting-files {
+  max-width: 760px;
+  margin-top: 18px;
+}
+
+.supporting-files summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 700;
+}
+
 .catalog-index {
   max-width: 760px;
   margin: 24px 0 30px;
@@ -402,8 +438,10 @@ th { background: var(--soft); }
 
 .proof-step code,
 .component code,
+h1 code,
 td code {
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .component {

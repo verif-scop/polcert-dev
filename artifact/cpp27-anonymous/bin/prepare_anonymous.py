@@ -1716,6 +1716,367 @@ def catalog_location(suite: str) -> tuple[str, str]:
     raise ValueError(f"unclassified test suite: {suite}")
 
 
+def prepare_program_comparisons(destination: Path, source: Path) -> dict:
+    """Materialize exact program pairs that belong to catalog configurations."""
+    raw = destination / "raw"
+    output = destination / "program-comparisons"
+    output.mkdir()
+    pairs: dict[tuple[str, str], dict] = {}
+    producer: dict[str, str] = {}
+
+    def add_text(
+        suite: str,
+        case: str,
+        before: str,
+        after: str,
+        *,
+        left_label: str = "Before Program",
+        right_label: str = "Accepted Program",
+        extension: str = "loop",
+        kind: str = "accepted-program-pair",
+        note: str | None = None,
+    ) -> None:
+        key = (suite, case)
+        require(key not in pairs, f"duplicate program comparison: {suite}/{case}")
+        digest = hashlib.sha256(f"{suite}\0{case}".encode()).hexdigest()[:14]
+        pair_dir = output / digest
+        pair_dir.mkdir()
+        before_path = pair_dir / f"before.{extension}"
+        after_path = pair_dir / f"after.{extension}"
+        before_path.write_text(before.rstrip() + "\n", encoding="utf-8")
+        after_path.write_text(after.rstrip() + "\n", encoding="utf-8")
+        pair = {
+            "suite": suite,
+            "case": case,
+            "before": before_path.relative_to(destination).as_posix(),
+            "after": after_path.relative_to(destination).as_posix(),
+            "left_label": left_label,
+            "right_label": right_label,
+            "kind": kind,
+        }
+        if note:
+            pair["note"] = note
+        pairs[key] = pair
+
+    def add_files(
+        suite: str,
+        case: str,
+        before: Path,
+        after: Path,
+        **kwargs: object,
+    ) -> None:
+        require(before.is_file(), f"missing before program: {before}")
+        require(after.is_file(), f"missing after program: {after}")
+        add_text(
+            suite,
+            case,
+            before.read_text(encoding="utf-8"),
+            after.read_text(encoding="utf-8"),
+            **kwargs,
+        )
+
+    def split_iss_bridge(path: Path) -> tuple[str, str]:
+        lines = path.read_text(encoding="utf-8").splitlines()
+        before_start = next(
+            index for index, line in enumerate(lines) if line.startswith("BEFORE_STMTS ")
+        )
+        after_start = next(
+            index for index, line in enumerate(lines) if line.startswith("AFTER_STMTS ")
+        )
+        header = lines[:before_start]
+        before = "\n".join([*header, *lines[before_start:after_start]]) + "\n"
+        after = "\n".join([*header, *lines[after_start:]]) + "\n"
+        return before, after
+
+    collected = raw / "program-comparisons/index.json"
+    require(
+        collected.is_file(),
+        "missing exact program comparisons; run collect_program_comparisons.py "
+        "with the frozen Release image before packaging",
+    )
+    collected_root = collected.parent
+    collected_data = load_json(collected)
+    producer = collected_data.get("producer", {})
+    require(
+        collected_data.get("producer", {}).get("polopt_sha256")
+        == "030245cf9741692a0dc29b000aef82e50620396f756a0ea8af0163aa05f49eaf",
+        "program comparisons were not collected by the frozen Release binary",
+    )
+    require(
+        collected_data.get("producer", {}).get("fixed_pluto_sha256")
+        == "60e6c714f9b804257aae52844b93b203a6ee4d8336bbb70235f000669005d980",
+        "program comparisons were not collected with the frozen fixed Pluto",
+    )
+    require(
+        collected_data.get("producer", {}).get("historical_polycc_sha256")
+        == "9b42e43485e3ebaf81fa96add84235f6f70745d8bd1093a2acb5f1a14e31991d",
+        "rejection comparisons were not collected with the frozen historical Pluto",
+    )
+    for pair in collected_data["pairs"]:
+        add_files(
+            pair["suite"],
+            pair["case"],
+            collected_root / pair["before"],
+            collected_root / pair["after"],
+            left_label=pair["left_label"],
+            right_label=pair["right_label"],
+            extension=Path(pair["before"]).suffix.lstrip(".") or "txt",
+            kind=pair.get("kind", "accepted-program-pair"),
+            note=pair.get("note"),
+        )
+    shutil.rmtree(collected_root)
+
+    typed = raw / "typed-program-comparisons"
+    if typed.is_dir():
+        for case_dir in sorted(path for path in typed.iterdir() if path.is_dir()):
+            add_files(
+                "typed C instruction pipelines",
+                case_dir.name,
+                case_dir / "before.loop",
+                case_dir / "after.loop",
+                left_label="Typed Input Program",
+                right_label="Accepted Verified Program",
+            )
+        shutil.rmtree(typed)
+
+    refinement = raw / "typed-refinement-comparisons"
+    if refinement.is_dir():
+        refinement_suites = {
+            "csample1": "typed C refinement: matrix multiplication",
+            "csample2": "typed C refinement: covariance",
+            "csample3": "typed C refinement: GEMVER",
+        }
+        for directory, suite in refinement_suites.items():
+            before = refinement / directory / "orig.cpol"
+            after = refinement / directory / "opt.cpol"
+            for case in ("orig-to-opt", "opt-to-orig"):
+                left, right = (before, after) if case == "orig-to-opt" else (after, before)
+                add_files(
+                    suite,
+                    case,
+                    left,
+                    right,
+                    extension="cpol",
+                    left_label=(
+                        "Original Typed Polyhedral Program"
+                        if case == "orig-to-opt"
+                        else "Optimizer-Proposed Typed Polyhedral Program"
+                    ),
+                    right_label=(
+                        "Optimizer-Proposed Typed Polyhedral Program"
+                        if case == "orig-to-opt"
+                        else "Original Typed Polyhedral Program"
+                    ),
+                    note=(
+                        "The test checks refinement in both directions between "
+                        "these two typed polyhedral programs."
+                    ),
+                )
+        shutil.rmtree(refinement)
+
+    unroll_root = raw / "unrolljam"
+    unroll_summary = unroll_root / "summary.json"
+    if unroll_summary.is_file():
+        for item in load_json(unroll_summary)["cases"]:
+            fixture = Path(item["fixture"])
+            case = fixture.stem
+            case_dir = unroll_root / item["case_dir"] if "case_dir" in item else None
+            if case_dir is None or not case_dir.is_dir():
+                encoded = fixture.as_posix().replace("/", "__")
+                case_dir = unroll_root / encoded
+            stdout = (case_dir / "polopt.stdout.txt").read_text(encoding="utf-8")
+            marker = "== Optimized Loop =="
+            require(marker in stdout, f"missing optimized Loop for unroll/jam {case}")
+            add_text(
+                "unroll-and-jam exploration",
+                case,
+                (source / fixture).read_text(encoding="utf-8"),
+                stdout.split(marker, 1)[1].lstrip(),
+            )
+
+    diamond_root = raw / "diamond-suite"
+    diamond_summary = diamond_root / "summary.json"
+    if diamond_summary.is_file():
+        for item in load_json(diamond_summary)["results"]:
+            if item["status"] not in {"diamond", "no_effect"}:
+                continue
+            case = item["case"]
+            stem = Path(case).stem
+            run = diamond_root / stem / "diamond"
+            add_files(
+                "diamond tiling",
+                case,
+                run / case,
+                run / f"{stem}.pluto.c",
+                extension="c",
+                left_label="Input C Program",
+                right_label="Diamond-Tiled C Program",
+            )
+
+    identity_diamond = raw / "identity/diamond"
+    if identity_diamond.is_dir():
+        for case_dir in sorted(path for path in identity_diamond.iterdir() if path.is_dir()):
+            case = case_dir.name
+            ordinary = case_dir / f"{case}.identity.tile.scop.pluto.c"
+            diamond = case_dir / f"{case}.identity.diamond.scop.pluto.c"
+            if ordinary.is_file() and diamond.is_file():
+                add_files(
+                    "identity-diamond-sensitive-search",
+                    case,
+                    ordinary,
+                    diamond,
+                    extension="c",
+                    left_label="Identity-Tiled C Program",
+                    right_label="Identity Diamond-Tiled C Program",
+                    note=(
+                        "This search compares two generated programs; it is not a "
+                        "source-to-target compilation count."
+                    ),
+                )
+
+    gap = raw / "codegen-gaps"
+    if gap.is_dir():
+        add_files(
+            "code-generation gap exploration",
+            "matmul-unroll-and-jam",
+            gap / "nounrolljam/matmul.scop.pluto.c",
+            gap / "unrolljam/matmul.scop.pluto.c",
+            extension="c",
+            left_label="Pluto C without Unroll-and-Jam",
+            right_label="Pluto C with Unroll-and-Jam",
+        )
+
+    identity_summary = raw / "identity-composition-exploration.stdout.txt"
+    if identity_summary.is_file():
+        identity = load_json(identity_summary)
+        second = identity["results"][0]
+        stdout = second["polopt_identity_second_level"]["stdout"]
+        marker = "== Optimized Loop =="
+        require(marker in stdout, "missing identity second-level optimized Loop")
+        add_text(
+            "identity composition",
+            f"{second['case']} [identity second-level]",
+            (source / "tests/polopt-regression/inputs/fusion7.loop").read_text(
+                encoding="utf-8"
+            ),
+            stdout.split(marker, 1)[1].lstrip(),
+        )
+
+    iss_pairs = {
+        "reverse_before.txt-to-reverse_after.txt": (
+            "reverse_before.txt",
+            "reverse_after.txt",
+        ),
+        "multi_stmt_periodic_before.txt-to-multi_stmt_periodic_after.txt": (
+            "multi_stmt_periodic_before.txt",
+            "multi_stmt_periodic_after.txt",
+        ),
+        "jacobi_2d_periodic_before.txt-to-jacobi_2d_periodic_after.txt": (
+            "jacobi_2d_periodic_before.txt",
+            "jacobi_2d_periodic_after.txt",
+        ),
+        "heat_2dp_before.txt-to-heat_2dp_after.txt": (
+            "heat_2dp_before.txt",
+            "heat_2dp_after.txt",
+        ),
+    }
+    iss_root = source / "tests/iss-pluto-dumps"
+    for case, (before, after) in iss_pairs.items():
+        add_files(
+            "ISS validator",
+            case,
+            iss_root / before,
+            iss_root / after,
+            extension="txt",
+            left_label="Before ISS Proposal",
+            right_label="Accepted Split Proposal",
+        )
+
+    tiling_fixtures = source / "tools/tiling_routes/fixtures"
+    add_files(
+        "scalar-interleaved tiling",
+        "frozen-positive",
+        tiling_fixtures / "fusion5-scalar-interleaved.midtransform.scop",
+        tiling_fixtures / "fusion5-scalar-interleaved.posttile.scop",
+        extension="scop",
+        left_label="Before Tiling SCoP",
+        right_label="Accepted Tiled SCoP",
+    )
+    add_files(
+        "direct tiling-validator routes",
+        "frozen-diamond-phase-pair",
+        tiling_fixtures / "diamond-tile-example.midtransform.scop",
+        tiling_fixtures / "diamond-tile-example.posttile.scop",
+        extension="scop",
+        left_label="Before Tiling SCoP",
+        right_label="Accepted Tiled SCoP",
+    )
+    add_files(
+        "direct tiling-validator routes",
+        "frozen-nonpermutable-band",
+        tiling_fixtures / "nonpermutable-band.midtransform.scop",
+        tiling_fixtures / "nonpermutable-band.posttile.scop",
+        extension="scop",
+        left_label="Input Polyhedral Program",
+        right_label="Rejected Non-Permutable Tiling Candidate",
+        kind="rejected-candidate-pair",
+    )
+    second_fixtures = source / "tools/second_level_tiling/fixtures"
+    add_files(
+        "two-level tiling route checks",
+        "trailing-zero-normalized-standalone-formal-validation",
+        second_fixtures / "fusion7-second-level-zero-normalized.mid.openscop",
+        second_fixtures / "fusion7-second-level-zero-normalized.post.openscop",
+        extension="scop",
+        left_label="Before Two-Level Tiling SCoP",
+        right_label="Accepted Two-Level Tiled SCoP",
+    )
+
+    iss_root = source / "tests/iss-pluto-dumps"
+    for case, filename in (
+        ("pluto-three-cut-four-piece-mismatch", "multicut_native_mismatch.bridge"),
+        ("two-cut-missing-piece", "multicut_missing_piece.bridge"),
+    ):
+        before, after = split_iss_bridge(iss_root / filename)
+        add_text(
+            "ISS multi-cut validation",
+            case,
+            before,
+            after,
+            left_label="Original Statement Domain",
+            right_label="Rejected Split-Domain Candidate",
+            extension="bridge",
+            kind="rejected-candidate-pair",
+        )
+
+    identity_wavefront = raw / "identity/diamond/wavefront"
+    add_files(
+        "identity composition",
+        "wavefront [identity diamond]",
+        identity_wavefront
+        / "wavefront.identity.diamond.scop.midtransform.scop",
+        identity_wavefront
+        / "wavefront.identity.diamond.scop.posttile.scop",
+        extension="scop",
+        left_label="Before Diamond Tiling SCoP",
+        right_label="Rejected Diamond-Tiling Candidate",
+        kind="rejected-candidate-pair",
+        note=(
+            "The tiling validator rejects this identity-plus-diamond proposal; "
+            "the pipeline emits no target Loop program."
+        ),
+    )
+
+    manifest = {
+        "producer": producer,
+        "pairs": sorted(pairs.values(), key=lambda item: (item["suite"], item["case"])),
+    }
+    (output / "index.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    return pairs
+
+
 def prepare_test_catalog(
     destination: Path,
     source: Path,
@@ -1724,6 +2085,7 @@ def prepare_test_catalog(
     transformation_summary: dict,
     executable_summary: dict,
     witness_summary: dict,
+    program_pairs: dict[tuple[str, str], dict],
 ) -> dict:
     """Generate a reviewer-facing inventory of every recorded test case."""
     raw_output = destination / "raw"
@@ -1772,8 +2134,9 @@ def prepare_test_catalog(
             example_case = f"e2e-{raw_case.replace('_', '-')}"
             example = f"../optimized-loop-examples/{example_case}"
             program_evidence = [f"{example}/comparison.html"]
-        elif raw_suite == "typed-c-pipeline":
-            program_evidence = ["../../docs/index.html#typed-loop-examples"]
+        program_pair = program_pairs.get((suite, case))
+        if program_pair:
+            program_evidence = [program_pair["before"], program_pair["after"]]
         key = (suite, case, expected, actual)
         if key in by_key:
             current = by_key[key]
@@ -1787,6 +2150,12 @@ def prepare_test_catalog(
             current["source"] = list(
                 dict.fromkeys([*current["source"], *record.get("source", [])])
             )
+            if program_pair:
+                require(
+                    current.get("program_pair", program_pair) == program_pair,
+                    f"conflicting program pairs for {suite}/{case}",
+                )
+                current["program_pair"] = program_pair
             return
         current = {
             "category": category,
@@ -1803,6 +2172,21 @@ def prepare_test_catalog(
             "program_evidence": program_evidence,
             "evidence": record.get("evidence", []),
         }
+        if program_pair:
+            current["program_pair"] = program_pair
+        if suite == "optimizer-output rejection" and case == "matmul-parallel-hint":
+            current["input_program"] = {
+                "path": "../../source/tests/polopt-generated/inputs/matmul.loop",
+                "label": "Input Loop Program",
+            }
+            current["program_evidence"] = list(
+                dict.fromkeys(
+                    [
+                        "../../source/tests/polopt-generated/inputs/matmul.loop",
+                        *current["program_evidence"],
+                    ]
+                )
+            )
         by_key[key] = current
         records.append(current)
 
@@ -2195,14 +2579,43 @@ def prepare_test_catalog(
     cases_dir = destination / "cases"
     cases_dir.mkdir()
     for index, record in enumerate(records):
+        pair = record.get("program_pair")
         before = resolve_program_file(record, "input.pretty.loop")
         after = resolve_program_file(record, "optimized.loop")
         exact_loop_pair = before is not None and after is not None
-        typed_shape = any(
-            item.endswith("docs/index.html#typed-loop-examples")
-            for item in record["program_evidence"]
-        )
-        if exact_loop_pair:
+        if pair:
+            before = destination / pair["before"]
+            after = destination / pair["after"]
+            require(before.is_file(), f"missing catalog before program: {before}")
+            require(after.is_file(), f"missing catalog after program: {after}")
+            record["view_kind"] = pair["kind"]
+            note = (
+                f'<p class="comparison-note">{escape(pair["note"])}</p>'
+                if pair.get("note")
+                else ""
+            )
+            comparison = f"""
+  <div class="loop-comparison">
+    <section>
+      <h2>{escape(pair["left_label"])}</h2>
+      <pre>{escape(before.read_text(encoding="utf-8"))}</pre>
+    </section>
+    <section>
+      <h2>{escape(pair["right_label"])}</h2>
+      <pre>{escape(after.read_text(encoding="utf-8"))}</pre>
+    </section>
+  </div>
+  {note}
+  <section class="comparison-result">
+    <h2>Validation Result</h2>
+    <dl>
+      <dt>Expected</dt><dd>{escape(record["expected"])}</dd>
+      <dt>Observed effect</dt><dd>{escape(record["observed_transformation"])}</dd>
+      <dt>Actual</dt><dd>{escape(record["actual"])}</dd>
+      <dt>Status</dt><dd>{escape(record["status"])}</dd>
+    </dl>
+  </section>"""
+        elif exact_loop_pair:
             record["view_kind"] = "loop-before-after"
             comparison = f"""
   <div class="loop-comparison">
@@ -2214,17 +2627,34 @@ def prepare_test_catalog(
       <h2>Accepted Output</h2>
       <pre>{escape(after.read_text(encoding="utf-8"))}</pre>
     </section>
-  </div>"""
+  </div>
+  <section class="comparison-result">
+    <h2>Validation Result</h2>
+    <dl>
+      <dt>Expected</dt><dd>{escape(record["expected"])}</dd>
+      <dt>Observed effect</dt><dd>{escape(record["observed_transformation"])}</dd>
+      <dt>Actual</dt><dd>{escape(record["actual"])}</dd>
+      <dt>Status</dt><dd>{escape(record["status"])}</dd>
+    </dl>
+  </section>"""
         else:
+            input_program = record.get("input_program")
             record["view_kind"] = (
-                "typed-input-and-shape" if typed_shape else "condition-and-result"
+                "input-no-target" if input_program else "result-summary"
             )
-            left_heading = (
-                "Typed Input and Requested Path" if typed_shape else "Tested Condition"
-            )
-            right_heading = (
-                "Accepted Structural Result" if typed_shape else "Recorded Result"
-            )
+            input_section = ""
+            if input_program:
+                input_path = (destination / input_program["path"]).resolve()
+                require(input_path.is_file(), f"missing catalog input program: {input_path}")
+                input_section = f"""
+  <section class="single-program">
+    <h2>{escape(input_program["label"])}</h2>
+    <pre>{escape(input_path.read_text(encoding="utf-8"))}</pre>
+  </section>
+  <p class="comparison-note">
+    Strict validation stops before code generation, so this case has no target
+    or rejected candidate program to display.
+  </p>"""
             expected_label = (
                 "Test"
                 if record["expected"] == "the declared unit-test condition"
@@ -2241,34 +2671,29 @@ def prepare_test_catalog(
                 else ""
             )
             comparison = f"""
-  <div class="case-side-by-side">
-    <section>
-      <h2>{left_heading}</h2>
-      <dl>
-        <dt>{expected_label}</dt><dd>{escape(expected_value)}</dd>
-        {coverage}
-      </dl>
-    </section>
-    <section>
-      <h2>{right_heading}</h2>
-      <dl>
-        <dt>Observed effect</dt><dd>{escape(record["observed_transformation"])}</dd>
-        <dt>Actual</dt><dd>{escape(record["actual"])}</dd>
-        <dt>Status</dt><dd>{escape(record["status"])}</dd>
-      </dl>
-    </section>
-  </div>"""
+  {input_section}
+  <section class="result-summary">
+    <h2>Result</h2>
+    <dl>
+      <dt>{expected_label}</dt><dd>{escape(expected_value)}</dd>
+      {coverage}
+      <dt>Observed effect</dt><dd>{escape(record["observed_transformation"])}</dd>
+      <dt>Actual</dt><dd>{escape(record["actual"])}</dd>
+      <dt>Status</dt><dd>{escape(record["status"])}</dd>
+    </dl>
+  </section>"""
 
         program_links = case_links(record["program_evidence"])
         supporting_links = case_links(record["evidence"])
         link_blocks = []
         if program_links:
             link_blocks.append(
-                f"<p><strong>Program material:</strong> {program_links}</p>"
+                f"<p><strong>Program files:</strong> {program_links}</p>"
             )
         if supporting_links:
             link_blocks.append(
-                f"<p><strong>Supporting record:</strong> {supporting_links}</p>"
+                "<details class=\"supporting-files\"><summary>Supporting files</summary>"
+                f"<p>{supporting_links}</p></details>"
             )
         case_path = cases_dir / f"{index:04d}.html"
         record["case_view"] = f"cases/{case_path.name}"
@@ -2295,19 +2720,37 @@ def prepare_test_catalog(
 """
         case_path.write_text(page, encoding="utf-8")
 
-    expected_view_counts = {
-        "condition-and-result": 863,
-        "loop-before-after": 134,
-        "typed-input-and-shape": 6,
-    }
     actual_view_counts: dict[str, int] = {}
     for record in records:
         view_kind = record["view_kind"]
         actual_view_counts[view_kind] = actual_view_counts.get(view_kind, 0) + 1
+    program_view_count = sum(
+        count
+        for kind, count in actual_view_counts.items()
+        if kind in {"accepted-program-pair", "loop-before-after"}
+    )
+    rejected_view_count = actual_view_counts.get("rejected-candidate-pair", 0)
+    result_view_count = (
+        actual_view_counts.get("result-summary", 0)
+        + actual_view_counts.get("input-no-target", 0)
+    )
     require(
-        actual_view_counts == expected_view_counts,
-        "test-catalog case-view mismatch:\n"
-        f"expected={expected_view_counts}\nactual={actual_view_counts}",
+        (program_view_count, rejected_view_count, result_view_count)
+        == (691, 117, 195),
+        "reviewer-view coverage mismatch: expected accepted/rejected/result "
+        f"691/117/195, got {program_view_count}/{rejected_view_count}/"
+        f"{result_view_count}",
+    )
+    attached_pair_keys = {
+        (record["suite"], record["case"])
+        for record in records
+        if "program_pair" in record
+    }
+    require(
+        attached_pair_keys == set(program_pairs),
+        "program comparison keys not consumed by the catalog: "
+        f"missing={sorted(set(program_pairs) - attached_pair_keys)}, "
+        f"unexpected={sorted(attached_pair_keys - set(program_pairs))}",
     )
     require(
         len(list(cases_dir.glob("*.html"))) == len(records),
@@ -2317,12 +2760,18 @@ def prepare_test_catalog(
     catalog = {
         "counts": {
             "listed_test_configurations": len(records),
+            "distinct_suite_cases": len(
+                {(record["suite"], record["case"]) for record in records}
+            ),
             "recorded_test_case_results": recorded_results,
             "local_artifact_commands": len(local_commands),
             "remote_ci_phases": len(remote_commands),
             "suites": len({item["suite"] for item in records}),
             "categories": len(hierarchy),
             "families": family_count,
+            "before_after_programs": program_view_count,
+            "input_rejected_candidates": rejected_view_count,
+            "result_summaries": result_view_count,
         },
         "hierarchy": hierarchy,
         "suite_notes": SUITE_NOTES,
@@ -2334,18 +2783,6 @@ def prepare_test_catalog(
         json.dumps(catalog, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-
-    def evidence_links(items: list[str]) -> str:
-        links = []
-        for item in sorted(
-            items,
-            key=lambda item: evidence_label(item).endswith("log"),
-        ):
-            links.append(
-                f'<a href="{escape(item, quote=True)}">'
-                f'{escape(evidence_label(item))}</a>'
-            )
-        return " &middot; ".join(links)
 
     command_rows = []
     for command in local_commands:
@@ -2386,13 +2823,20 @@ def prepare_test_catalog(
             )
         ).lower()
         status_class = "status-pass" if record["status"] == "PASS" else "status-note"
+        if record["view_kind"] in {"accepted-program-pair", "loop-before-after"}:
+            view_label = "before/after programs"
+        elif record["view_kind"] == "rejected-candidate-pair":
+            view_label = "input/rejected candidate"
+        elif record["view_kind"] == "input-no-target":
+            view_label = "input/no target"
+        else:
+            view_label = "result"
         if compact:
             return (
                 f'<tr data-search="{escape(search, quote=True)}">'
                 f"<td><code>{escape(record['case'])}</code></td>"
                 f'<td><a href="{escape(record["case_view"], quote=True)}">'
-                "side-by-side</a></td>"
-                f"<td>{evidence_links(record['evidence'])}</td>"
+                f"{view_label}</a></td>"
                 "</tr>"
             )
         return (
@@ -2403,8 +2847,7 @@ def prepare_test_catalog(
             f"<td>{escape(record['actual'])}</td>"
             f"<td class=\"{status_class}\">{escape(record['status'])}</td>"
             f'<td><a href="{escape(record["case_view"], quote=True)}">'
-            "side-by-side</a></td>"
-            f"<td>{evidence_links(record['evidence'])}</td>"
+            f"{view_label}</a></td>"
             "</tr>"
         )
 
@@ -2417,7 +2860,7 @@ def prepare_test_catalog(
         category_id = html_slug(category["name"])
         category_links.append(
             f'<li><a href="#{category_id}">{escape(category["name"])}</a>'
-            f'<span>{category["configurations"]} configurations</span></li>'
+            f'<span>{category["configurations"]} records</span></li>'
         )
         family_blocks = []
         for family in category["families"]:
@@ -2438,22 +2881,20 @@ def prepare_test_catalog(
                     table_class = "compact-table"
                     table_head = (
                         "<thead><tr><th>Input</th>"
-                        "<th>Case view</th>"
-                        "<th>Supporting record</th></tr></thead>"
+                        "<th>Program or result</th></tr></thead>"
                     )
                 else:
                     table_class = ""
                     table_head = (
                         "<thead><tr><th>Case</th><th>Expected result</th>"
                         "<th>Observed effect</th><th>Actual result</th>"
-                        "<th>Status</th><th>Case view</th>"
-                        "<th>Supporting record</th></tr></thead>"
+                        "<th>Status</th><th>Program or result</th></tr></thead>"
                     )
                 suite_blocks.append(
                     '<details class="catalog-suite" data-catalog-suite>'
                     '<summary><code>'
                     f'{escape(suite_name)}</code>'
-                    f'<span>{suite["configurations"]} configurations</span>'
+                    f'<span>{suite["configurations"]} records</span>'
                     f'</summary>{note}<div class="wide-table"><table class="{table_class}">'
                     f'{table_head}<tbody>'
                     f'{rows}</tbody></table></div></details>'
@@ -2461,7 +2902,7 @@ def prepare_test_catalog(
             family_blocks.append(
                 f'<details id="{family_id}" class="catalog-family" data-catalog-family>'
                 f'<summary><span>{escape(family["name"])}</span>'
-                f'<span>{family["configurations"]} configurations</span></summary>'
+                f'<span>{family["configurations"]} records</span></summary>'
                 f'{chr(10).join(suite_blocks)}</details>'
             )
         category_sections.append(
@@ -2485,17 +2926,16 @@ def prepare_test_catalog(
 <h1>Test Catalog</h1>
 <p class="lede">
   Use the categories to find tests for a transformation or compiler interface.
-  Every row opens a side-by-side case page. Compilation tests show the source
-  and accepted Loop when both were recorded; other tests show the tested
-  condition or proposal beside the recorded result.
-</p>
-<p class="primary-evidence">
-  <strong><a href="../optimized-loop-examples/index.html">Browse source and accepted Loop programs side by side</a></strong>.
-  Compiler logs remain available as supporting records.
+  Accepted transformations show the exact input and output. Rejection cases
+  show the input and rejected candidate when one was produced. Tests without
+  two program objects open a concise result page.
 </p>
 <p>
-  <strong>{counts['listed_test_configurations']} configurations</strong> in
-  <strong>{counts['suites']} suites</strong>.
+  <strong>{counts['listed_test_configurations']} recorded results</strong> for
+  <strong>{counts['distinct_suite_cases']} named cases</strong>:
+  <strong>{counts['before_after_programs']} accepted-program pages</strong>,
+  <strong>{counts['input_rejected_candidates']} rejected-candidate pages</strong>,
+  and <strong>{counts['result_summaries']} no-target or non-program results</strong>.
 </p>
 <ul class="catalog-index">{chr(10).join(category_links)}</ul>
 <label for="test-filter"><strong>Filter cases</strong></label>
@@ -2506,7 +2946,7 @@ def prepare_test_catalog(
   aria-controls="catalog-groups"
 >
 <p id="visible-count" aria-live="polite">
-  {counts['listed_test_configurations']} configurations.
+  {counts['listed_test_configurations']} records.
 </p>
 <div id="catalog-groups">{chr(10).join(category_sections)}</div>
 <details class="run-metadata">
@@ -2558,8 +2998,8 @@ input.addEventListener('input', () => {{
       .some(family => !family.hidden);
   }}
   count.textContent = query
-    ? `Showing ${{visible}} of ${{rows.length}} configurations.`
-    : `${{rows.length}} configurations.`;
+    ? `Showing ${{visible}} of ${{rows.length}} records.`
+    : `${{rows.length}} records.`;
 }});
 </script>
 </body>
@@ -2672,6 +3112,7 @@ def prepare_evidence(
     rejected = destination / "rejected-optimizer-outputs"
     copy_bug_witnesses(source, rejected, release_dir, bug_report_draft)
     witness_summary = prepare_witness_results(rejected)
+    program_pairs = prepare_program_comparisons(details, source)
     test_catalog = prepare_test_catalog(
         details,
         source,
@@ -2680,6 +3121,7 @@ def prepare_evidence(
         transformation_summary,
         executable_summary,
         witness_summary,
+        program_pairs,
     )
     shutil.copy2(PACKAGE_DIR / "EVIDENCE_README.md", destination / "README.md")
 
