@@ -3731,7 +3731,7 @@ def prepare_test_catalog(
             require(after.is_file(), f"missing catalog after program: {after}")
             record["view_kind"] = pair["kind"]
             note = (
-                f'<p class="comparison-note">{escape(pair["note"])}</p>'
+                f'\n  <p class="comparison-note">{escape(pair["note"])}</p>'
                 if pair.get("note")
                 else ""
             )
@@ -3745,8 +3745,7 @@ def prepare_test_catalog(
       <h2>{escape(pair["right_label"])}</h2>
       <pre>{escape(after.read_text(encoding="utf-8"))}</pre>
     </section>
-  </div>
-  {note}"""
+  </div>{note}"""
         elif exact_loop_pair:
             record["view_kind"] = "loop-before-after"
             comparison = f"""
@@ -3815,14 +3814,16 @@ def prepare_test_catalog(
                 ("polcert_response", "PolCert response"),
             ):
                 if key in rejection:
-                    deeper += f"<dt>{label}</dt><dd>{escape(rejection[key])}</dd>"
+                    deeper += (
+                        f"\n      <dt>{label}</dt>"
+                        f"<dd>{escape(rejection[key])}</dd>"
+                    )
             rejection_html = f"""
   <section class="rejection-explanation">
     <h2>{heading}</h2>
     <dl>
       <dt>Classification</dt><dd>{escape(rejection["classification"])}</dd>
-      <dt>Reason</dt><dd>{escape(rejection["reason"])}</dd>
-      {deeper}
+      <dt>Reason</dt><dd>{escape(rejection["reason"])}</dd>{deeper}
     </dl>
   </section>"""
 
