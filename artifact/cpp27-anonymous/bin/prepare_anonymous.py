@@ -9,6 +9,7 @@ import hashlib
 from html import escape, unescape
 from html.parser import HTMLParser
 import json
+import math
 import os
 from pathlib import Path, PurePosixPath
 import re
@@ -139,8 +140,10 @@ DENYLIST = (
 )
 
 BROWSER_TEXT_SUFFIXES = {
+    ".bridge",
     ".c",
     ".cloog",
+    ".domain",
     ".fst",
     ".h",
     ".json",
@@ -2033,6 +2036,36 @@ def prepare_program_comparisons(destination: Path, source: Path) -> dict:
     )
 
     iss_root = source / "tests/iss-pluto-dumps"
+    valid_multicut_path = iss_root / "multicut_valid.bridge"
+    require(
+        sha256(valid_multicut_path)
+        == "040cfa156680016acf4ce6fe72272418a12052fc1ab5392c243dc1e5c6affb29",
+        "multicut_valid.bridge changed; update its readable rendering",
+    )
+    add_text(
+        "ISS multi-cut validation",
+        "multicut-complete",
+        """Source statement S0(i, j, k, t)
+  0 <= i <= 15
+  0 <= j <= 15
+  0 <= k <= 15
+  1 <= t <= 15""",
+        """Accepted split of S0 by cuts i <= 7 and j <= 7
+  S0_0: original domain, i <= 7, j <= 7
+  S0_1: original domain, i >= 8, j <= 7
+  S0_2: original domain, i <= 7, j >= 8
+  S0_3: original domain, i >= 8, j >= 8
+
+The four sign combinations cover the source domain exactly once.""",
+        left_label="Original Statement Domain",
+        right_label="Accepted Four-Way Split",
+        extension="domain",
+        kind="accepted-domain-pair",
+        note=(
+            "Readable rendering of the exact multicut_valid.bridge fixture. "
+            "The linked bridge file is the object accepted by the extracted validator."
+        ),
+    )
     for case, filename in (
         ("pluto-three-cut-four-piece-mismatch", "multicut_native_mismatch.bridge"),
         ("two-cut-missing-piece", "multicut_missing_piece.bridge"),
@@ -2172,6 +2205,15 @@ def prepare_test_catalog(
             "program_evidence": program_evidence,
             "evidence": record.get("evidence", []),
         }
+        if suite == "ISS multi-cut validation" and case == "multicut-complete":
+            current["evidence"] = list(
+                dict.fromkeys(
+                    [
+                        "../../source/tests/iss-pluto-dumps/multicut_valid.bridge",
+                        *current["evidence"],
+                    ]
+                )
+            )
         if program_pair:
             current["program_pair"] = program_pair
         if suite == "optimizer-output rejection" and case == "matmul-parallel-hint":
@@ -2540,6 +2582,7 @@ def prepare_test_catalog(
             "comparison.html": "before/after",
             "input.pretty.loop": "before",
             "optimized.loop": "after",
+            "multicut_valid.bridge": "exact validator input",
             "diff.patch": "diff",
             "validation.log": "validation log",
             "status.txt": "compiler log",
@@ -2688,7 +2731,7 @@ def prepare_test_catalog(
         link_blocks = []
         if program_links:
             link_blocks.append(
-                f"<p><strong>Program files:</strong> {program_links}</p>"
+                f"<p><strong>Compared files:</strong> {program_links}</p>"
             )
         if supporting_links:
             link_blocks.append(
@@ -2727,7 +2770,11 @@ def prepare_test_catalog(
     program_view_count = sum(
         count
         for kind, count in actual_view_counts.items()
-        if kind in {"accepted-program-pair", "loop-before-after"}
+        if kind in {
+            "accepted-program-pair",
+            "accepted-domain-pair",
+            "loop-before-after",
+        }
     )
     rejected_view_count = actual_view_counts.get("rejected-candidate-pair", 0)
     result_view_count = (
@@ -2736,9 +2783,9 @@ def prepare_test_catalog(
     )
     require(
         (program_view_count, rejected_view_count, result_view_count)
-        == (691, 117, 195),
+        == (692, 117, 194),
         "reviewer-view coverage mismatch: expected accepted/rejected/result "
-        f"691/117/195, got {program_view_count}/{rejected_view_count}/"
+        f"692/117/194, got {program_view_count}/{rejected_view_count}/"
         f"{result_view_count}",
     )
     attached_pair_keys = {
@@ -2825,6 +2872,8 @@ def prepare_test_catalog(
         status_class = "status-pass" if record["status"] == "PASS" else "status-note"
         if record["view_kind"] in {"accepted-program-pair", "loop-before-after"}:
             view_label = "before/after programs"
+        elif record["view_kind"] == "accepted-domain-pair":
+            view_label = "original/split domains"
         elif record["view_kind"] == "rejected-candidate-pair":
             view_label = "input/rejected candidate"
         elif record["view_kind"] == "input-no-target":
@@ -2835,7 +2884,8 @@ def prepare_test_catalog(
             return (
                 f'<tr data-search="{escape(search, quote=True)}">'
                 f"<td><code>{escape(record['case'])}</code></td>"
-                f'<td><a href="{escape(record["case_view"], quote=True)}">'
+                f'<td><a href="{escape(record["case_view"], quote=True)}" '
+                'target="_blank" rel="noopener">'
                 f"{view_label}</a></td>"
                 "</tr>"
             )
@@ -2846,7 +2896,8 @@ def prepare_test_catalog(
             f"<td>{escape(record['observed_transformation'])}</td>"
             f"<td>{escape(record['actual'])}</td>"
             f"<td class=\"{status_class}\">{escape(record['status'])}</td>"
-            f'<td><a href="{escape(record["case_view"], quote=True)}">'
+            f'<td><a href="{escape(record["case_view"], quote=True)}" '
+            'target="_blank" rel="noopener">'
             f"{view_label}</a></td>"
             "</tr>"
         )
@@ -2926,14 +2977,15 @@ def prepare_test_catalog(
 <h1>Test Catalog</h1>
 <p class="lede">
   Use the categories to find tests for a transformation or compiler interface.
-  Accepted transformations show the exact input and output. Rejection cases
-  show the input and rejected candidate when one was produced. Tests without
-  two program objects open a concise result page.
+  Accepted transformations show the input and output program, or the checked
+  domains when the validator operates on a split directly. Rejection cases show
+  the input and rejected candidate when one was produced. Tests without two
+  compared objects open a concise result page.
 </p>
 <p>
   <strong>{counts['listed_test_configurations']} recorded results</strong> for
   <strong>{counts['distinct_suite_cases']} named cases</strong>:
-  <strong>{counts['before_after_programs']} accepted-program pages</strong>,
+  <strong>{counts['before_after_programs']} accepted comparison pages</strong>,
   <strong>{counts['input_rejected_candidates']} rejected-candidate pages</strong>,
   and <strong>{counts['result_summaries']} no-target or non-program results</strong>.
 </p>
@@ -3007,6 +3059,264 @@ input.addEventListener('input', () => {{
 """
     (destination / "test-catalog.html").write_text(page, encoding="utf-8")
     return catalog
+
+
+def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
+    """Present the recorded generated-C pipeline search as reviewer evidence."""
+    source_dir = source / "tests/end-to-end-generated"
+    report_path = source_dir / "best_pipeline_report.json"
+    selection_path = source_dir / "best_pipelines.json"
+    require(report_path.is_file(), f"missing performance report: {report_path}")
+    require(selection_path.is_file(), f"missing pipeline selection: {selection_path}")
+
+    report = load_json(report_path)
+    selection = load_json(selection_path)
+    require(len(report) == 62, f"expected 62 performance cases, found {len(report)}")
+    require(
+        set(report) == set(selection["cases"]),
+        "performance report and selected-pipeline cases differ",
+    )
+
+    pipeline_labels = {
+        "identity": "identity fallback",
+        "default_no_iss_affine_tiling": "affine scheduling + tiling",
+        "affine_only": "affine scheduling only",
+        "iss": "ISS-enabled sequential route",
+        "parallel_4": "parallel route (4 threads)",
+        "iss_parallel_4": "ISS-enabled parallel route (4 threads)",
+    }
+    pipeline_specs = {
+        item["name"]: item
+        for item in selection["pipelines"]
+    }
+    require(
+        set(pipeline_specs) == set(pipeline_labels),
+        "performance pipeline definitions differ from the documented routes",
+    )
+
+    def requires_parallelized(pipeline: str) -> bool:
+        spec = pipeline_specs[pipeline]
+        return bool(spec.get("require_parallelized")) or (
+            "--parallel" in spec.get("polopt_args", [])
+        )
+
+    def positive_finite(value: object, label: str) -> float:
+        result = float(value)
+        require(math.isfinite(result) and result > 0.0, f"invalid {label}: {value}")
+        return result
+
+    def seconds(value: float) -> str:
+        return f"{value:.6f}" if value < 0.01 else f"{value:.4f}"
+
+    rows = []
+    selected_records = []
+    for case in sorted(report):
+        case_report = report[case]
+        candidates_by_pipeline = {
+            item["pipeline_name"]: item
+            for item in case_report["candidates"]
+        }
+        require(
+            len(candidates_by_pipeline) == len(case_report["candidates"]),
+            f"duplicate performance candidate for {case}",
+        )
+        require(
+            set(candidates_by_pipeline) == set(pipeline_specs),
+            f"performance candidate set differs for {case}",
+        )
+
+        successful = []
+        for pipeline, item in candidates_by_pipeline.items():
+            if item.get("result") != "ok":
+                continue
+            baseline = positive_finite(
+                item.get("baseline_best_seconds"),
+                f"baseline time for {case}/{pipeline}",
+            )
+            optimized = positive_finite(
+                item.get("optimized_best_seconds"),
+                f"optimized time for {case}/{pipeline}",
+            )
+            recorded_speedup = positive_finite(
+                item.get("speedup"),
+                f"speedup for {case}/{pipeline}",
+            )
+            require(
+                math.isclose(recorded_speedup, baseline / optimized, rel_tol=1e-12),
+                f"speedup does not match recorded times for {case}/{pipeline}",
+            )
+            if not requires_parallelized(pipeline) or bool(item.get("parallelized_loop")):
+                successful.append(item)
+
+        preferred = [
+            item
+            for item in successful
+            if item["pipeline_name"] != "identity" and float(item["speedup"]) > 1.0
+        ]
+        if preferred:
+            recomputed_best = min(
+                preferred,
+                key=lambda item: float(item["optimized_best_seconds"]),
+            )
+        else:
+            require(successful, f"no successful performance candidate for {case}")
+            recomputed_best = max(successful, key=lambda item: float(item["speedup"]))
+
+        best = case_report["best_pipeline"]
+        require(
+            best == recomputed_best["pipeline_name"],
+            f"best pipeline does not follow the selection rule for {case}",
+        )
+        require(
+            selection["cases"][case] == best,
+            f"selected pipeline mismatch for performance case {case}",
+        )
+        candidate = candidates_by_pipeline[best]
+        require(candidate.get("result") == "ok", f"selected performance case failed: {case}")
+        require(candidate.get("outputs_match") is True, f"output mismatch in {case}")
+        require(candidate.get("exact_match") is True, f"non-exact output in {case}")
+        require(best in pipeline_labels, f"unknown performance pipeline: {best}")
+        require(
+            math.isclose(
+                float(case_report["best_speedup"]),
+                float(candidate["speedup"]),
+                rel_tol=1e-12,
+            ),
+            f"best speedup summary mismatch for {case}",
+        )
+        require(
+            math.isclose(
+                float(case_report["best_optimized_best_seconds"]),
+                float(candidate["optimized_best_seconds"]),
+                rel_tol=1e-12,
+            ),
+            f"best optimized time summary mismatch for {case}",
+        )
+        record = {
+            "case": case,
+            "pipeline": best,
+            "pipeline_label": pipeline_labels[best],
+            "baseline_seconds": float(candidate["baseline_best_seconds"]),
+            "optimized_seconds": float(candidate["optimized_best_seconds"]),
+            "speedup": float(candidate["speedup"]),
+            "parallelized": bool(candidate["parallelized_loop"]),
+            "omp_threads": int(candidate["omp_threads"]),
+            "exact_match": True,
+        }
+        selected_records.append(record)
+
+        rows.append(
+            "<tr>"
+            f"<td><code>{escape(case)}</code></td>"
+            f"<td>{escape(pipeline_labels[best])}</td>"
+            f"<td>{seconds(record['baseline_seconds'])} s</td>"
+            f"<td>{seconds(record['optimized_seconds'])} s</td>"
+            f"<td>{record['speedup']:.3f}x</td>"
+            f"<td>{'yes' if record['parallelized'] else 'no'}</td>"
+            '<td class="status-pass">exact match</td>'
+            "</tr>"
+        )
+
+    nonidentity = sum(item["pipeline"] != "identity" for item in selected_records)
+    nonidentity_speedups = sum(
+        item["pipeline"] != "identity" and item["speedup"] > 1.0
+        for item in selected_records
+    )
+    parallelized = sum(item["parallelized"] for item in selected_records)
+    require(nonidentity == 47, f"expected 47 non-identity selections, found {nonidentity}")
+    require(
+        nonidentity_speedups == 47,
+        f"expected 47 positive non-identity measurements, found {nonidentity_speedups}",
+    )
+    require(parallelized == 19, f"expected 19 parallel outputs, found {parallelized}")
+
+    destination.mkdir()
+    shutil.copy2(report_path, destination / "all-candidates.json")
+    shutil.copy2(selection_path, destination / "selected-pipelines.json")
+    summary = {
+        "method": (
+            "one recorded timed execution per candidate; baseline time divided by "
+            "optimized time; generated whole-C harness"
+        ),
+        "cases": len(selected_records),
+        "exact_output_matches": len(selected_records),
+        "selected_nonidentity_routes": nonidentity,
+        "selected_nonidentity_speedups_above_one": nonidentity_speedups,
+        "selected_parallel_outputs": parallelized,
+        "selected": selected_records,
+    }
+    (destination / "results.json").write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    page = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>End-to-End Performance Comparisons</title>
+  <link rel="stylesheet" href="../../docs/artifact.css">
+</head>
+<body>
+<main>
+  <p><a href="../../docs/index.html#performance">Supplement guide</a></p>
+  <h1>End-to-End Performance Comparisons</h1>
+  <p class="lede">
+    Each row compares an unoptimized Loop program with a PolCert-accepted
+    output inside the same generated whole-C harness. Both executables received
+    the same deterministic input, and every selected pair produced exactly the
+    same output.
+  </p>
+  <dl class="performance-summary">
+    <div><dt>Compared kernels</dt><dd>{len(selected_records)}</dd></div>
+    <div><dt>Exact output matches</dt><dd>{len(selected_records)}</dd></div>
+    <div><dt>Non-identity routes selected</dt><dd>{nonidentity}</dd></div>
+    <div><dt>Selected parallel outputs</dt><dd>{parallelized}</dd></div>
+  </dl>
+  <h2>How to Read the Numbers</h2>
+  <p>
+    The search compared identity, affine-only, affine-plus-tiling, ISS-enabled,
+    parallel, and ISS-plus-parallel routes. It selected the fastest non-identity
+    route measured above 1.0x; otherwise it retained the identity result.
+    Speedup is baseline time divided by optimized time.
+  </p>
+  <div class="note">
+    <strong>Measurement boundary.</strong>
+    This is exploratory, machine-specific evidence. Each candidate was timed
+    once in the recorded search, so the table demonstrates performance
+    potential rather than a publication-grade performance evaluation. An
+    ISS-enabled route does not by itself establish that statement splitting
+    occurred in that case. Very short runtimes and unusually large ratios
+    should not be interpreted without rerunning the benchmark.
+  </div>
+  <h2>All 62 Kernels</h2>
+  <div class="wide-table">
+    <table class="performance-table">
+      <thead>
+        <tr>
+          <th>Kernel</th><th>Selected checked route</th><th>Baseline</th>
+          <th>Optimized</th><th>Speedup</th><th>Parallel output</th>
+          <th>Program result</th>
+        </tr>
+      </thead>
+      <tbody>{chr(10).join(rows)}</tbody>
+    </table>
+  </div>
+  <details class="supporting-files">
+    <summary>Supporting data</summary>
+    <p>
+      <a href="results.json">selected measurements</a> &middot;
+      <a href="all-candidates.json">all pipeline candidates</a> &middot;
+      <a href="selected-pipelines.json">selected pipeline map</a>
+    </p>
+  </details>
+</main>
+</body>
+</html>
+"""
+    (destination / "index.html").write_text(page, encoding="utf-8")
+    return summary
 
 
 def prepare_evidence(
@@ -3109,6 +3419,10 @@ def prepare_evidence(
         release_dir,
         destination / "execution-comparisons",
     )
+    performance_summary = prepare_performance_comparisons(
+        source,
+        destination / "performance-comparisons",
+    )
     rejected = destination / "rejected-optimizer-outputs"
     copy_bug_witnesses(source, rejected, release_dir, bug_report_draft)
     witness_summary = prepare_witness_results(rejected)
@@ -3152,6 +3466,15 @@ def prepare_evidence(
             "effect_focused_additional_runs": executable_summary[
                 "effect_focused_additional_runs"
             ],
+        },
+        "performance_comparisons": {
+            key: performance_summary[key]
+            for key in (
+                "cases",
+                "exact_output_matches",
+                "selected_nonidentity_routes",
+                "selected_parallel_outputs",
+            )
         },
         "rejected_optimizer_outputs": {
             "passed": witness_summary["passed"],
@@ -3271,6 +3594,44 @@ def prepare_browser_text_views(package: Path) -> int:
 """
         view.write_text(page, encoding="utf-8")
     return len(views)
+
+
+def make_document_links_open_new_tabs(package: Path) -> int:
+    """Keep the reader's place when following links to another artifact page."""
+    anchor_pattern = re.compile(r"<a\b(?P<attrs>[^>]*)>", re.IGNORECASE)
+    href_pattern = re.compile(
+        r"\bhref\s*=\s*(?P<quote>[\"'])(?P<value>.*?)(?P=quote)",
+        re.IGNORECASE,
+    )
+    target_pattern = re.compile(r"\btarget\s*=", re.IGNORECASE)
+    rel_pattern = re.compile(r"\brel\s*=", re.IGNORECASE)
+    changed = 0
+
+    for path in sorted(package.rglob("*.html")):
+        relative = path.relative_to(package)
+        if relative.parts[:2] == ("docs", "proof"):
+            continue
+        original = path.read_text(encoding="utf-8")
+
+        def replace_anchor(match: re.Match[str]) -> str:
+            nonlocal changed
+            attrs = match.group("attrs")
+            href = href_pattern.search(attrs)
+            if href is None:
+                return match.group(0)
+            value = unescape(href.group("value")).strip()
+            if not value or value.startswith("#") or target_pattern.search(attrs):
+                return match.group(0)
+            suffix = ' target="_blank"'
+            if not rel_pattern.search(attrs):
+                suffix += ' rel="noopener"'
+            changed += 1
+            return f"<a{attrs}{suffix}>"
+
+        updated = anchor_pattern.sub(replace_anchor, original)
+        if updated != original:
+            path.write_text(updated, encoding="utf-8")
+    return changed
 
 
 def check_html_links(root: Path) -> int:
@@ -3478,6 +3839,7 @@ def main() -> int:
         )
 
         browser_text_views = prepare_browser_text_views(package)
+        new_tab_links = make_document_links_open_new_tabs(package)
         json_count = check_json(package)
         html_count = check_html_links(package)
         check_denylist(package)
@@ -3490,6 +3852,7 @@ def main() -> int:
     print(f"validated JSON files: {json_count}")
     print(f"validated HTML files: {html_count}")
     print(f"browser-readable linked text files: {browser_text_views}")
+    print(f"cross-page links opening in new tabs: {new_tab_links}")
     print(f"longest archive path: {longest_archive_path} characters")
     return 0
 
