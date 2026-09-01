@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import hashlib
 from html import escape, unescape
 from html.parser import HTMLParser
@@ -65,6 +66,14 @@ PLUTO_RECURSIVE_COMPONENTS = (
 ARCHIVE_ROOT = "polcert"
 MAX_ARCHIVE_PATH_CHARS = 160
 ZIP_TIMESTAMP = (2026, 8, 29, 0, 0, 0)
+
+E2E_RECORDED_LOOP_CASES = {
+    "const_unroll": "Constant-trip-count unrolling",
+    "stride_down": "Affine bound and stride reconstruction",
+    "stride_even": "Affine bound and stride reconstruction",
+    "unrolljam_block_variable": "Block unrolling and validated loop jamming",
+    "unrolljam_dependent_guard": "Block unrolling and validated loop jamming",
+}
 
 REPLACEMENTS = {
     "9d612d02ac8f27d46c5ec632f912f8a67939e748": "validated-source-snapshot",
@@ -578,19 +587,52 @@ def prepare_executable_checks(release_dir: Path, destination: Path) -> dict:
     return results
 
 
+def copy_recorded_e2e_loops(release_dir: Path, destination: Path) -> None:
+    source_root = release_dir / "polcert-artifact-check/end-to-end-c"
+    for case in E2E_RECORDED_LOOP_CASES:
+        source = source_root / case
+        require(source.is_dir(), f"missing recorded end-to-end output: {case}")
+        target = destination / f"e2e-{case.replace('_', '-')}"
+        target.mkdir()
+        input_text = (source / "input.loop").read_text(encoding="utf-8")
+        output_text = (source / "optimized.loop").read_text(encoding="utf-8")
+        (target / "input.pretty.loop").write_text(input_text, encoding="utf-8")
+        (target / "optimized.loop").write_text(output_text, encoding="utf-8")
+        (target / "diff.patch").write_text(
+            "".join(
+                difflib.unified_diff(
+                    input_text.splitlines(keepends=True),
+                    output_text.splitlines(keepends=True),
+                    fromfile="before.loop",
+                    tofile="after.loop",
+                )
+            ),
+            encoding="utf-8",
+        )
+        shutil.copy2(source / "status.txt", target / "status.txt")
+
+
 def prepare_transformation_index(destination: Path) -> dict:
     examples = sorted(path for path in destination.iterdir() if path.is_dir())
     records = []
     rows = []
     for path in examples:
         changed = (path / "diff.patch").is_file() and (path / "diff.patch").stat().st_size > 0
+        input_text = (path / "input.pretty.loop").read_text(encoding="utf-8")
         output_text = (path / "optimized.loop").read_text(encoding="utf-8")
         tiled = any(
             marker in output_text
             for marker in ("32 *", "/ 32", "64 *", "/ 64", "313")
         )
         transformations = []
-        if not changed:
+        recorded_e2e_case = (
+            path.name.removeprefix("e2e-").replace("-", "_")
+            if path.name.startswith("e2e-")
+            else None
+        )
+        if recorded_e2e_case in E2E_RECORDED_LOOP_CASES:
+            transformations.append(E2E_RECORDED_LOOP_CASES[recorded_e2e_case])
+        elif not changed:
             transformations.append("No loop-structure change")
         elif path.name == "seq":
             transformations.append("Domain guard insertion")
@@ -614,14 +656,47 @@ def prepare_transformation_index(destination: Path) -> dict:
             }
         )
         name = escape(path.name)
+        comparison = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{name}: Before and After</title>
+  <link rel="stylesheet" href="../../../docs/artifact.css">
+</head>
+<body>
+<main>
+  <p><a href="../index.html">All optimized loop examples</a></p>
+  <h1><code>{name}</code>: Before and After</h1>
+  <p class="lede">Observed transformation: {escape(transformation)}.</p>
+  <div class="loop-comparison">
+    <section>
+      <h2>Before</h2>
+      <pre>{escape(input_text)}</pre>
+    </section>
+    <section>
+      <h2>Accepted Output</h2>
+      <pre>{escape(output_text)}</pre>
+    </section>
+  </div>
+  <p>
+    <a href="diff.patch">Unified diff</a> &middot;
+    <a href="status.txt">Compiler log</a>
+  </p>
+</main>
+</body>
+</html>
+"""
+        (path / "comparison.html").write_text(comparison, encoding="utf-8")
         rows.append(
             "<tr>"
             f"<td><code>{name}</code></td>"
             f"<td>{escape(transformation)}</td>"
-            f'<td><a href="{name}/input.pretty.loop">input</a> &middot; '
-            f'<a href="{name}/optimized.loop">optimized loop</a> &middot; '
+            f'<td><strong><a href="{name}/comparison.html">before/after</a></strong> &middot; '
+            f'<a href="{name}/input.pretty.loop">before</a> &middot; '
+            f'<a href="{name}/optimized.loop">after</a> &middot; '
             f'<a href="{name}/diff.patch">diff</a> &middot; '
-            f'<a href="{name}/status.txt">compiler result</a></td>'
+            f'<a href="{name}/status.txt">log</a></td>'
             "</tr>"
         )
     transformation_counts: dict[str, int] = {}
@@ -656,22 +731,27 @@ def prepare_transformation_index(destination: Path) -> dict:
 <body>
 <main>
   <h1>Optimized Loop Examples</h1>
-  <p>
-    The classification describes loop-structure changes visible in the generated
-    Loop program. It does not infer a performance improvement.
+  <p class="lede">
+    Open a case to compare the source Loop program with the accepted output.
+    Diffs and compiler logs are supporting records.
   </p>
-  <table>
-    <thead><tr><th>Observed transformation</th><th>Cases</th></tr></thead>
-    <tbody>
-{count_rows}
-    </tbody>
-  </table>
   <table>
     <thead>
       <tr><th>Case</th><th>Observed loop transformation</th><th>Files</th></tr>
     </thead>
     <tbody>
 {case_rows}
+    </tbody>
+  </table>
+  <h2>Summary</h2>
+  <p>
+    These labels describe visible loop-structure changes. They do not claim a
+    performance improvement.
+  </p>
+  <table>
+    <thead><tr><th>Observed transformation</th><th>Cases</th></tr></thead>
+    <tbody>
+{count_rows}
     </tbody>
   </table>
 </main>
@@ -1639,9 +1719,10 @@ def prepare_test_catalog(
 
     def add(record: dict) -> None:
         raw_suite = record["suite"]
+        raw_case = record["case"]
         suite = catalog_suite_name(raw_suite)
         category, family = catalog_location(suite)
-        case = display_case_name(raw_suite, record["case"], record.get("expected", ""))
+        case = display_case_name(raw_suite, raw_case, record.get("expected", ""))
         expected = record.get("expected", "not separately recorded")
         actual = record.get("actual", "PASS")
         coverage = record.get("coverage", "recorded result")
@@ -1653,10 +1734,41 @@ def prepare_test_catalog(
             coverage,
             transformation_by_case,
         )
+        program_evidence = list(record.get("program_evidence", []))
+        if (
+            raw_suite.lower() in {"strict-effect", "generated execution: default-corpus"}
+            and case in transformation_by_case
+        ):
+            example = f"../optimized-loop-examples/{case}"
+            program_evidence = list(
+                dict.fromkeys(
+                    [
+                        f"{example}/comparison.html",
+                        f"{example}/input.pretty.loop",
+                        f"{example}/optimized.loop",
+                        f"{example}/diff.patch",
+                        *program_evidence,
+                    ]
+                )
+            )
+        elif raw_suite == "E2E" and raw_case in E2E_RECORDED_LOOP_CASES:
+            example_case = f"e2e-{raw_case.replace('_', '-')}"
+            example = f"../optimized-loop-examples/{example_case}"
+            program_evidence = [
+                f"{example}/comparison.html",
+                f"{example}/input.pretty.loop",
+                f"{example}/optimized.loop",
+                f"{example}/diff.patch",
+            ]
+        elif raw_suite == "typed-c-pipeline":
+            program_evidence = ["../../docs/index.html#typed-loop-examples"]
         key = (suite, case, expected, actual)
         if key in by_key:
             current = by_key[key]
             current["occurrences"] += record.get("occurrences", 1)
+            current["program_evidence"] = list(
+                dict.fromkeys([*current["program_evidence"], *program_evidence])
+            )
             current["evidence"] = list(
                 dict.fromkeys([*current["evidence"], *record.get("evidence", [])])
             )
@@ -1676,6 +1788,7 @@ def prepare_test_catalog(
             "status": record.get("status", "PASS"),
             "occurrences": record.get("occurrences", 1),
             "source": record.get("source", []),
+            "program_evidence": program_evidence,
             "evidence": record.get("evidence", []),
         }
         by_key[key] = current
@@ -2047,7 +2160,23 @@ def prepare_test_catalog(
     def evidence_links(items: list[str]) -> str:
         links = []
         for item in items:
-            label = Path(item).name or item
+            filename = Path(item).name
+            if item.endswith("docs/index.html#typed-loop-examples"):
+                label = "input/accepted shapes"
+            else:
+                label = {
+                    "comparison.html": "before/after",
+                    "input.pretty.loop": "before",
+                    "optimized.loop": "after",
+                    "diff.patch": "diff",
+                    "validation.log": "validation log",
+                    "status.txt": "compiler log",
+                    "strict-loop-suite.stdout.txt": "local log",
+                    "remote-ci-test-results.stdout.txt": "CI log",
+                }.get(
+                    filename,
+                    "test log" if filename.endswith(".stdout.txt") else filename or item,
+                )
             links.append(f'<a href="{escape(item, quote=True)}">{escape(label)}</a>')
         return " &middot; ".join(links)
 
@@ -2104,6 +2233,7 @@ def prepare_test_catalog(
             f"<td>{escape(record['observed_transformation'])}</td>"
             f"<td>{escape(record['actual'])}</td>"
             f"<td class=\"{status_class}\">{escape(record['status'])}</td>"
+            f"<td>{evidence_links(record['program_evidence']) or '&mdash;'}</td>"
             f"<td>{evidence_links(record['evidence'])}</td>"
             "</tr>"
         )
@@ -2136,13 +2266,17 @@ def prepare_test_catalog(
                 )
                 if compact:
                     table_class = "compact-table"
-                    table_head = "<thead><tr><th>Input</th><th>Evidence</th></tr></thead>"
+                    table_head = (
+                        "<thead><tr><th>Input</th>"
+                        "<th>Supporting record</th></tr></thead>"
+                    )
                 else:
                     table_class = ""
                     table_head = (
                         "<thead><tr><th>Case</th><th>Expected result</th>"
                         "<th>Observed effect</th><th>Actual result</th>"
-                        "<th>Status</th><th>Evidence</th></tr></thead>"
+                        "<th>Status</th><th>Program view</th>"
+                        "<th>Supporting record</th></tr></thead>"
                     )
                 suite_blocks.append(
                     '<details class="catalog-suite" data-catalog-suite>'
@@ -2180,7 +2314,12 @@ def prepare_test_catalog(
 <h1>Test Catalog</h1>
 <p class="lede">
   Use the categories to find tests for a transformation or compiler interface.
-  Each row states the expected result, the observed effect, and the recorded evidence.
+  Tests that produce Loop programs link the source and accepted output before
+  their supporting logs.
+</p>
+<p class="primary-evidence">
+  <strong><a href="../optimized-loop-examples/index.html">Browse source and accepted Loop programs side by side</a></strong>.
+  Compiler logs remain available as supporting records.
 </p>
 <p>
   <strong>{counts['listed_test_configurations']} configurations</strong> in
@@ -2345,6 +2484,10 @@ def prepare_evidence(
     validate_test_evidence(source, raw_output)
     shutil.copytree(
         release_dir / "polopt-generated-cases",
+        destination / "optimized-loop-examples",
+    )
+    copy_recorded_e2e_loops(
+        release_dir,
         destination / "optimized-loop-examples",
     )
     transformation_summary = prepare_transformation_index(

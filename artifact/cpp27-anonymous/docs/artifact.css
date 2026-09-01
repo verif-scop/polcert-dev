@@ -223,6 +223,28 @@ table {
   white-space: pre-wrap;
 }
 
+.primary-evidence {
+  margin: 22px 0;
+  padding: 14px 16px;
+  border-left: 4px solid var(--blue);
+  background: var(--blue-soft);
+}
+
+.loop-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.loop-comparison section { min-width: 0; }
+.loop-comparison h2 { margin-top: 18px; }
+.loop-comparison pre {
+  min-height: 280px;
+  max-height: 70vh;
+  margin: 0;
+  white-space: pre;
+}
+
 .catalog-index {
   max-width: 760px;
   margin: 24px 0 30px;
@@ -411,6 +433,7 @@ td code {
   nav .minor { display: none; }
   main { width: min(100% - 28px, 1120px); padding-top: 30px; }
   .route-list { grid-template-columns: 1fr; }
+  .loop-comparison { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {

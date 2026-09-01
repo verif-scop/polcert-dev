@@ -37,8 +37,8 @@ For the complete test inventory, open
 | `third_party/pluto/` | Pluto source archives used for ordinary tests and invalid-proposal cases. |
 | `environment/Dockerfile` | Rebuilds Pluto, the proofs, and the extracted compiler. |
 | `evidence/README.md` | Guide to the recorded proof and test results. |
-| `evidence/results/` | Test catalog, theorem and proof-build report, commands, and raw output. |
-| `evidence/optimized-loop-examples/` | Before-and-after loop outputs, labeled by transformation. |
+| `evidence/optimized-loop-examples/` | Side-by-side source and accepted Loop programs, with diffs. |
+| `evidence/results/` | Complete test catalog, theorem and proof-build report, and supporting logs. |
 | `evidence/execution-comparisons/` | Checks that original and optimized programs return the same result. |
 | `evidence/rejected-optimizer-outputs/` | Unsafe or non-certifiable optimizer proposals, their causes, and PolCert's response. |
 | `THIRD_PARTY.md` | Third-party attribution and license map. |
