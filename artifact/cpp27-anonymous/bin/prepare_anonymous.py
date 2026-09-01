@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import ast
+from collections import Counter
 import difflib
 import hashlib
 from html import escape, unescape
@@ -1114,7 +1116,13 @@ def is_expected_rejection(expected: str, actual: str, coverage: str) -> bool:
     return (
         "rejection-contract" in text
         or expected.lower().startswith(
-            ("reject", "failure", "result=failure", "result:reject")
+            (
+                "reject",
+                "failure",
+                "result=failure",
+                "result:reject",
+                "success:false",
+            )
         )
         or "expected=rejection" in text
         or "route:rejected" in expected.lower()
@@ -1136,6 +1144,10 @@ def observed_transformation(
     lower_actual = actual.lower()
     lower_expected = expected.lower()
 
+    if "status:pluto_frontend_rejected" in lower_expected:
+        return "No optimizer candidate; Pluto stopped in its source frontend"
+    if "status:pluto_final_schedule_rejected" in lower_expected:
+        return "No optimizer candidate; Pluto refused its illegal final schedule"
     if is_expected_rejection(expected, actual, coverage):
         rejected_effects = {
             "auto-affine-lp-cc-scaling": "Affine rescheduling reversed a dependence",
@@ -1148,6 +1160,12 @@ def observed_transformation(
         }
         if lower_case in rejected_effects:
             return rejected_effects[lower_case]
+        if lower_suite == "pluto-compat-suite":
+            return "Driver option request rejected; no transformation applied"
+        if "non-innermost-vector" in lower_expected or lower_expected.startswith(
+            "success:false"
+        ):
+            return "No optimized output; innermost parallel-loop request rejected"
         if "final-affine" in lower_case:
             return "No program emitted; post-tiling affine rescheduling was rejected"
         if "consumer" in lower_case:
@@ -1164,6 +1182,8 @@ def observed_transformation(
         return "Affine schedule generation and conversion"
     if lower_suite.startswith("legacy/csample"):
         return "Typed C-instruction schedules mutually refine"
+    if lower_suite == "legacy-failure-gate":
+        return "Declared adapter failure propagated"
     if lower_suite in {"unit", "proof gate", "build gate"}:
         return "Artifact infrastructure or proof-build check"
     if lower_suite == "identity-iss-sensitive-search":
@@ -1178,6 +1198,8 @@ def observed_transformation(
         if "effect=true" in lower_actual:
             return "Block unrolling and validated loop jamming"
         return "No checked unroll-and-jam transformation observed"
+    if "unrolljam-context-bound-escape-rejected" in lower_case:
+        return "Block unrolling; context-escaping local jam rejected"
     if lower_suite == "scalar-interleaved tiling":
         return (
             "Ordinary tiling certificate accepted"
@@ -1204,9 +1226,10 @@ def observed_transformation(
             return mapped
 
     transformations = []
+    iss_token = re.compile(r"(?:^|[^a-z0-9])iss(?:$|[^a-z0-9])")
     if (
-        "iss" in lower_case
-        or "iss" in lower_expected
+        iss_token.search(lower_case)
+        or iss_token.search(lower_expected)
         or lower_suite in {"iss", "iss-multicut", "iss-live"}
     ):
         transformations.append("Index-set splitting (ISS)")
@@ -1711,6 +1734,1024 @@ SUITE_NOTES = {
 }
 
 
+CATALOG_CASE_GUIDANCE = {
+    "affine schedule refinement": (
+        "Checks the source schedule against the optimizer schedule in both refinement directions.",
+        "A schedule change is usable only when it preserves the source program's behavior.",
+    ),
+    "ISS validator": (
+        "Checks an index-set split directly on the source and proposed split polyhedral programs.",
+        "ISS may partition statement instances, but it must preserve every instance and its computation exactly once.",
+    ),
+    "ISS from live Pluto output": (
+        "Checks bridge generation or ISS validation using a split emitted by the packaged Pluto producer.",
+        "This connects the standalone ISS checker to the optimizer output used by the compiler route.",
+    ),
+    "ISS multi-cut validation": (
+        "Checks whether several affine cuts form a complete, non-overlapping partition of one statement domain.",
+        "A multi-cut split is valid only when every source instance belongs to exactly one resulting region.",
+    ),
+    "identity-iss-sensitive-search": (
+        "Compares identity-tiling output with and without ISS for this corpus input.",
+        "The search records whether ISS changes the generated program under an otherwise fixed schedule.",
+    ),
+    "one-level tiling configurations": (
+        "Exercises one-level tiling and its optional consumer on this route configuration.",
+        "The route must accept only a certified tiling shape and must not attach an uncertified loop annotation.",
+    ),
+    "direct tiling-validator routes": (
+        "Checks the direct permutable-band tiling route and its output, alarm, and fallback behavior.",
+        "The route boundary prevents malformed or inapplicable tiling proposals from reaching code generation.",
+    ),
+    "scalar-interleaved tiling": (
+        "Checks tiling when scalar schedule rows are interleaved with loop-band rows.",
+        "Scalar timestamps are part of lexicographic execution order and cannot be deleted or rearranged as if they were loop dimensions.",
+    ),
+    "two-level tiling configurations": (
+        "Exercises a two-level tiling configuration and checks its declared structural result.",
+        "A second tile hierarchy needs its own certified relation; one-level evidence is not sufficient.",
+    ),
+    "two-level tiling route checks": (
+        "Checks the complete two-level tiling route, including the requested downstream loop annotation.",
+        "Composition is sound only when both tiling levels and the optional consumer are independently accepted.",
+    ),
+    "diamond tiling": (
+        "Runs the diamond-tiling producer and classifies the resulting transformation or producer failure.",
+        "The suite distinguishes a verified diamond proposal from inputs for which Pluto produces no usable proposal.",
+    ),
+    "identity-diamond-sensitive-search": (
+        "Compares ordinary identity tiling with identity diamond tiling for this corpus input.",
+        "The search identifies inputs where the diamond option has a distinct generated-C effect.",
+    ),
+    "parallel-loop validation": (
+        "Checks whether the selected schedule dimension can be represented as a verified parallel loop.",
+        "Parallel iterations may interleave, so a dependence-carrying or nonexistent dimension must be rejected.",
+    ),
+    "innermost parallel-loop validation": (
+        "Checks the restricted parallel mode that requires the accepted dimension to be innermost.",
+        "The restriction must be checked explicitly rather than inferred from an optimizer annotation.",
+    ),
+    "unroll-and-jam exploration": (
+        "Compares the input Loop program with the output of the checked unroll-and-jam postpass.",
+        "The test distinguishes proved block unrolling and local jamming from a producer option that has no checked structural effect.",
+    ),
+    "code-generation gap exploration": (
+        "Checks block unrolling, local jam validation, remainder generation, and the resulting program together.",
+        "A complete example is needed because correct local jamming also depends on remainder and code-generation handling.",
+    ),
+    "default optimization structural effects": (
+        "Checks the visible Loop-structure effect of the default verified optimization route.",
+        "Successful compilation alone would not show whether the requested optimization actually occurred.",
+    ),
+    "generated execution: default-corpus": (
+        "Executes the baseline and generated C programs on the same inputs and compares their outputs.",
+        "Execution checks complement the proof build by detecting integration or extraction mistakes in concrete generated programs.",
+    ),
+    "generated execution: parallel-effect": (
+        "Checks both output agreement and the presence of the requested parallel-loop effect.",
+        "A parallel test must establish both semantic agreement and that concurrency was actually emitted.",
+    ),
+    "generated execution: second-level-effect": (
+        "Checks output agreement and the additional loop hierarchy produced by two-level tiling.",
+        "This distinguishes a working two-level route from a successful fallback to a simpler program.",
+    ),
+    "generated execution: intratile-effect": (
+        "Checks output agreement and the requested intra-tile affine rescheduling effect.",
+        "This ensures the optional post-tiling schedule pass both runs and preserves the tested result.",
+    ),
+    "handwritten C execution": (
+        "Instantiates the typed instruction interface with a handwritten C-like loop and compares baseline and optimized execution.",
+        "These examples show that the abstract validators compose with a stateful, typed instruction semantics.",
+    ),
+    "typed C instruction pipelines": (
+        "Runs a representative verified pipeline over a typed C-like instruction program and records its Loop shape.",
+        "The structural comparison makes the effect of the verified component visible without reducing instructions to an empty payload.",
+    ),
+    "typed C refinement: matrix multiplication": (
+        "Checks refinement between the original and optimized typed matrix-multiplication schedules.",
+        "Both directions are tested here to expose the typed instruction instance used by the legacy example.",
+    ),
+    "typed C refinement: covariance": (
+        "Checks refinement between the original and optimized typed covariance schedules.",
+        "Both directions are tested here to expose the typed instruction instance used by the legacy example.",
+    ),
+    "typed C refinement: GEMVER": (
+        "Checks refinement between the original and optimized typed GEMVER schedules.",
+        "Both directions are tested here to expose the typed instruction instance used by the legacy example.",
+    ),
+    "driver option configurations": (
+        "Exercises one Pluto-compatible driver option combination and its declared route or effect contract.",
+        "The wrapper must reject contradictory or unsupported requests and route accepted requests without silently dropping required effects.",
+    ),
+    "identity composition": (
+        "Checks how identity affine scheduling composes with a later tiling request.",
+        "Identity scheduling should not bypass the certificates required by the selected tiling route.",
+    ),
+    "OpenScop round trips": (
+        "Parses and reprints an OpenScop input through the packaged format adapter.",
+        "A readable round trip is required before an external schedule can reach a validator.",
+    ),
+    "CPoly-to-OpenScop conversion": (
+        "Checks both supported CPoly-to-OpenScop conversion entry points.",
+        "The format bridge must complete before verified compiler components can consume the program.",
+    ),
+    "scheduler conversion smoke test": (
+        "Checks that Pluto can produce a schedule which the adapter can import.",
+        "This small test separates toolchain availability from transformation-specific validation.",
+    ),
+    "second-level rejection": (
+        "Injects one declared fault into a tiling, affine, or consumer stage and checks the exact failure boundary.",
+        "A composed route must stop at the first uncertified stage and must never emit an unchecked program.",
+    ),
+    "optimizer-output rejection": (
+        "Replays an optimizer proposal or hint that PolCert cannot certify.",
+        "These cases demonstrate that optimizer output is evidence to check, not a trusted correctness claim.",
+    ),
+    "legacy failure propagation": (
+        "Invokes a legacy adapter with a deliberately missing input or configuration and checks its exit status.",
+        "Automation must preserve declared failures instead of reporting a false successful validation run.",
+    ),
+}
+
+
+UNIT_CASE_GUIDANCE = {
+    "artifact runner timeout": (
+        "Checks that a timed-out artifact command retains the output produced before termination.",
+        "Partial output is needed to diagnose a timeout without treating it as a successful run.",
+    ),
+    "tiling route summary": (
+        "Checks that the artifact summary accepts exact route counts and rejects mismatched counts.",
+        "Published coverage numbers must be derived from the recorded route log.",
+    ),
+    "release provenance": (
+        "Checks parsing and validation of the pinned image, Pluto revision, and release tag.",
+        "The archive must fail when its claimed toolchain identity does not match the recorded release.",
+    ),
+    "manifest runner": (
+        "Checks how the option-suite runner handles an expected command rejection and stale output files.",
+        "A failed producer must not be mistaken for success because an older output file remains on disk.",
+    ),
+    "tiling route telemetry": (
+        "Checks the exact route, alarm, phase, and fallback markers accepted by the tiling log parser.",
+        "Strict telemetry prevents an unexpected fallback or extra route from being hidden by a PASS summary.",
+    ),
+    "unroll-and-jam route guard": (
+        "Checks the unroll-and-jam guard against complete, missing, and truncated diagnostic output.",
+        "The postpass must stop when it cannot establish which verified tiling route produced its input.",
+    ),
+    "proof report": (
+        "Checks that the proof report accepts a closed build and rejects missing theorems or unrealized extraction assumptions.",
+        "A short report is useful only if omissions in its claimed proof boundary cause the check to fail.",
+    ),
+    "open-proof scanner": (
+        "Checks lexical detection of unfinished Rocq proof commands and the gate's exit statuses.",
+        "Comments, strings, and identifiers must not create false positives, while real unfinished commands must fail the build.",
+    ),
+    "strict transformation effects": (
+        "Checks the structural-effect oracle used for generated Loop examples.",
+        "The oracle must reject missing required effects and unexpected changes, not merely successful compiler exits.",
+    ),
+    "generated C harness": (
+        "Checks loop-bound inference, signed arithmetic, and multidimensional checksum handling in the generated-C harness.",
+        "Execution comparisons are meaningful only if the harness enumerates inputs and reads outputs correctly.",
+    ),
+    "legacy failure gate": (
+        "Checks that only the declared legacy command exit status is accepted.",
+        "A generic nonzero exit could otherwise hide a crash, missing command, or unrelated failure.",
+    ),
+    "extracted zero fallback": (
+        "Checks that a rejected extracted route raises CertCheckerFailure and returns no fallback program.",
+        "This prevents the extracted runtime from converting validator failure into unchecked code generation.",
+    ),
+}
+
+
+UNIT_ASSERTIONS = {
+    "artifact runner timeout: timeout-preserves-partial-output": (
+        "a timed-out artifact command retains the output produced before termination"
+    ),
+    "tiling route summary: matching-counts-accepted": (
+        "a summary whose route counts match the log is accepted"
+    ),
+    "tiling route summary: mismatched-counts-rejected": (
+        "a summary whose route counts disagree with the log is rejected"
+    ),
+    "release provenance: plain-image-digest": (
+        "a plain pinned container-image digest is parsed correctly"
+    ),
+    "release provenance: registry-qualified-image-digest": (
+        "a registry-qualified pinned image digest is parsed correctly"
+    ),
+    "release provenance: empty-image-digest-rejected": (
+        "an empty image digest is rejected"
+    ),
+    "release provenance: unknown-image-digest-rejected": (
+        "an unrecognized image digest is rejected"
+    ),
+    "release provenance: garbage-image-digest-rejected": (
+        "a malformed image digest is rejected"
+    ),
+    "release provenance: short-image-digest-rejected": (
+        "a truncated image digest is rejected"
+    ),
+    "release provenance: pluto-revision-mismatch-rejected": (
+        "a mismatch in the ordinary Pluto revision is rejected"
+    ),
+    "release provenance: bug-witness-pluto-revision-mismatch-rejected": (
+        "a mismatch in the historical bug-witness Pluto revision is rejected"
+    ),
+    "release provenance: invalid-release-tag-rejected": (
+        "an invalid release tag is rejected"
+    ),
+    "release provenance: provenance-check-explicitly-disabled": (
+        "the provenance check is skipped only when explicitly disabled"
+    ),
+    "manifest runner: ordinary-failed-command-accepted-as-rejection": (
+        "a manifest case that expects command rejection accepts the declared failure"
+    ),
+    "manifest runner: failed-command-with-stale-output-rejected": (
+        "a failed command cannot pass by leaving a stale output file"
+    ),
+    "tiling route telemetry: direct_band_is_the_only_accepted_route": (
+        "the direct band validator is the only accepted tiling route"
+    ),
+    "tiling route telemetry: no_loop_is_the_only_not_applicable_status": (
+        "only a program with no loop may report tiling as not applicable"
+    ),
+    "tiling route telemetry: extra_route_is_rejected": (
+        "an unexpected extra tiling route is rejected"
+    ),
+    "tiling route telemetry: alarm_is_rejected": (
+        "an unexpected certification alarm is rejected"
+    ),
+    "tiling route telemetry: fallback_marker_is_case_insensitively_rejected": (
+        "a fallback marker is rejected regardless of letter case"
+    ),
+    "tiling route telemetry: exact_direct_phase_route_is_accepted": (
+        "the exact successful direct-phase route is accepted"
+    ),
+    "tiling route telemetry: exact_rejected_phase_route_is_accepted": (
+        "the exact declared rejected-phase route is recorded correctly"
+    ),
+    "tiling route telemetry: extra_phase_route_is_rejected": (
+        "an unexpected extra phase route is rejected"
+    ),
+    "tiling route telemetry: fallback_marker_outside_route_is_rejected": (
+        "a fallback marker outside the declared route is rejected"
+    ),
+    "unroll-and-jam route guard: checks_complete_stderr_not_only_tail": (
+        "the guard checks complete stderr rather than only its last lines"
+    ),
+    "unroll-and-jam route guard: accepts_stderr_without_tiling_route": (
+        "the guard accepts a declared route whose complete stderr contains no tiling marker"
+    ),
+    "unroll-and-jam route guard: missing_stderr_fails_closed": (
+        "the guard rejects a run whose stderr record is missing"
+    ),
+    "proof report: clean_report_passes": (
+        "a complete proof report with no open obligations is accepted"
+    ),
+    "proof report: open_proofs_fail_but_comments_do_not": (
+        "unfinished proofs fail the report while matching text in comments does not"
+    ),
+    "proof report: unrealized_extraction_axiom_fails": (
+        "an unrealized extraction axiom fails the report"
+    ),
+    "proof report: missing_listed_route_theorem_fails": (
+        "a theorem omitted from the declared route inventory fails the report"
+    ),
+    "open-proof scanner: rejects_unfinished_commands": (
+        "the scanner rejects real unfinished Rocq commands"
+    ),
+    "open-proof scanner: ignores_comments_strings_and_identifiers": (
+        "the scanner ignores matching words inside comments, strings, and identifiers"
+    ),
+    "open-proof scanner: preserves_line_numbers_across_nested_comments": (
+        "the scanner preserves diagnostic line numbers across nested comments"
+    ),
+    "open-proof scanner: gate_exit_statuses": (
+        "the open-proof gate returns the declared success and failure statuses"
+    ),
+    "strict transformation effects: changed-case-satisfies-all-effects": (
+        "a changed case passes when every required structural effect is present"
+    ),
+    "strict transformation effects: unchanged-case-satisfies-all-effects": (
+        "an unchanged case passes when its no-change contract is satisfied"
+    ),
+    "strict transformation effects: missing-nontrivial-and-tiling-effects-rejected": (
+        "a case missing required nontrivial-change and tiling effects is rejected"
+    ),
+    "strict transformation effects: unexpected-change-rejected": (
+        "a case that changes despite an unchanged contract is rejected"
+    ),
+    "generated C harness: positive-stride-range": (
+        "the execution harness enumerates positive-stride loop ranges correctly"
+    ),
+    "generated C harness: negative-stride-range": (
+        "the execution harness enumerates negative-stride loop ranges correctly"
+    ),
+    "generated C harness: signed-division-candidate": (
+        "the execution harness handles signed division in generated bounds correctly"
+    ),
+    "generated C harness: multidimensional-checksum-indexing": (
+        "the execution harness computes multidimensional checksum indices correctly"
+    ),
+    "legacy failure gate: declared-nonzero-exit-accepted": (
+        "the failure gate accepts exactly the declared nonzero exit status"
+    ),
+    "legacy failure gate: unexpected-nonzero-exit-rejected": (
+        "the failure gate rejects a different nonzero exit status"
+    ),
+    "legacy failure gate: unexpected-zero-exit-rejected": (
+        "the failure gate rejects unexpected success"
+    ),
+    "legacy failure gate: missing-command-rejected": (
+        "the failure gate rejects a missing command rather than treating it as the declared failure"
+    ),
+}
+
+
+def sentence(text: str) -> str:
+    """Normalize a short log interpretation into prose without changing its claim."""
+    value = text.strip()
+    if " " not in value and re.fullmatch(r"[a-z0-9./=:-]+", value):
+        value = value.replace("-", " ")
+        for plain, compound in (
+            ("one level", "one-level"),
+            ("second level", "two-level"),
+            ("case specific", "case-specific"),
+            ("direct only", "direct-only"),
+            ("post tiling", "post-tiling"),
+            ("fail closed", "fail-closed"),
+        ):
+            value = value.replace(plain, compound)
+    if not value:
+        return value
+    return value[0].upper() + value[1:] + ("" if value.endswith((".", "!", "?")) else ".")
+
+
+def case_guidance(record: dict) -> tuple[str, str]:
+    if record["suite"] == "unit":
+        group = record["case"].split(":", 1)[0]
+        return UNIT_CASE_GUIDANCE[group]
+    if (
+        record["suite"] == "driver option configurations"
+        and record["case"] == "sequential-iss-notile"
+    ):
+        return (
+            "Checks ISS through the affine-only route with the specialized tiling validator disabled.",
+            "This is an acceptance-only routing test. It does not assert that the accepted Loop lacks tile-shaped structure.",
+        )
+    return CATALOG_CASE_GUIDANCE[record["suite"]]
+
+
+def explain_expected_outcome(record: dict) -> str:
+    expected = record["expected"]
+    lower = expected.lower()
+    if "status:pluto_frontend_rejected" in lower:
+        return (
+            "Pluto must stop in its source frontend before producing a diamond-tiling "
+            "proposal; exit code 8 records that frontend rejection."
+        )
+    if "status:pluto_final_schedule_rejected" in lower:
+        return (
+            "The fixed Pluto producer must refuse the illegal final schedule, emit no "
+            "candidate program, and return exit code 1."
+        )
+    if expected == "the declared unit-test condition":
+        return f"The test requires that {UNIT_ASSERTIONS[record['case']]}."
+    if record["suite"] == "optimizer-output rejection":
+        return f"The route must reject or replace the uncertifiable effect described here: {expected}"
+    if expected == "forward:true,reverse:true":
+        return "Both source-to-optimized and optimized-to-source refinement checks must succeed."
+    if expected == "compare identity tiling with and without ISS":
+        return (
+            "The search must compare the two accepted Loop outputs. This page must "
+            "not infer an individual result when the retained log gives only totals."
+        )
+    if expected == "compare identity tiling with identity diamond tiling":
+        if record["actual"].startswith("export-failed"):
+            return (
+                "The search must record that this input could not be exported; no "
+                "ordinary-versus-diamond program comparison is available."
+            )
+        return "The search must compare the C programs generated by the two identity-schedule configurations."
+    if expected == "successful-materialization":
+        return "The route must produce an accepted Loop program; this case makes no separate structural-effect claim."
+    if record["case"] == "unrolljam_dependent_guard":
+        return (
+            "Baseline and generated executions must agree; checked block unrolling "
+            "must remain, while the dependence-crossing jam must be absent."
+        )
+    if record["case"] == "unrolljam-context-bound-escape-rejected":
+        return (
+            "The route must retain checked block unrolling but omit the local jam "
+            "whose body escapes its surrounding affine context."
+        )
+    if expected.startswith("outputs-match"):
+        effects = re.search(r"(?:required-)?effects=(\d+)", expected)
+        effect_text = (
+            f" and all {effects.group(1)} declared structural-effect checks must match"
+            if effects and effects.group(1) != "0"
+            else ""
+        )
+        return f"Baseline and generated executions must produce the same output{effect_text}."
+    if lower.startswith("result=failure"):
+        return "The validator must reject this requested transformation and emit no changed output."
+    if lower.startswith("result=success"):
+        return "The validator must accept the requested transformation and expose the declared structural markers."
+    if lower.startswith("success:false"):
+        return "The route must reject this configuration without raising an unrelated alarm."
+    if lower.startswith("success:true"):
+        return "The route must accept this configuration through the direct permutable-band validator."
+    if lower.startswith("rejection,effects=0"):
+        return "The driver must reject this option request for its declared reason and apply no transformation."
+    if lower.startswith("success,effects="):
+        count = re.search(r"effects=(\d+)", lower).group(1)
+        if count == "0":
+            return "The driver must accept the request; this case declares no structural-effect assertion."
+        route = " through the permutable-band tiling route" if "permutable-band" in lower else ""
+        contract = "effect contract" if count == "1" else "effect contracts"
+        return f"The driver must accept the request{route} and satisfy {count} {contract}."
+    if lower.startswith("route:rejected"):
+        alarm = " and report the explicit rejection" if "alarm:true" in lower else ""
+        return f"The direct tiling route must reject the proposal, emit no optimized output{alarm}."
+    if lower.startswith("route:permutable-band"):
+        if "consumer:vector-skipped" in lower:
+            return (
+                "The two-level tiling producer must be accepted, while the "
+                "uncertifiable innermost parallel annotation is skipped."
+            )
+        output = "emit an optimized output" if "optimized-output:true" in lower else "accept the component without emitting a final Loop"
+        return f"The permutable-band validator must {output}, with no fallback or rejection alarm."
+    if lower.startswith("result:reject"):
+        return "The route must reject the requested innermost parallel annotation and emit no optimized output."
+    if lower in {"accept", "accept,exit:0"}:
+        return "The validator must accept the proposal and return exit code 0."
+    if lower == "bridge-with-var-order":
+        return "The live Pluto run must emit an ISS bridge with an explicit variable ordering."
+    if lower.startswith("reject,exit:1"):
+        return "The validator must reject the malformed proposal and return exit code 1."
+    if lower in {"exit:1", "exit:2"}:
+        return f"The failing adapter invocation must preserve its declared exit code {lower[-1]}."
+    if expected == "parse-success":
+        return "The OpenScop input must parse and reprint successfully."
+    if expected == "ok:true,res:true":
+        return "The typed refinement check must complete and establish the requested relation."
+    if expected.startswith("typed-"):
+        return "The typed pipeline must complete and exhibit the structural effect named by this case."
+    if expected == "raise CertCheckerFailure and return no unchecked program":
+        return "The extracted route must raise CertCheckerFailure and return no program."
+    if expected == "keep verified tiling and skip the optional annotation":
+        return "The tiling stage must remain accepted, while the uncertifiable optional annotation is omitted."
+    if expected.startswith(("reject ", "reject an ", "reject tiling")):
+        return sentence(expected)
+    if expected.startswith("accept "):
+        return sentence(expected)
+    return sentence(f"The recorded result must satisfy this contract: {expected}")
+
+
+def explain_recorded_outcome(record: dict) -> str:
+    expected = record["expected"].lower()
+    actual = record["actual"]
+    lower = actual.lower()
+    if "pluto_frontend_rejected" in lower:
+        return (
+            "Pluto reported a frontend rejection and returned 8. No optimizer candidate "
+            "was produced, so this input did not reach PolCert validation or code generation."
+        )
+    if "pluto_final_schedule_rejected" in lower:
+        return (
+            "Pluto rejected its illegal final schedule, returned 1, and produced no final "
+            "candidate for PolCert."
+        )
+    if record["status"] == "SUITE RESULT":
+        return (
+            "The retained log reports only the suite totals, so this input has no "
+            "independent per-case outcome."
+        )
+    if lower.startswith("export-failed"):
+        return "Export failed for this input, so the two generated C programs were not compared."
+    if "consumer:vector-skipped" in lower:
+        return (
+            "Two-level tiling was accepted and differs from one-level output; the "
+            "uncertifiable innermost parallel annotation was not emitted."
+        )
+    if record["case"] == "unrolljam_dependent_guard":
+        return (
+            "Baseline and optimized outputs matched. Checked block-unroll structure "
+            "was present, and the forbidden dependence-crossing jam was absent."
+        )
+    if record["case"] == "unrolljam-context-bound-escape-rejected":
+        return (
+            "The route retained its checked block-unroll effects and omitted the "
+            "context-escaping local jam."
+        )
+    interpretation = record.get("recorded_interpretation")
+    if interpretation:
+        if interpretation == "route-accepted-no-specific-effect-asserted":
+            return "The route was accepted; this case asserted no specific structural effect."
+        return sentence(interpretation)
+    if actual == "PASS; the declared failure point was preserved":
+        return "The route stopped at the declared failing stage and emitted no unchecked continuation."
+    if actual == "all-route-assertions-matched":
+        return "The route choice, output presence, alarm state, and fallback count all matched the case contract."
+    if actual == "all-declared-assertions-matched":
+        return "Every declared success or rejection marker and baseline-difference check matched."
+    if actual == "PASS":
+        if record["expected"] == "raise CertCheckerFailure and return no unchecked program":
+            return "The extracted route raised CertCheckerFailure and returned no fallback program."
+        if record["suite"] == "unit":
+            return f"The unit test confirmed that {UNIT_ASSERTIONS[record['case']]}."
+        return "The named unit assertion completed successfully."
+    if lower.startswith("accept,exit:0"):
+        return "The validator accepted the proposal and returned the success code 0."
+    if "exit:1" in lower and "validation-fail:true" in lower:
+        return "The validator reported the intended validation failure and returned rejection code 1."
+    if lower.startswith("reject,exit:1"):
+        return "The validator rejected the proposal and returned rejection code 1."
+    if lower.startswith("bridge-emitted,exit:0"):
+        return "Pluto emitted the bridge successfully and returned 0."
+    if lower.startswith("exit:") and expected.startswith("exit:"):
+        return f"The adapter returned the declared nonzero status {actual.split(':', 1)[1]}."
+    if actual == "included in the suite-level result":
+        return "This input contributes to the aggregate suite totals; the log does not identify its individual result."
+    if lower.startswith("outputs-match:true"):
+        effects = (
+            " The declared structural effects also matched."
+            if "effects-matched:true" in lower
+            else " This case has no separate structural-effect assertion."
+            if "effects-matched:not-applicable" in lower
+            else ""
+        )
+        execution = []
+        if "parallel:true" in lower:
+            execution.append("a parallel loop was present")
+        if "vector:true" in lower:
+            execution.append("the restricted innermost parallel loop was present")
+        execution_text = f" {'; '.join(execution).capitalize()}." if execution else ""
+        return f"Baseline and optimized outputs matched.{effects}{execution_text}"
+    if lower.startswith(("before={", "one-level={", "stats={", "source-statements:")):
+        return "The recorded Loop-shape counters exhibit the typed transformation named above."
+    if actual == "ok:true,res:true":
+        return "The typed refinement relation was established successfully."
+    if actual.startswith("checked-effect="):
+        return sentence(actual.replace("=true", " was observed").replace("=false", " was not observed"))
+    if actual == "rejected":
+        return "The mutated proposal was rejected as expected."
+    if actual == "accepted":
+        return "The unmodified proposal was accepted as expected."
+    return sentence(actual)
+
+
+def recorded_term_explanations(record: dict) -> list[str]:
+    raw = f"{record['expected']} {record['actual']} {record['status']}"
+    terms = []
+    if "pluto_frontend_rejected" in raw:
+        terms.append("pluto_frontend_rejected: Pluto failed before producing a proposal for PolCert.")
+    if "pluto_final_schedule_rejected" in raw:
+        terms.append("pluto_final_schedule_rejected: Pluto itself refused the final schedule it constructed.")
+    for code, meaning in (
+        ("0", "successful command completion"),
+        ("1", "declared validator or producer rejection in this case"),
+        ("2", "declared missing-input or missing-configuration failure"),
+        ("8", "Pluto source-frontend rejection before validation"),
+    ):
+        if f"exit:{code}" in raw:
+            terms.append(f"exit:{code}: {meaning}.")
+    if "validation-fail:true" in raw:
+        terms.append("validation-fail:true: the extracted validator reported a failed certificate check.")
+    if "route:permutable-band" in raw:
+        terms.append("route:permutable-band: the direct checked band-tiling route was selected.")
+    if "route:rejected" in raw:
+        terms.append("route:rejected: no certified tiling route accepted the proposal.")
+    if "optimized-output:true" in raw:
+        terms.append("optimized-output:true: the route emitted an optimized Loop program.")
+    elif "optimized-output:false" in raw:
+        terms.append("optimized-output:false: the route emitted no optimized Loop program.")
+    if "rejection-alarm:true" in raw or "alarm:true" in raw:
+        terms.append("alarm:true: the driver reported the expected certification failure.")
+    elif "rejection-alarm:false" in raw or "alarm:false" in raw:
+        terms.append("alarm:false: no unexpected certification alarm was reported.")
+    if "fallbacks:0" in raw:
+        terms.append("fallbacks:0: the route did not use an unchecked fallback.")
+    if "outputs-match" in raw:
+        terms.append("outputs-match: baseline and generated executions produced the same checked values.")
+    if "effect-contracts-matched" in raw:
+        terms.append("effect-contracts-matched: every structural effect declared by this driver case was observed.")
+    elif "effects-matched:true" in raw:
+        terms.append("effects-matched:true: every declared structural optimization effect was observed.")
+    elif "effects-matched:not-applicable" in raw or "effect-contracts=none" in raw:
+        terms.append("effects not applicable: this case makes no separate structural-effect claim.")
+    if "required-effects=" in raw:
+        terms.append("required-effects: number of structural markers that must be present.")
+    if "forbidden-effects=" in raw:
+        terms.append("forbidden-effects: number of structural markers that must be absent.")
+    if "markers=" in raw:
+        terms.append("markers: number of harness assertions checked for this configuration.")
+    if "baseline-difference=" in raw:
+        terms.append("baseline-difference: whether the generated Loop structure differs from its baseline; this is not a semantic verdict.")
+    if "changed:" in raw:
+        terms.append("changed: whether the accepted Loop text differs from the input Loop text.")
+    if "nontrivial:" in raw:
+        terms.append("nontrivial: whether the structural oracle found a change beyond renaming or formatting.")
+    if "tiled:" in raw:
+        terms.append("tiled: whether the structural oracle found the expected tile/point loop pattern.")
+    if "parallel:" in raw:
+        terms.append("parallel: whether the generated Loop contains a general parallel loop.")
+    if "vector:" in raw:
+        terms.append("vector: whether the generated Loop contains the restricted innermost parallel form.")
+    if "unrolled:" in raw:
+        terms.append("unrolled: whether the generated Loop contains the declared unrolling effect.")
+    if "omp-threads-requested:" in raw:
+        terms.append("omp-threads-requested: thread count used by the execution check, not a proof claim.")
+    if "phase:true" in raw:
+        terms.append("phase:true: all recorded diamond producer phases were present.")
+    if "affine:true" in raw:
+        terms.append("affine:true: the post-tiling affine validation stage succeeded.")
+    if "tiling:true" in raw:
+        terms.append("tiling:true: the tiling validation stage succeeded.")
+    if any(token in raw for token in ("before={", "after={", "stats={", "one-level={", "two-level={")):
+        terms.append("Loop-shape counters: loops, divisions, remainders, guards, instructions, and coupled bounds in the displayed program.")
+    if "source-statements:" in raw or "split-statements:" in raw:
+        terms.append("statement counts: number of source statements before and after index-set splitting.")
+    if "seq:" in raw or "par:" in raw or "vec:" in raw:
+        terms.append("seq/par/vec: counts of sequential, general parallel, and restricted innermost parallel loops.")
+    if "structural:PASS" in raw or "formal:PASS" in raw:
+        terms.append("structural/formal PASS: both the shape check and extracted validator accepted the proposal.")
+    if "checked-effect=" in raw:
+        terms.append("checked-effect: whether the checked Loop output exhibits unroll-and-jam structure.")
+    if "reason-matched" in raw:
+        terms.append("reason-matched: the driver diagnostic matched the rejection reason declared by this case.")
+    if re.search(r"(?:^|,)effects=\d+", raw):
+        terms.append("effects: number of structural effect conditions declared by this driver case.")
+    if "tiling-route=none" in raw:
+        terms.append("tiling-route=none: this case does not invoke the specialized tiling validator.")
+    elif "tiling-route=permutable-band" in raw:
+        terms.append("tiling-route=permutable-band: the direct checked band-tiling route was selected.")
+    if "route-accepted" in raw:
+        terms.append("route-accepted: the driver accepted and completed the requested checked route.")
+    if "consumer:vector-skipped" in raw:
+        terms.append("consumer:vector-skipped: tiling was accepted, but the optional innermost parallel annotation was not certified or emitted.")
+    if "tile-marker:true" in raw:
+        terms.append("tile-marker:true: the expected two-level tile structure is present.")
+    if "differs-from-one-level:true" in raw:
+        terms.append("differs-from-one-level:true: the accepted output contains a distinct second tile hierarchy.")
+    if "ok:true" in raw and "res:true" in raw:
+        terms.append("ok/res: the typed checker completed and established the requested refinement relation.")
+    if record["status"] == "PASS":
+        if "rejection" in record:
+            terms.append("PASS: the expected rejection, failure, or verified fallback was observed.")
+        elif record["suite"] == "unit":
+            terms.append("PASS: the named unit assertion was confirmed.")
+        else:
+            terms.append("PASS: the expected acceptance, effect, refinement, or execution result was observed.")
+    elif record["status"] == "SUITE RESULT":
+        terms.append("SUITE RESULT: only aggregate totals are available for this input set.")
+    return terms
+
+
+def explain_verdict(record: dict, rejection: dict | None) -> str:
+    if record["status"] == "SUITE RESULT":
+        return "This page reports membership in an aggregate search result, not a per-input pass or failure."
+    if rejection:
+        classification = rejection["classification"]
+        if classification.startswith("Unsupported producer"):
+            return "PASS means the observed Pluto frontend failure matched the producer-side expectation; PolCert did not receive a candidate."
+        if classification.startswith("Illegal final schedule"):
+            return "PASS means Pluto refused the illegal final schedule as expected; this is a producer-side result."
+        if classification.startswith("Exploratory export failure"):
+            return "PASS means the harness recorded this known export failure in the suite totals; no program comparison succeeded for this input."
+        if classification.startswith("Verified") or record["case"] == "matmul-parallel-hint":
+            return "PASS means the verified part was retained and the uncertifiable optional effect was not emitted."
+        return "PASS means the expected rejection or certified fallback occurred at the declared boundary."
+    return "PASS means the recorded behavior matched the expected result for this case."
+
+
+def driver_rejection_reason(case: str) -> str:
+    if "tile-notile" in case or "diamond-nodiamond" in case or "conflict" in case:
+        return "The command combines contradictory controls, so the driver cannot assign one unambiguous pipeline meaning."
+    if "intratile" in case:
+        return "Intra-tile rescheduling requires an accepted tiling stage and one consistent intra-tile policy."
+    if "const-unroll-preserves-parallel-loop" in case:
+        return "Constant unrolling applies only to sequential loops; this output contains no eligible sequential constant-bound loop."
+    if "const-unroll-vector" in case:
+        return "The checked constant-unroll endpoint does not certify vector-mode composition."
+    if "parallel-unrolljam-symbolic" in case:
+        return "The rewritten symbolic loop cannot be re-extracted for the fresh parallel certificate required after unroll-and-jam."
+    if "unrolljam-prevector" in case or "prevector-parallel" in case:
+        return "The requested execution annotations do not have a checked composition in this route."
+    if "stride-zero" in case or "stride-symbolic" in case:
+        return "The Loop frontend requires a nonzero integer-literal stride to construct its affine iteration map."
+    if "ufactor-zero" in case or "ufactor-nonnumeric" in case:
+        return "The unroll factor must be a positive integer."
+    if "ufactor-without" in case:
+        return "An unroll factor has no defined effect unless the checked unroll-and-jam pass is selected."
+    if "cache-without" in case:
+        return "A cache-size control is meaningful only with automatic tile-size determination."
+    if "missing-explicit-tile-sizes" in case:
+        return "The explicitly named tile-size control file does not exist."
+    if "ft-without-lt" in case:
+        return "The first- and last-level tile controls form one pair and cannot be supplied separately."
+    if "candldep-lastwriter" in case:
+        return "Pluto's last-writer mode is supported only with its ISL dependence analysis, not the selected Candl mode."
+    if "isldep-candldep" in case:
+        return "Two mutually exclusive dependence analyzers were requested."
+    if "scalpriv-without-candldep" in case:
+        return "This Pluto scalar-privatization mode requires Candl dependence analysis."
+    if "stale" in case or "implicit" in case:
+        return "The option or implicit control file is not part of the current producer contract; accepting it could reuse stale or ambiguous state."
+    if "bare-default" in case:
+        return "Pluto's implicit defaults enable a pass whose verified route must be selected explicitly."
+    if "bare-identity" in case or "sequential-iss-identity" in case:
+        return "Identity scheduling needs an explicit compatible tiling policy; this combination leaves the route ambiguous or unsupported."
+    if "pet" in case:
+        return "The verified wrapper accepts its Loop extractor frontend, not Pluto's PET frontend."
+    if "unroll-abbrev" in case:
+        return "The wrapper accepts the explicit checked --unrolljam option, not Pluto's ambiguous --unroll abbreviation."
+    return "The requested option has no supported checked route in the current driver contract."
+
+
+def load_driver_rejection_reasons(source: Path) -> dict[str, str]:
+    """Read exact expected diagnostics from the frozen option-suite definitions."""
+    path = source / "tools/polopt_flag_suites/run_pluto_compat_suite.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    reasons = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+            continue
+        if node.func.id != "Check" or len(node.args) < 5:
+            continue
+        name, success, reason = node.args[0], node.args[3], node.args[4]
+        if (
+            isinstance(name, ast.Constant)
+            and isinstance(name.value, str)
+            and isinstance(success, ast.Constant)
+            and success.value is False
+            and isinstance(reason, ast.Constant)
+            and isinstance(reason.value, str)
+        ):
+            value = reason.value
+            if value.startswith("require "):
+                value = f"This option requires {value.removeprefix('require ')}"
+            elif value.startswith("requires "):
+                value = f"The requested control requires {value.removeprefix('requires ')}"
+            elif value.startswith("use "):
+                value = f"The checked interface requires {value.removeprefix('use ')}"
+            elif value == "no such file":
+                value = "The explicitly named control file does not exist"
+            reasons[name.value] = sentence(value)
+    return reasons
+
+
+def rejection_details(record: dict) -> dict | None:
+    suite = record["suite"]
+    case = record["case"]
+    expected = record["expected"].lower()
+    actual = record["actual"].lower()
+    negative = (
+        record["coverage"] == "rejection-contract"
+        or expected.startswith(
+            ("reject", "result=failure", "result:reject", "success:false", "route:rejected")
+        )
+        or "status:pluto_" in expected
+        or expected in {"exit:1", "exit:2"}
+        or actual.startswith("export-failed")
+        or "consumer:vector-skipped" in expected
+        or record["expected"] == "raise CertCheckerFailure and return no unchecked program"
+        or case
+        in {
+            "unrolljam_dependent_guard",
+            "unrolljam-context-bound-escape-rejected",
+        }
+    )
+    if not negative:
+        return None
+
+    if actual.startswith("export-failed"):
+        return {
+            "classification": "Exploratory export failure; no transformation verdict",
+            "reason": "This input could not be exported into the two identity-schedule configurations. The suite counts the failure, but no ordinary-versus-diamond generated-program comparison was performed.",
+        }
+    if "consumer:vector-skipped" in expected:
+        return {
+            "classification": "Verified fallback after an uncertifiable optional annotation",
+            "reason": "The two-level tiling certificate is valid, but the requested innermost parallel annotation is not certifiable. The route keeps the sequential two-level tiled output and omits that annotation.",
+        }
+    if record["expected"] == "raise CertCheckerFailure and return no unchecked program":
+        return {
+            "classification": "Extracted validator failure propagated without fallback",
+            "reason": "This test forces an extracted tiling or post-tiling affine rejection. The runtime must raise CertCheckerFailure instead of returning an unchecked zero or identity program.",
+        }
+    if case == "unrolljam_dependent_guard":
+        return {
+            "classification": "Verified local fallback after an unsafe jam",
+            "reason": "The neighboring loop bodies carry a dependence, so jamming them would reorder a read and write. PolCert keeps checked block unrolling but leaves the dependent bodies as separate loops.",
+        }
+    if case == "unrolljam-context-bound-escape-rejected":
+        return {
+            "classification": "Verified local fallback after an out-of-context jam",
+            "reason": "The proposed local jam would move a body whose access escapes the affine context used by the local certificate. PolCert keeps the checked block-unrolled structure and omits that jam.",
+        }
+
+    if suite == "optimizer-output rejection":
+        details = {
+            "auto-affine-lp-cc-scaling": {
+                "classification": "Confirmed official Pluto automatic-scheduler miscompilation",
+                "reason": "The proposed affine schedule reverses a real S3-to-S1 dependence, so the two statements cannot be reordered.",
+                "optimizer_error": "Pluto's connected-component pass overwrites an already visited vertex's component identifier. LP integerization then scales the two ends of the dependence differently.",
+                "correctness_consequence": "The producer executes after its consumer; the recorded checksum changes from 802469374803681347 to 11412027514774867379.",
+                "polcert_response": "The affine validator detects the dependence reversal and the complete no-RAR route emits no optimized Loop.",
+            },
+            "affine-fst-reversed": {
+                "classification": "Unsafe optional Pluto control interface",
+                "reason": "The supplied .fst groups place a consumer before its producer, which is not a legal lexicographic schedule.",
+                "optimizer_error": "Pluto installs the external grouping and later treats a positive loop coordinate as satisfying the dependence without rechecking the earlier negative scalar coordinate.",
+                "correctness_consequence": "The consumer reads before the producer writes; the recorded result changes from 100 to 0.",
+                "polcert_response": "The affine validator rejects the schedule and the complete route emits no optimized Loop.",
+            },
+            "vanished-outer-parallel": {
+                "classification": "Confirmed official Pluto parallel-annotation miscompilation",
+                "reason": "The surviving inner loop carries a j-1 to j recurrence and therefore cannot use interleaving parallel semantics.",
+                "optimizer_error": "After a one-trip outer coordinate disappears, an off-by-one band-boundary test transfers its parallel annotation to the dependent inner loop.",
+                "correctness_consequence": "Parallel interleavings violate the recurrence; a recorded four-thread run changes the result from 10000 to 2499.",
+                "polcert_response": "Strict hint mapping finds no surviving certifiable coordinate, and direct validation also rejects the dependent inner loop.",
+            },
+            "notile-unrolljam-nonpermutable": {
+                "classification": "Confirmed official Pluto unroll-and-jam miscompilation",
+                "reason": "Jamming crosses a dependence-carrying loop, so one copied body reads a value before the neighboring copied body writes it.",
+                "optimizer_error": "With --notile, Pluto still assumes one tiled level and skips the real permutable-band boundary when choosing the jam loop.",
+                "correctness_consequence": "The generated adjacent j bodies violate the inner-k dependence; the recorded result changes from 15 to 1.",
+                "polcert_response": "PolCert retains proved block unrolling but its local affine check refuses the unsafe jam.",
+            },
+            "tiling-innerpar-satvec": {
+                "classification": "Confirmed official Pluto tiling/parallel miscompilation",
+                "reason": "The two-dimensional recurrence has cross-tile dependences, so the selected tile loop is not parallel.",
+                "optimizer_error": "Pluto moves dependence-satisfaction bits to an outer tile dimension and clears inner bits without constructing the schedule that would satisfy those dependences.",
+                "correctness_consequence": "OpenMP tile interleavings violate the recurrence and produce nondeterministic wrong results.",
+                "polcert_response": "PolCert accepts the legal rectangular tiling but independently rejects or removes the unsafe parallel overlay.",
+            },
+            "diamond-nointratile-reschedule": {
+                "classification": "Historical phase-dump-fork regression; fixed in the packaged ordinary Pluto",
+                "reason": "The current mixed-scalar diamond candidate does not match the complete tiling certificate shape, so PolCert cannot certify it.",
+                "optimizer_error": "The historical fork accidentally made mandatory diamond-schedule restoration depend on the optional intra-tile pass. This defect is not present in official Pluto or the fixed packaged producer.",
+                "correctness_consequence": "The historical fork omitted schedule restoration and changed recorded results from 20 to 18 or 15.",
+                "polcert_response": "PolCert conservatively rejects this mixed-scalar candidate; a separate pure-diamond typed example is accepted.",
+            },
+            "matmul-parallel-hint": {
+                "classification": "Non-certifiable optimizer hint; no Pluto miscompilation claimed",
+                "reason": "The hinted coordinate cannot obtain the concrete certificate required for a generated parallel loop.",
+                "optimizer_error": "No optimizer defect is established. Pluto supplies a hint, but a hint is not a proof of independence.",
+                "correctness_consequence": "PolCert makes no claim that the raw Pluto program is wrong; it only refuses to emit an unproved annotation.",
+                "polcert_response": "Strict mode emits no output. Permissive mode rejects the hint and selects a different dimension that passes validation.",
+            },
+        }
+        return details[case]
+
+    if suite == "second-level rejection":
+        if case.startswith("final-affine-"):
+            return {
+                "classification": "Invalid post-tiling affine schedule",
+                "reason": "The tiling stage is valid, but the test negates every nonzero scattering input coefficient in the final schedule. The reversed affine mapping does not preserve the source dependences, so rejection must occur before the requested consumer or code generation.",
+            }
+        if case.startswith("consumer-"):
+            return {
+                "classification": "Invalid explicit parallel dimension",
+                "reason": "The producer tiling is valid, but explicit dimension 999 is outside the generated schedule. No corresponding loop can be certified as parallel.",
+            }
+        if case.startswith("malformed-"):
+            suffix = (
+                " The malformed producer is rejected before the explicit consumer is checked."
+                if "-with-parallel-current" in case or "-with-vector-current" in case
+                else " The malformed producer is rejected before any optimizer hint is considered."
+                if "-with-hinted-" in case
+                else ""
+            )
+            if "second-level" in case:
+                mutation = "-8 to -7, breaking the outer eight-point tile relation"
+            else:
+                mutation = "-32 to -31, breaking the 32-point tile relation"
+            subject = (
+                "Each malformed producer proposal changes"
+                if "-with-hinted-" in case
+                else "The malformed producer proposal changes"
+            )
+            return {
+                "classification": "Corrupted tiling relation",
+                "reason": (
+                    f"{subject} one tile-link coefficient from {mutation}. "
+                    f"The candidate no longer represents its declared tile/point relation.{suffix}"
+                ),
+            }
+        if case == "scalar-only":
+            return {
+                "classification": "Tiling not applicable",
+                "reason": "The program contains no non-scalar statement and therefore no loop band on which a tiling certificate could be constructed.",
+            }
+        if case == "nonpermutable-band":
+            return {
+                "classification": "Dependence-carrying band",
+                "reason": "The proposed t+i and t-i band carries stencil dependences and is not permutable; rectangular tiling would reorder required executions.",
+            }
+        if "identity-vector-strict" in case:
+            return {
+                "classification": "Verified fallback after an uncertifiable optional annotation",
+                "reason": "The tiling certificate is valid, but the requested innermost parallel annotation is not. The correct result keeps the tiled sequential program and omits that annotation.",
+            }
+
+    scalar_reasons = {
+        "scalar-row-deleted": "The mutation deletes the first scalar schedule row and its output column, removing a timestamp that participates in lexicographic order.",
+        "scalar-row-reordered": "The mutation swaps a scalar component with the following band component, changing their lexicographic nesting and execution order.",
+        "scalar-constant-changed": "The mutation adds 2 to a scalar schedule constant, moving that statement relative to the other scheduled statements.",
+        "noncanonical-output-matrix": "The mutation swaps two output columns without their corresponding rows, so the imported scattering matrix is no longer canonical.",
+    }
+    if suite == "scalar-interleaved tiling":
+        return {"classification": "Malformed scalar-interleaved schedule", "reason": scalar_reasons[case]}
+
+    iss_reasons = {
+        "iss-name-collision": "Two distinct parameters are both printed as alpha, so the bridge cannot recover an unambiguous parameter-to-domain mapping for the split witness.",
+        "reverse_bad_halfspace": "The mutated halfspace moves the cut boundary by one, so the proposed pieces no longer match the declared partition.",
+        "reverse_bad_payload": "The split changes the statement payload from a factor of 2 to 3; ISS may partition instances but may not change their computation.",
+        "mutated-cut": "One live-Pluto cut constant was changed without changing the split domains, so the bridge no longer proves the partition it declares.",
+        "pluto-three-cut-four-piece-mismatch": "Three independent cuts require eight sign regions, but the proposal supplies only four pieces; half of the partition is missing.",
+        "two-cut-missing-piece": "Two cuts require four sign regions, but one region is absent, leaving source instances uncovered.",
+    }
+    if case in iss_reasons:
+        return {"classification": "Invalid ISS witness", "reason": iss_reasons[case]}
+
+    if suite == "diamond tiling" and "pluto_frontend_rejected" in expected:
+        return {
+            "classification": "Unsupported producer input; no PolCert candidate",
+            "reason": "Pluto's source frontend cannot extract a supported polyhedral input for this case. Exit 8 confirms that the pipeline stopped before PolCert validation and before code generation.",
+        }
+    if suite == "diamond tiling" and "pluto_final_schedule_rejected" in expected:
+        return {
+            "classification": "Illegal final schedule rejected by the producer",
+            "reason": "Pluto detects that its final diamond schedule is illegal and refuses to emit it. This is producer-side rejection, not a PolCert validator failure.",
+        }
+    if suite == "direct tiling-validator routes":
+        if case == "frozen-nonpermutable-band":
+            reason = "The band carries a real dependence, so interchange within the band and the proposed rectangular tiling are not valid."
+        else:
+            reason = "The request explicitly selects tiling, but this input has no loop band that can satisfy the tiling certificate."
+        return {"classification": "No accepted direct tiling certificate", "reason": reason}
+    if suite == "identity composition":
+        return {
+            "classification": "Unsupported identity-plus-diamond composition",
+            "reason": "The proposal lacks the checked intermediate phase and schedule witness required by the complete diamond route. No end-to-end certificate exists for this composition, so no Loop is emitted.",
+        }
+    if suite == "parallel-loop validation":
+        reason = (
+            "The selected loop carries a dependence, so different iterations cannot use interleaving parallel semantics."
+            if "dependent" in case
+            else "The requested schedule dimension is outside the current Loop shape, so there is no loop to annotate."
+        )
+        return {"classification": "Invalid parallel-loop request", "reason": reason}
+    if suite == "innermost parallel-loop validation":
+        if "out-of-bounds" in case:
+            reason = "The requested schedule dimension is outside the current Loop shape."
+        elif "dependent" in case:
+            reason = "The requested loop carries a dependence and cannot use interleaving parallel semantics."
+        elif "no-vector-output" in case:
+            reason = "The requested restricted annotation produces no certifiable innermost parallel loop."
+        else:
+            reason = "The requested dimension is not innermost, which violates this route's restricted parallel contract."
+        return {"classification": "Invalid innermost parallel-loop request", "reason": reason}
+    if suite == "one-level tiling configurations":
+        return {
+            "classification": "Non-innermost restricted parallel consumer",
+            "reason": "The diamond or mixed-depth producer does not leave the requested dimension innermost, so the restricted parallel consumer cannot certify it."
+        }
+    if suite == "two-level tiling route checks":
+        return {
+            "classification": "Non-innermost restricted parallel consumer",
+            "reason": "After two-level diamond tiling, the requested dimension is not innermost; the route rejects the annotation and emits no optimized output."
+        }
+    if suite == "two-level tiling configurations":
+        reasons = {
+            "second-level-openscop-source-witness-mismatch": "The supplied two-level witness does not describe the source OpenScop schedule it is meant to certify.",
+            "second-level-rejects-identity-without-tile": "Identity scheduling without a tiling stage creates no first-level tile relation on which a second level can be certified.",
+            "second-level-rejects-legacy-alias": "The legacy alias does not identify the explicit verified two-level route.",
+            "second-level-rejects-legacy-alias-iss": "The legacy alias remains unsupported when ISS is enabled; ISS does not supply the missing two-level route contract.",
+            "second-level-rejects-notile": "The --notile request removes the first tiling stage required by two-level tiling.",
+        }
+        return {"classification": "Invalid two-level tiling request", "reason": reasons[case]}
+    if suite == "driver option configurations":
+        return {
+            "classification": "Rejected driver option contract",
+            "reason": record.get("declared_rejection_reason", driver_rejection_reason(case)),
+        }
+    if suite == "legacy failure propagation":
+        return {
+            "classification": "Expected adapter failure",
+            "reason": "The required corpus, configuration, or input is deliberately absent. Preserving the declared nonzero exit proves that the harness did not turn this failure into a false pass."
+        }
+    return {
+        "classification": "Rejected request",
+        "reason": explain_expected_outcome(record),
+    }
+
+
 def catalog_location(suite: str) -> tuple[str, str]:
     for category, _description, families in CATALOG_HIERARCHY:
         for family, suites in families:
@@ -1991,8 +3032,12 @@ def prepare_program_comparisons(destination: Path, source: Path) -> dict:
             iss_root / before,
             iss_root / after,
             extension="txt",
-            left_label="Before ISS Proposal",
-            right_label="Accepted Split Proposal",
+            left_label="Polyhedral Program Before ISS",
+            right_label="Accepted Split Polyhedral Program",
+            note=(
+                "Component-level evidence: the ISS validator checks these "
+                "polyhedral programs before verified Loop generation."
+            ),
         )
 
     tiling_fixtures = source / "tools/tiling_routes/fixtures"
@@ -2122,6 +3167,7 @@ def prepare_test_catalog(
 ) -> dict:
     """Generate a reviewer-facing inventory of every recorded test case."""
     raw_output = destination / "raw"
+    driver_rejection_reasons = load_driver_rejection_reasons(source)
     transformation_by_case = {
         item["case"]: item["observed_transformation"]
         for item in transformation_summary["cases"]
@@ -2189,6 +3235,9 @@ def prepare_test_catalog(
                     f"conflicting program pairs for {suite}/{case}",
                 )
                 current["program_pair"] = program_pair
+            interpretation = record.get("interpretation")
+            if interpretation and "recorded_interpretation" not in current:
+                current["recorded_interpretation"] = interpretation
             return
         current = {
             "category": category,
@@ -2205,6 +3254,10 @@ def prepare_test_catalog(
             "program_evidence": program_evidence,
             "evidence": record.get("evidence", []),
         }
+        if record.get("interpretation"):
+            current["recorded_interpretation"] = record["interpretation"]
+        if suite == "driver option configurations" and case in driver_rejection_reasons:
+            current["declared_rejection_reason"] = driver_rejection_reasons[case]
         if suite == "ISS multi-cut validation" and case == "multicut-complete":
             current["evidence"] = list(
                 dict.fromkeys(
@@ -2248,6 +3301,7 @@ def prepare_test_catalog(
                         "expected": fields.get("expected", "PASS"),
                         "actual": fields.get("actual", "PASS"),
                         "coverage": fields.get("coverage", "recorded result"),
+                        "interpretation": fields.get("interpretation"),
                         "source": ["local artifact run"],
                         "evidence": [f"raw/{filename}"],
                     }
@@ -2282,6 +3336,7 @@ def prepare_test_catalog(
                     "expected": fields.get("expected", "PASS"),
                     "actual": fields.get("actual", "PASS"),
                     "coverage": fields.get("coverage", "recorded result"),
+                    "interpretation": fields.get("interpretation"),
                     "source": ["remote CI"],
                     "evidence": ["raw/remote-ci-test-results.stdout.txt"],
                 }
@@ -2475,6 +3530,17 @@ def prepare_test_catalog(
             item["expected"],
         )
     )
+    for record in records:
+        what_is_tested, why_this_test_matters = case_guidance(record)
+        rejection = rejection_details(record)
+        record["what_is_tested"] = what_is_tested
+        record["expected_outcome"] = explain_expected_outcome(record)
+        record["recorded_outcome"] = explain_recorded_outcome(record)
+        record["verdict"] = explain_verdict(record, rejection)
+        record["why_this_test_matters"] = why_this_test_matters
+        if rejection:
+            record["rejection"] = rejection
+        record["recorded_term_explanations"] = recorded_term_explanations(record)
     expected_suite_counts = {
         "driver option configurations": 189,
         "second-level rejection": 116,
@@ -2525,6 +3591,38 @@ def prepare_test_catalog(
         "test-catalog hierarchy does not match the recorded suites",
     )
     require(len(records) == 1003, f"expected 1003 test configurations, found {len(records)}")
+    explanation_fields = (
+        "what_is_tested",
+        "expected_outcome",
+        "recorded_outcome",
+        "verdict",
+        "why_this_test_matters",
+    )
+    require(
+        all(all(record.get(field, "").strip() for field in explanation_fields) for record in records),
+        "every catalog record must have complete reviewer-facing explanations",
+    )
+    ordinary_unit_cases = {
+        record["case"]
+        for record in records
+        if record["suite"] == "unit"
+        and record["expected"] == "the declared unit-test condition"
+    }
+    require(
+        ordinary_unit_cases == set(UNIT_ASSERTIONS),
+        "every ordinary unit case must have one concrete assertion explanation",
+    )
+    catalog_driver_rejections = {
+        record["case"]
+        for record in records
+        if record["suite"] == "driver option configurations"
+        and record["coverage"] == "rejection-contract"
+    }
+    require(
+        len(catalog_driver_rejections) == 42
+        and catalog_driver_rejections <= set(driver_rejection_reasons),
+        "driver rejection diagnostics do not cover all 42 frozen catalog cases",
+    )
     local_commands = []
     for result in artifact_results["results"]:
         local_commands.append(
@@ -2599,7 +3697,7 @@ def prepare_test_catalog(
             key=lambda item: evidence_label(item).endswith("log"),
         )
         return " &middot; ".join(
-            f'<a href="../{escape(item, quote=True)}">'
+            f'<a href="../{escape(item, quote=True)}" target="_blank" rel="noopener">'
             f'{escape(evidence_label(item))}</a>'
             for item in ordered
         )
@@ -2648,16 +3746,7 @@ def prepare_test_catalog(
       <pre>{escape(after.read_text(encoding="utf-8"))}</pre>
     </section>
   </div>
-  {note}
-  <section class="comparison-result">
-    <h2>Validation Result</h2>
-    <dl>
-      <dt>Expected</dt><dd>{escape(record["expected"])}</dd>
-      <dt>Observed effect</dt><dd>{escape(record["observed_transformation"])}</dd>
-      <dt>Actual</dt><dd>{escape(record["actual"])}</dd>
-      <dt>Status</dt><dd>{escape(record["status"])}</dd>
-    </dl>
-  </section>"""
+  {note}"""
         elif exact_loop_pair:
             record["view_kind"] = "loop-before-after"
             comparison = f"""
@@ -2670,16 +3759,7 @@ def prepare_test_catalog(
       <h2>Accepted Output</h2>
       <pre>{escape(after.read_text(encoding="utf-8"))}</pre>
     </section>
-  </div>
-  <section class="comparison-result">
-    <h2>Validation Result</h2>
-    <dl>
-      <dt>Expected</dt><dd>{escape(record["expected"])}</dd>
-      <dt>Observed effect</dt><dd>{escape(record["observed_transformation"])}</dd>
-      <dt>Actual</dt><dd>{escape(record["actual"])}</dd>
-      <dt>Status</dt><dd>{escape(record["status"])}</dd>
-    </dl>
-  </section>"""
+  </div>"""
         else:
             input_program = record.get("input_program")
             record["view_kind"] = (
@@ -2698,33 +3778,70 @@ def prepare_test_catalog(
     Strict validation stops before code generation, so this case has no target
     or rejected candidate program to display.
   </p>"""
-            expected_label = (
-                "Test"
-                if record["expected"] == "the declared unit-test condition"
-                else "Expected"
-            )
-            expected_value = (
-                record["case"]
-                if record["expected"] == "the declared unit-test condition"
-                else record["expected"]
-            )
-            coverage = (
-                f'<dt>Coverage</dt><dd>{escape(record["coverage"])}</dd>'
-                if record["coverage"] not in {"recorded result", "unit"}
-                else ""
-            )
-            comparison = f"""
-  {input_section}
-  <section class="result-summary">
-    <h2>Result</h2>
+            comparison = input_section
+
+        explanation = f"""
+  <section class="case-overview">
+    <h2>What This Case Checks</h2>
+    <p>{escape(record["what_is_tested"])}</p>
     <dl>
-      <dt>{expected_label}</dt><dd>{escape(expected_value)}</dd>
-      {coverage}
-      <dt>Observed effect</dt><dd>{escape(record["observed_transformation"])}</dd>
-      <dt>Actual</dt><dd>{escape(record["actual"])}</dd>
-      <dt>Status</dt><dd>{escape(record["status"])}</dd>
+      <dt>Expected outcome</dt><dd>{escape(record["expected_outcome"])}</dd>
+      <dt>Recorded outcome</dt><dd>{escape(record["recorded_outcome"])}</dd>
+      <dt>Verdict</dt><dd>{escape(record["verdict"])}</dd>
+      <dt>Why this test matters</dt><dd>{escape(record["why_this_test_matters"])}</dd>
     </dl>
   </section>"""
+
+        rejection_html = ""
+        if "rejection" in record:
+            rejection = record["rejection"]
+            if rejection["classification"].startswith("Unsupported producer"):
+                heading = "Why the Pipeline Stops"
+            elif rejection["classification"].startswith("Exploratory export failure"):
+                heading = "Why No Comparison Is Available"
+            elif (
+                rejection["classification"].startswith("Verified")
+                or record["case"] == "matmul-parallel-hint"
+            ):
+                heading = "Why the Requested Effect Is Not Applied"
+            elif rejection["classification"] == "Expected adapter failure":
+                heading = "Why Failure Is Expected"
+            else:
+                heading = "Why Rejection Is Correct"
+            deeper = ""
+            for key, label in (
+                ("optimizer_error", "Optimizer behavior"),
+                ("correctness_consequence", "Correctness consequence"),
+                ("polcert_response", "PolCert response"),
+            ):
+                if key in rejection:
+                    deeper += f"<dt>{label}</dt><dd>{escape(rejection[key])}</dd>"
+            rejection_html = f"""
+  <section class="rejection-explanation">
+    <h2>{heading}</h2>
+    <dl>
+      <dt>Classification</dt><dd>{escape(rejection["classification"])}</dd>
+      <dt>Reason</dt><dd>{escape(rejection["reason"])}</dd>
+      {deeper}
+    </dl>
+  </section>"""
+
+        term_items = "".join(
+            f"<li>{escape(term)}</li>" for term in record["recorded_term_explanations"]
+        )
+        term_help = f"<h3>Term meanings</h3><ul>{term_items}</ul>" if term_items else ""
+        raw_fields = f"""
+  <details class="recorded-fields">
+    <summary>Recorded Fields and Terms</summary>
+    <dl>
+      <dt>Expected</dt><dd><code>{escape(record["expected"])}</code></dd>
+      <dt>Actual</dt><dd><code>{escape(record["actual"])}</code></dd>
+      <dt>Status</dt><dd><code>{escape(record["status"])}</code></dd>
+      <dt>Coverage</dt><dd><code>{escape(record["coverage"])}</code></dd>
+      <dt>Observed effect</dt><dd>{escape(record["observed_transformation"])}</dd>
+    </dl>
+    {term_help}
+  </details>"""
 
         program_links = case_links(record["program_evidence"])
         supporting_links = case_links(record["evidence"])
@@ -2740,6 +3857,26 @@ def prepare_test_catalog(
             )
         case_path = cases_dir / f"{index:04d}.html"
         record["case_view"] = f"cases/{case_path.name}"
+        family_fragment = re.sub(r"[^a-z0-9]+", "-", record["family"].lower()).strip("-")
+        previous_link = (
+            f'<a href="{index - 1:04d}.html" data-same-tab>Previous case</a>'
+            if index > 0
+            else ""
+        )
+        next_link = (
+            f'<a href="{index + 1:04d}.html" data-same-tab>Next case</a>'
+            if index + 1 < len(records)
+            else ""
+        )
+        pager = "<span> &middot; </span>".join(
+            item
+            for item in (
+                previous_link,
+                '<a href="../test-catalog.html" data-same-tab>Back to test catalog</a>',
+                next_link,
+            )
+            if item
+        )
         page = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -2750,17 +3887,36 @@ def prepare_test_catalog(
 </head>
 <body>
 <main>
-  <p><a href="../test-catalog.html">Test catalog</a></p>
+  <p class="breadcrumbs">
+    <a href="../../../docs/index.html" data-same-tab>Artifact overview</a>
+    <span>/</span>
+    <a href="../test-catalog.html" data-same-tab>Test catalog</a>
+    <span>/</span>
+    <a href="../test-catalog.html#{family_fragment}" data-same-tab>{escape(record["family"])}</a>
+    <span>/</span>
+    <span>{escape(record["suite"])}</span>
+  </p>
   <h1><code>{escape(record["case"])}</code></h1>
-  <p class="lede">{escape(record["suite"])}. {escape(record["family"])}.</p>
+  <p class="lede">{escape(record["observed_transformation"])}</p>
+{explanation}
 {comparison}
+{rejection_html}
+{raw_fields}
   <div class="case-links">
     {chr(10).join(link_blocks)}
   </div>
+  <p class="case-pager">{pager}</p>
 </main>
 </body>
 </html>
 """
+        require(
+            all(
+                escape(record[field]) in page
+                for field in ("expected", "actual", "status", "coverage")
+            ),
+            f"case page is missing a recorded field: {record['suite']}/{record['case']}",
+        )
         case_path.write_text(page, encoding="utf-8")
 
     actual_view_counts: dict[str, int] = {}
@@ -2787,6 +3943,62 @@ def prepare_test_catalog(
         "reviewer-view coverage mismatch: expected accepted/rejected/result "
         f"692/117/194, got {program_view_count}/{rejected_view_count}/"
         f"{result_view_count}",
+    )
+    require(
+        sum("rejection" in record for record in records) == 240,
+        "expected 240 compiler-stage rejections, failures, or fallbacks with explanations",
+    )
+    require(
+        all(
+            "rejection" in record
+            for record in records
+            if record["view_kind"] == "rejected-candidate-pair"
+        ),
+        "every rejected candidate comparison must explain why rejection is correct",
+    )
+    second_level = [
+        record for record in records if record["suite"] == "second-level rejection"
+    ]
+    require(
+        len(second_level) == 116
+        and sum(record["view_kind"] == "rejected-candidate-pair" for record in second_level)
+        == 99
+        and sum(record["view_kind"] == "result-summary" for record in second_level) == 13
+        and sum(record["view_kind"] == "accepted-program-pair" for record in second_level)
+        == 4,
+        "second-level rejection views must remain 99 rejected, 13 summary, and 4 fallback",
+    )
+    require(
+        sum(
+            record.get("rejection", {}).get("classification")
+            == "Unsupported producer input; no PolCert candidate"
+            for record in records
+        )
+        == 11,
+        "all eleven Pluto frontend rejections need a no-candidate explanation",
+    )
+    rejection_classes = Counter(
+        record["rejection"]["classification"]
+        for record in records
+        if "rejection" in record
+    )
+    require(
+        rejection_classes["Exploratory export failure; no transformation verdict"] == 2
+        and rejection_classes[
+            "Extracted validator failure propagated without fallback"
+        ]
+        == 6
+        and rejection_classes[
+            "Verified fallback after an uncertifiable optional annotation"
+        ]
+        == 8
+        and sum(
+            count
+            for classification, count in rejection_classes.items()
+            if classification.startswith("Verified local fallback")
+        )
+        == 3,
+        "export failures and verified fallback explanations are incomplete",
     )
     attached_pair_keys = {
         (record["suite"], record["case"])
@@ -2870,7 +4082,12 @@ def prepare_test_catalog(
             )
         ).lower()
         status_class = "status-pass" if record["status"] == "PASS" else "status-note"
-        if record["view_kind"] in {"accepted-program-pair", "loop-before-after"}:
+        if (
+            record["view_kind"] == "accepted-program-pair"
+            and record["suite"] == "ISS validator"
+        ):
+            view_label = "polyhedral before/after"
+        elif record["view_kind"] in {"accepted-program-pair", "loop-before-after"}:
             view_label = "before/after programs"
         elif record["view_kind"] == "accepted-domain-pair":
             view_label = "original/split domains"
@@ -2916,6 +4133,22 @@ def prepare_test_catalog(
         family_blocks = []
         for family in category["families"]:
             family_id = html_slug(family["name"])
+            family_intro = ""
+            if family["name"] == "Index-Set Splitting (ISS)":
+                representative = next(
+                    record
+                    for record in records_by_suite["typed C instruction pipelines"]
+                    if record["case"] == "iss-reverse-index"
+                )
+                family_intro = (
+                    '<p class="catalog-family-intro"><strong>Start with the '
+                    'generated program:</strong> '
+                    f'<a href="{escape(representative["case_view"], quote=True)}" '
+                    'target="_blank" rel="noopener">source Loop and accepted split '
+                    'Loop</a>. The three component-validator suites expose the '
+                    'polyhedral objects checked before code generation; the final '
+                    'identity-sensitivity suite compares accepted Loop outputs.</p>'
+                )
             suite_blocks = []
             for suite in family["suites"]:
                 suite_name = suite["name"]
@@ -2937,8 +4170,8 @@ def prepare_test_catalog(
                 else:
                     table_class = ""
                     table_head = (
-                        "<thead><tr><th>Case</th><th>Expected result</th>"
-                        "<th>Observed effect</th><th>Actual result</th>"
+                        "<thead><tr><th>Case</th><th>Recorded expectation</th>"
+                        "<th>Observed effect</th><th>Recorded outcome</th>"
                         "<th>Status</th><th>Program or result</th></tr></thead>"
                     )
                 suite_blocks.append(
@@ -2954,7 +4187,7 @@ def prepare_test_catalog(
                 f'<details id="{family_id}" class="catalog-family" data-catalog-family>'
                 f'<summary><span>{escape(family["name"])}</span>'
                 f'<span>{family["configurations"]} records</span></summary>'
-                f'{chr(10).join(suite_blocks)}</details>'
+                f'{family_intro}{chr(10).join(suite_blocks)}</details>'
             )
         category_sections.append(
             f'<section id="{category_id}" class="catalog-section" data-catalog-section>'
@@ -2974,20 +4207,21 @@ def prepare_test_catalog(
 </head>
 <body>
 <main>
+<p class="breadcrumbs"><a href="../../docs/index.html" data-same-tab>Artifact overview</a><span>/</span> Test catalog</p>
 <h1>Test Catalog</h1>
 <p class="lede">
   Use the categories to find tests for a transformation or compiler interface.
-  Accepted transformations show the input and output program, or the checked
-  domains when the validator operates on a split directly. Rejection cases show
-  the input and rejected candidate when one was produced. Tests without two
-  compared objects open a concise result page.
+  Every case page explains what is checked, the expected and recorded outcomes,
+  and why the test matters. Program comparisons remain the primary evidence;
+  raw fields and logs are supporting details.
 </p>
+<p><code>PASS</code> means the recorded outcome matched the expectation. An expected rejection therefore also passes.</p>
 <p>
   <strong>{counts['listed_test_configurations']} recorded results</strong> for
   <strong>{counts['distinct_suite_cases']} named cases</strong>:
   <strong>{counts['before_after_programs']} accepted comparison pages</strong>,
   <strong>{counts['input_rejected_candidates']} rejected-candidate pages</strong>,
-  and <strong>{counts['result_summaries']} no-target or non-program results</strong>.
+  and <strong>{counts['result_summaries']} result-only pages</strong>.
 </p>
 <ul class="catalog-index">{chr(10).join(category_links)}</ul>
 <label for="test-filter"><strong>Filter cases</strong></label>
@@ -3018,6 +4252,7 @@ def prepare_test_catalog(
   <tbody>{chr(10).join(remote_rows)}</tbody>
 </table>
 </details>
+<p class="case-pager"><a href="../../docs/index.html" data-same-tab>Back to artifact overview</a></p>
 </main>
 <script>
 const input = document.getElementById('test-filter');
@@ -3620,7 +4855,12 @@ def make_document_links_open_new_tabs(package: Path) -> int:
             if href is None:
                 return match.group(0)
             value = unescape(href.group("value")).strip()
-            if not value or value.startswith("#") or target_pattern.search(attrs):
+            if (
+                not value
+                or value.startswith("#")
+                or target_pattern.search(attrs)
+                or "data-same-tab" in attrs.lower()
+            ):
                 return match.group(0)
             suffix = ' target="_blank"'
             if not rel_pattern.search(attrs):

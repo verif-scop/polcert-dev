@@ -311,6 +311,78 @@ table {
 .case-side-by-side dd { margin: 3px 0 12px; }
 .case-links { margin-top: 24px; }
 
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 9px;
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.case-overview {
+  max-width: 860px;
+  margin: 26px 0 34px;
+  padding: 18px 20px;
+  border-left: 4px solid var(--blue);
+  background: var(--blue-soft);
+}
+
+.case-overview h2,
+.rejection-explanation h2 {
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  font-size: 1.22rem;
+}
+
+.case-overview p { margin: 0 0 12px; }
+
+.case-overview dl,
+.rejection-explanation dl,
+.recorded-fields dl { margin: 0; }
+
+.case-overview dt,
+.rejection-explanation dt,
+.recorded-fields dt {
+  margin-top: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.case-overview dd,
+.rejection-explanation dd,
+.recorded-fields dd { margin: 3px 0 12px; }
+
+.rejection-explanation {
+  max-width: 860px;
+  margin: 34px 0 0;
+  padding: 18px 20px;
+  border-left: 4px solid var(--red);
+  background: #fbf3f3;
+}
+
+.recorded-fields {
+  max-width: 860px;
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.recorded-fields summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.recorded-fields h3 { margin-top: 20px; }
+
+.case-pager {
+  margin-top: 34px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
 .comparison-note,
 .result-summary,
 .comparison-result,
@@ -423,6 +495,10 @@ table {
 .catalog-suite-note {
   margin: 2px 4px 12px;
   color: var(--muted);
+}
+
+.catalog-family-intro {
+  margin: 4px 4px 16px 22px;
 }
 
 .run-metadata {
