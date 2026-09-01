@@ -648,6 +648,7 @@ def prepare_transformation_index(destination: Path) -> dict:
             if not transformations:
                 transformations.append("Affine scheduling and loop-bound reconstruction")
         transformation = "; ".join(dict.fromkeys(transformations))
+        recorded_e2e = recorded_e2e_case in E2E_RECORDED_LOOP_CASES
         records.append(
             {
                 "case": path.name,
@@ -656,6 +657,29 @@ def prepare_transformation_index(destination: Path) -> dict:
             }
         )
         name = escape(path.name)
+        if recorded_e2e:
+            diff_text = (path / "diff.patch").read_text(encoding="utf-8")
+            supporting = f"""
+  <details>
+    <summary>Unified Diff</summary>
+    <pre>{escape(diff_text)}</pre>
+  </details>"""
+            file_links = (
+                f'<strong><a href="{name}/comparison.html">before/after</a></strong>'
+            )
+        else:
+            supporting = """
+  <p>
+    <a href="diff.patch">Unified diff</a> &middot;
+    <a href="status.txt">Compiler log</a>
+  </p>"""
+            file_links = (
+                f'<strong><a href="{name}/comparison.html">before/after</a></strong> &middot; '
+                f'<a href="{name}/input.pretty.loop">before</a> &middot; '
+                f'<a href="{name}/optimized.loop">after</a> &middot; '
+                f'<a href="{name}/diff.patch">diff</a> &middot; '
+                f'<a href="{name}/status.txt">log</a>'
+            )
         comparison = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -670,19 +694,16 @@ def prepare_transformation_index(destination: Path) -> dict:
   <h1><code>{name}</code>: Before and After</h1>
   <p class="lede">Observed transformation: {escape(transformation)}.</p>
   <div class="loop-comparison">
-    <section>
+    <section id="before">
       <h2>Before</h2>
       <pre>{escape(input_text)}</pre>
     </section>
-    <section>
+    <section id="after">
       <h2>Accepted Output</h2>
       <pre>{escape(output_text)}</pre>
     </section>
   </div>
-  <p>
-    <a href="diff.patch">Unified diff</a> &middot;
-    <a href="status.txt">Compiler log</a>
-  </p>
+{supporting}
 </main>
 </body>
 </html>
@@ -692,11 +713,7 @@ def prepare_transformation_index(destination: Path) -> dict:
             "<tr>"
             f"<td><code>{name}</code></td>"
             f"<td>{escape(transformation)}</td>"
-            f'<td><strong><a href="{name}/comparison.html">before/after</a></strong> &middot; '
-            f'<a href="{name}/input.pretty.loop">before</a> &middot; '
-            f'<a href="{name}/optimized.loop">after</a> &middot; '
-            f'<a href="{name}/diff.patch">diff</a> &middot; '
-            f'<a href="{name}/status.txt">log</a></td>'
+            f"<td>{file_links}</td>"
             "</tr>"
         )
     transformation_counts: dict[str, int] = {}
@@ -1754,12 +1771,7 @@ def prepare_test_catalog(
         elif raw_suite == "E2E" and raw_case in E2E_RECORDED_LOOP_CASES:
             example_case = f"e2e-{raw_case.replace('_', '-')}"
             example = f"../optimized-loop-examples/{example_case}"
-            program_evidence = [
-                f"{example}/comparison.html",
-                f"{example}/input.pretty.loop",
-                f"{example}/optimized.loop",
-                f"{example}/diff.patch",
-            ]
+            program_evidence = [f"{example}/comparison.html"]
         elif raw_suite == "typed-c-pipeline":
             program_evidence = ["../../docs/index.html#typed-loop-examples"]
         key = (suite, case, expected, actual)
