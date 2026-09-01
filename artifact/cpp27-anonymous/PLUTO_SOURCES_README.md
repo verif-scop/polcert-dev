@@ -1,7 +1,7 @@
 # Pluto Source Snapshots
 
-PolCert treats Pluto as an untrusted producer of optimization proposals. The
-two source archives here make the optimizer-dependent checks reproducible:
+Pluto proposes optimization schedules, and PolCert checks them before code
+generation. The two source archives here make those checks reproducible:
 
 - `fixed.tar.xz` is used for ordinary compilation and tests.
 - `historical.tar.xz` reproduces earlier Pluto behavior used to test how PolCert

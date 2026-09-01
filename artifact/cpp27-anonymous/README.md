@@ -37,7 +37,7 @@ For the complete test inventory, open
 | `third_party/pluto/` | Pluto source archives used for ordinary tests and invalid-proposal cases. |
 | `environment/Dockerfile` | Rebuilds Pluto, the proofs, and the extracted compiler. |
 | `evidence/README.md` | Guide to the recorded proof and test results. |
-| `evidence/results/` | Test catalog, proof-closure inventory, commands, and raw output. |
+| `evidence/results/` | Test catalog, theorem and proof-build report, commands, and raw output. |
 | `evidence/optimized-loop-examples/` | Before-and-after loop outputs, labeled by transformation. |
 | `evidence/execution-comparisons/` | Checks that original and optimized programs return the same result. |
 | `evidence/rejected-optimizer-outputs/` | Unsafe or non-certifiable optimizer proposals, their causes, and PolCert's response. |
@@ -56,20 +56,18 @@ docker run --rm polcert-artifact
 ```
 
 The build requires network access for Ubuntu and opam packages and requires an
-x86-64 Docker environment. The default container command runs 25 compiler,
-executable, and regression checks. These commands run the longer checks:
+x86-64 Docker environment. The default container command runs 25 compiler and
+executable checks. The following modes are useful for a complete review:
 
 ```sh
 docker run --rm polcert-artifact full   # all 30 artifact checks
-docker run --rm polcert-artifact ci     # all seven CI test groups
-docker run --rm polcert-artifact bugs   # seven Pluto regression/witness checks
+docker run --rm polcert-artifact bugs   # seven Pluto reliability checks
 docker run --rm polcert-artifact proof  # clean proof and extraction rebuild
 ```
 
-`docker run --rm polcert-artifact ci base` runs one CI test group. Run
-`docker run --rm polcert-artifact all` only when both the full artifact
-validation and every CI test group are required; it does not repeat the clean
-proof rebuild.
+The default run is the shortest end-to-end check; `full` adds the five slower
+checks. See [`environment/README.md`](environment/README.md) for targeted test
+modes and expected running times.
 
 With the listed dependencies already installed, this proof-only source check is
 also available:

@@ -12,10 +12,10 @@
     <strong>PolCert Guide</strong>
     <a href="#design">Compiler design</a>
     <a href="#contract">Correctness guarantee</a>
-    <a href="#project-map">Project map</a>
     <a href="#top-level">Top-level proof</a>
     <a href="#proof-spine">Proof structure</a>
     <a href="#components">Core proof reading</a>
+    <a href="#project-map">Project map</a>
     <a href="#crosswalk">Proof and evidence</a>
     <a href="#scope">Scope</a>
     <div class="minor">
@@ -82,9 +82,8 @@
       <p>
         Other configurations add index-set splitting (ISS), a second tiling
         level, diamond tiling, or another checked schedule after tiling.
-        The implementation also retains vector-named configurations for an
-        innermost-only use of the same independence check. This guide treats
-        them as a restricted form of parallel eligibility.
+        An innermost-only concurrency configuration reuses the parallel
+        independence check.
       </p>
 
       <h3>What Each Stage Establishes</h3>
@@ -152,7 +151,7 @@
       <div class="wide-table">
         <table class="typed-examples">
           <thead>
-            <tr><th>Input computation</th><th>Accepted output shape</th><th>Checked path</th></tr>
+            <tr><th>Input computation</th><th>Simplified accepted shape</th><th>Checked path</th></tr>
           </thead>
           <tbody>
             <tr>
@@ -195,12 +194,13 @@
       </div>
       <p>
         <a href="../source/samples/CTypedLoopSamples.v"><code>CTypedLoopSamples.v</code></a>
-        contains the typed inputs and extraction checks. They are constructed
-        directly in Rocq rather than parsed from C. The
+        contains the four typed inputs. They are constructed directly in Rocq
+        rather than parsed from C. Small computations check that extraction
+        retains each program's loop depth and nonempty read/write accesses; the
         <a
           href="../evidence/results/test-catalog.html#typed-instruction-programs"
-        >six-case CI record</a> gives the detailed observed results. Additional
-        typed kernels cover
+        >six compiler runs</a> then exercise the optimization paths shown above.
+        Additional typed kernels cover
         <a href="../source/samples/CSample1.c">matrix multiplication</a>,
         <a href="../source/samples/CSample2.c">covariance</a>, and
         <a href="../source/samples/CSample3.c">GEMVER</a>.
@@ -230,73 +230,6 @@
         preserves the order inside each iteration. The compiler proves that
         all such executions are safe; the target language does not assume it.
       </p>
-    </section>
-
-    <section id="project-map">
-      <h2>Project Map</h2>
-      <p>
-        The table gives one starting point for each part of the compiler.
-      </p>
-      <table>
-        <thead><tr><th>Path</th><th>Responsibility</th><th>Start with</th></tr></thead>
-        <tbody>
-          <tr>
-            <td><a href="../source/src/"><code>src/</code></a></td>
-            <td>The polyhedral model and the checks for schedules, tiling, and parallel loops.</td>
-            <td><a href="../source/src/PolyLang.v"><code>PolyLang.v</code></a></td>
-          </tr>
-          <tr>
-            <td><a href="../source/polygen/"><code>polygen/</code></a></td>
-            <td>Source and target loop languages, loop generation, and verified unrolling.</td>
-            <td><a href="../source/polygen/ParallelLoop.v"><code>ParallelLoop.v</code></a></td>
-          </tr>
-          <tr>
-            <td><a href="../source/driver/"><code>driver/</code></a></td>
-            <td>Complete compiler configurations and their top-level theorems.</td>
-            <td>
-              <a href="../source/driver/VerifiedParallelCompilerConfig.v">
-                <code>VerifiedParallelCompilerConfig.v</code>
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td><a href="../source/syntax/"><code>syntax/</code></a></td>
-            <td>Concrete instructions, the text frontend, and the extracted command-line tool.</td>
-            <td>
-              <a href="../source/syntax/SVerifiedParallelCompilerConfig.v">
-                <code>SVerifiedParallelCompilerConfig.v</code>
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td><a href="../source/tests/"><code>tests/</code></a></td>
-            <td>Loop examples, executable comparisons, and rejected optimizer proposals.</td>
-            <td>
-              <a href="../source/tests/end-to-end-c/README.md">
-                <code>end-to-end-c/README.md</code>
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td><a href="../source/samples/"><code>samples/</code></a></td>
-            <td>Concrete typed instruction instances and C reference computations.</td>
-            <td>
-              <a href="../source/samples/CTypedLoopSamples.v">
-                <code>CTypedLoopSamples.v</code>
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td><a href="../source/tools/artifact/"><code>tools/artifact/</code></a></td>
-            <td>Proof and test inventories, the artifact runner, and result files.</td>
-            <td>
-              <a href="../source/tools/artifact/run_artifact_check.py">
-                <code>run_artifact_check.py</code>
-              </a>
-            </td>
-          </tr>
-        </tbody>
-      </table>
     </section>
 
     <section id="top-level">
@@ -459,11 +392,8 @@
     <section id="components">
       <h2>Core Proof Reading</h2>
       <p>
-        Start from each question, then follow its main theorem into the proof
-        page or source. The selected-reading counts cover extraction, optional
-        ISS, affine scheduling, tiling, and parallel code generation. They
-        count nonempty lines in proof bodies chosen for a first pass, not
-        entire components or the full proof. Loop postpasses are not included.
+        Each entry gives the question being proved, the proof idea, the main
+        theorem, the source files, and an approximate amount of proof to read.
       </p>
 
       <article class="component" id="claim-extraction">
@@ -669,9 +599,9 @@
           </dd>
         </dl>
         <p>
-          Vector-named configurations reuse this eligibility check and also
-          require the innermost generated loop. Their target retains ordinary
-          loop semantics.
+          The innermost-only parallel mode reuses the same independence check
+          and additionally requires the selected generated loop to be
+          innermost. Its target still has ordinary parallel-loop semantics.
         </p>
       </article>
 
@@ -714,11 +644,66 @@
       </article>
     </section>
 
+    <section id="project-map">
+      <h2>Project Map</h2>
+      <table>
+        <thead><tr><th>Path</th><th>Responsibility</th><th>Start with</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><a href="../source/src/"><code>src/</code></a></td>
+            <td>The polyhedral model and the checks for schedules, tiling, and parallel loops.</td>
+            <td><a href="../source/src/PolyLang.v"><code>PolyLang.v</code></a></td>
+          </tr>
+          <tr>
+            <td><a href="../source/polygen/"><code>polygen/</code></a></td>
+            <td>Source and target loop languages, loop generation, and verified unrolling.</td>
+            <td><a href="../source/polygen/ParallelLoop.v"><code>ParallelLoop.v</code></a></td>
+          </tr>
+          <tr>
+            <td><a href="../source/driver/"><code>driver/</code></a></td>
+            <td>Complete compiler configurations and their top-level theorems.</td>
+            <td>
+              <a href="../source/driver/VerifiedParallelCompilerConfig.v">
+                <code>VerifiedParallelCompilerConfig.v</code>
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td><a href="../source/syntax/"><code>syntax/</code></a></td>
+            <td>Concrete instructions, the text frontend, and the extracted command-line tool.</td>
+            <td>
+              <a href="../source/syntax/SVerifiedParallelCompilerConfig.v">
+                <code>SVerifiedParallelCompilerConfig.v</code>
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td><a href="../source/samples/"><code>samples/</code></a></td>
+            <td>Typed instruction instances and reference C computations.</td>
+            <td>
+              <a href="../source/samples/CTypedLoopSamples.v">
+                <code>CTypedLoopSamples.v</code>
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td><a href="../source/tests/"><code>tests/</code></a></td>
+            <td>Loop examples, execution comparisons, and optimizer-rejection cases.</td>
+            <td>
+              <a href="../source/tests/end-to-end-c/README.md">
+                <code>end-to-end-c/README.md</code>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
     <section id="crosswalk">
       <h2>Proof and Evidence</h2>
       <p>
-        Use the proof entry to inspect the argument and the recorded evidence
-        to inspect proof closure or executable coverage. The complete test
+        Use the proof entry to inspect the argument and the recorded checks to
+        inspect the build result or executable coverage. The complete test
         catalog is grouped by transformation and purpose.
       </p>
       <table>
@@ -728,7 +713,7 @@
             <td>End-to-end verified compilation</td>
             <td><a href="#claim-e2e">main theorem and executable compiler theorem</a></td>
             <td>
-              <a href="../evidence/results/proof-report.md">proof-closure inventory</a>;
+              <a href="../evidence/results/proof-report.md">theorem and proof-build report</a>;
               <a href="../evidence/execution-comparisons/results.json">program-output comparisons</a>
             </td>
           </tr>
@@ -736,7 +721,7 @@
             <td>Verified extraction</td>
             <td><a href="#claim-extraction"><code>extractor_correct</code></a></td>
             <td>
-              <a href="../evidence/results/proof-report.md">proof-closure inventory</a>
+              <a href="../evidence/results/proof-report.md">theorem and proof-build report</a>
             </td>
           </tr>
           <tr>

@@ -591,7 +591,7 @@ def prepare_transformation_index(destination: Path) -> dict:
         )
         transformations = []
         if not changed:
-            transformations.append("None; output loop is identical")
+            transformations.append("No loop-structure change")
         elif path.name == "seq":
             transformations.append("Domain guard insertion")
         else:
@@ -1037,41 +1037,52 @@ def observed_transformation(
     lower_expected = expected.lower()
 
     if is_expected_rejection(expected, actual, coverage):
+        rejected_effects = {
+            "auto-affine-lp-cc-scaling": "Affine rescheduling reversed a dependence",
+            "affine-fst-reversed": "External grouping placed a consumer before its producer",
+            "vanished-outer-parallel": "A parallel annotation moved to a dependent inner loop",
+            "notile-unrolljam-nonpermutable": "Loop jamming crossed a permutable-band boundary",
+            "tiling-innerpar-satvec": "Tiling was legal, but the parallel annotation was unsafe",
+            "diamond-nointratile-reschedule": "Diamond schedule restoration was omitted",
+            "matmul-parallel-hint": "The requested parallel dimension was not certifiable",
+        }
+        if lower_case in rejected_effects:
+            return rejected_effects[lower_case]
         if "final-affine" in lower_case:
             return "No program emitted; post-tiling affine rescheduling was rejected"
         if "consumer" in lower_case:
             return "No program emitted; an invalid parallel-loop consumer was rejected"
-        return "None; the invalid or unsupported candidate was rejected"
+        return "Candidate rejected; no unchecked program emitted"
 
     if lower_suite == "legacy/pluto-all":
-        return "Affine schedule validation; the generated loop effect was not recorded"
+        return "Original and optimized affine schedules mutually refine"
     if lower_suite == "legacy/readscop":
-        return "None; OpenScop parsing and printing only"
+        return "OpenScop parse/print round trip (no optimization)"
     if lower_suite == "legacy/cpol-openscop":
-        return "None; CPoly-to-OpenScop representation conversion only"
+        return "CPoly-to-OpenScop conversion (no optimization)"
     if lower_suite == "legacy/pluto":
         return "Affine schedule generation and conversion"
     if lower_suite.startswith("legacy/csample"):
-        return "None; bidirectional refinement of fixed C instruction programs"
+        return "Typed C-instruction schedules mutually refine"
     if lower_suite in {"unit", "proof gate", "build gate"}:
-        return "None; infrastructure or proof-closure check"
+        return "Artifact infrastructure or proof-build check"
     if lower_suite == "identity-iss-sensitive-search":
         return "ISS sensitivity comparison"
     if lower_suite == "direct-route" and lower_case == "frozen-diamond-phase-pair":
         return "Diamond tiling certificate accepted; no optimized program emitted"
     if lower_suite == "identity-diamond-sensitive-search":
         if "export-failed" in lower_actual:
-            return "None; the input could not be exported for this search"
+            return "Search skipped because the input could not be exported"
         return "Ordinary tiling; diamond tiling produced the same generated C"
     if lower_suite == "unroll-and-jam exploration":
         if "effect=true" in lower_actual:
             return "Block unrolling and validated loop jamming"
-        return "None; no checked unroll-and-jam effect was observed"
+        return "No checked unroll-and-jam transformation observed"
     if lower_suite == "scalar-interleaved tiling":
         return (
             "Ordinary tiling certificate accepted"
             if case == "frozen-positive"
-            else "None; the mutated tiling certificate was rejected"
+            else "Mutated tiling certificate rejected"
         )
     if lower_suite == "generated execution: parallel-effect":
         return "Parallelization"
@@ -1084,8 +1095,8 @@ def observed_transformation(
         if lower_case == "sequential-iss-notile":
             return "ISS route accepted; no loop transformation asserted"
         if lower_case == "optimizer-forceparallel-pass-through":
-            return "None; option accepted, but no parallelization effect is implemented or asserted"
-        return "None; route accepted without a loop-transformation assertion"
+            return "Option accepted; this test makes no parallel-effect claim"
+        return "Route accepted; this test makes no structural-effect claim"
 
     if lower_suite in {"strict-effect", "generated execution: default-corpus"}:
         mapped = transformation_by_case.get(case)
@@ -1189,7 +1200,7 @@ def observed_transformation(
         if "changed:true" in lower_actual or "effects-matched" in lower_actual:
             return "Affine scheduling and loop reconstruction"
         if "unchanged" in lower_expected or "changed:false" in lower_actual:
-            return "None; output loop is unchanged"
+            return "No loop-structure change"
         return "No loop transformation asserted by this test"
     return "; ".join(dict.fromkeys(transformations))
 
@@ -1578,7 +1589,7 @@ CATALOG_HIERARCHY = (
         "Candidates that PolCert rejects without emitting unchecked code.",
         (
             ("Tiling and Consumer Rejections", ("second-level rejection",)),
-            ("Optimizer-Output Witnesses", ("optimizer-output rejection",)),
+            ("Invalid and Non-Certifiable Proposals", ("optimizer-output rejection",)),
         ),
     ),
     (
@@ -2130,7 +2141,7 @@ def prepare_test_catalog(
                     table_class = ""
                     table_head = (
                         "<thead><tr><th>Case</th><th>Expected result</th>"
-                        "<th>Observed transformation</th><th>Actual result</th>"
+                        "<th>Observed effect</th><th>Actual result</th>"
                         "<th>Status</th><th>Evidence</th></tr></thead>"
                     )
                 suite_blocks.append(
@@ -2168,12 +2179,12 @@ def prepare_test_catalog(
 <main>
 <h1>Test Catalog</h1>
 <p class="lede">
-  Browse the tests by transformation or purpose. Each suite has one primary
-  group; the <em>Observed transformation</em> column retains combined effects.
+  Use the categories to find tests for a transformation or compiler interface.
+  Each row states the expected result, the observed effect, and the recorded evidence.
 </p>
 <p>
   <strong>{counts['listed_test_configurations']} configurations</strong> in
-  <strong>{counts['suites']} suites</strong>. Local and remote reruns share one row.
+  <strong>{counts['suites']} suites</strong>.
 </p>
 <ul class="catalog-index">{chr(10).join(category_links)}</ul>
 <label for="test-filter"><strong>Filter cases</strong></label>

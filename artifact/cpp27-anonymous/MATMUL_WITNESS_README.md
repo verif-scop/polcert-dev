@@ -14,4 +14,4 @@ Files:
 
 - `matmul.loop`: structured-loop input;
 - `run.py`: test runner;
-- `../validation.log`: recorded result from the complete witness run.
+- `../validation.log`: recorded result from the complete reliability run.

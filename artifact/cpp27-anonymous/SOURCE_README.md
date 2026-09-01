@@ -1,8 +1,7 @@
 # PolCert Source Snapshot
 
-This directory contains the compiler, its Rocq proofs, and its tests. The
-packager checks that every formal `.v` file exactly matches the validated
-snapshot.
+This directory contains the compiler, its Rocq proofs, and its tests. It is the
+source snapshot used for the recorded proof build and compiler checks.
 
 The main source directories are:
 
