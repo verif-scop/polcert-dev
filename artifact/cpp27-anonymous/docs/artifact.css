@@ -212,6 +212,17 @@ table {
 .wide-table table { min-width: 1080px; }
 .wide-table .compact-table { min-width: 560px; }
 
+.wide-table .typed-examples { min-width: 860px; }
+.typed-examples th:first-child { width: 31%; }
+.typed-examples th:nth-child(2) { width: 42%; }
+.typed-examples pre {
+  margin: 0 0 8px;
+  padding: 9px 11px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
 .catalog-index {
   max-width: 760px;
   margin: 24px 0 30px;

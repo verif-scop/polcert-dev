@@ -138,58 +138,72 @@
       <p>
         PolCert does not hard-code one instruction language into its validators.
         The <a href="../source/polygen/InstrTy.v"><code>INSTR</code></a>
-        interface supplies an instruction's execution relation, modeled state,
-        read and write footprints, and a proof that instructions with
-        non-conflicting footprints may exchange order. The polyhedral checks
-        then reason about statement instances and these memory effects.
+        interface supplies instruction semantics and memory effects. The
+        polyhedral checks then reason about loop instances and those effects.
       </p>
       <p>
         The text <code>.loop</code> frontend uses the lightweight model in
-        <a href="../source/syntax/SInstr.v"><code>SInstr.v</code></a>. Its
-        results are meaningful under that model, but a hand-written input does
-        not independently establish that its declared accesses match an
-        external C program. The typed
-        <a href="../source/src/CInstr.v"><code>CInstr.v</code></a> instance and
-        the following hand-constructed Rocq examples show how the same
-        validators apply to C-like scalar and array instructions:
+        <a href="../source/syntax/SInstr.v"><code>SInstr.v</code></a>. The
+        examples below instead use typed scalar and array instructions from
+        <a href="../source/src/CInstr.v"><code>CInstr.v</code></a>.
       </p>
-      <table>
-        <thead><tr><th>Rocq example</th><th>Reference computation</th><th>Purpose</th></tr></thead>
-        <tbody>
-          <tr>
-            <td><a href="../source/samples/CSample1.v"><code>CSample1.v</code></a></td>
-            <td><a href="../source/samples/CSample1.c">matrix multiplication</a></td>
-            <td>Typed array accesses and schedule validation.</td>
-          </tr>
-          <tr>
-            <td><a href="../source/samples/CSample2.v"><code>CSample2.v</code></a></td>
-            <td><a href="../source/samples/CSample2.c">covariance kernel</a></td>
-            <td>Two statements with a producer-consumer dependence.</td>
-          </tr>
-          <tr>
-            <td><a href="../source/samples/CSample3.v"><code>CSample3.v</code></a></td>
-            <td><a href="../source/samples/CSample3.c">GEMVER kernel</a></td>
-            <td>Four statement domains and their memory effects.</td>
-          </tr>
-          <tr>
-            <td>
-              <a href="../source/samples/CTypedLoopSamples.v">
-                <code>CTypedLoopSamples.v</code>
-              </a>
-            </td>
-            <td>Compact C-like loop nests</td>
-            <td>Extraction, ISS, tiling, diamond tiling, and parallel-loop cases.</td>
-          </tr>
-        </tbody>
-      </table>
+
+      <h3>Typed Loop Examples</h3>
+      <div class="wide-table">
+        <table class="typed-examples">
+          <thead>
+            <tr><th>Input computation</th><th>Accepted output shape</th><th>Checked path</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><pre>for i, j
+  A[i][j] = B[i][j] + 1</pre></td>
+              <td><pre>for ii, jj       // tiles
+  for i, j       // points
+    A[i][j] = B[i][j] + 1</pre>
+                A dependence-free generated loop can then be marked parallel;
+                the restricted variant marks only an innermost loop.
+              </td>
+              <td>Typed access extraction, ordinary tiling, and parallel-loop checking.</td>
+            </tr>
+            <tr>
+              <td><pre>for i, j, k
+  C[i][j] += A[i][k] * B[k][j]</pre></td>
+              <td><pre>level-2 tiles
+  level-1 tiles
+    iteration points</pre></td>
+              <td>Two successive tiling validations and verified loop generation.</td>
+            </tr>
+            <tr>
+              <td><pre>for i
+  A[i] = 2 * A[N - 1 - i]</pre></td>
+              <td><pre>one statement domain
+  -&gt; two disjoint subdomains
+  -&gt; generated loops</pre></td>
+              <td>Index-set splitting (ISS), split well-formedness, and verified code generation.</td>
+            </tr>
+            <tr>
+              <td><pre>for t, i
+  A[t + 1][i] =
+    A[t][i - 1] + A[t - 2][i + 1]</pre></td>
+              <td><pre>rectangular (t, i) coordinates
+  -&gt; coupled (t + i, t - i) wavefronts</pre></td>
+              <td>Diamond tiling followed by checked post-tiling affine scheduling.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <p>
-        These examples instantiate the formal instruction interface by hand;
-        they do not make C parsing part of the theorem. The
+        <a href="../source/samples/CTypedLoopSamples.v"><code>CTypedLoopSamples.v</code></a>
+        contains the typed inputs and extraction checks. They are constructed
+        directly in Rocq rather than parsed from C. The
         <a
           href="../evidence/results/test-catalog.html#typed-instruction-programs"
-        >six-case typed pipeline record</a>
-        shows the accepted transformations and their observed structural
-        effects in remote CI.
+        >six-case CI record</a> gives the detailed observed results. Additional
+        typed kernels cover
+        <a href="../source/samples/CSample1.c">matrix multiplication</a>,
+        <a href="../source/samples/CSample2.c">covariance</a>, and
+        <a href="../source/samples/CSample3.c">GEMVER</a>.
       </p>
     </section>
 
