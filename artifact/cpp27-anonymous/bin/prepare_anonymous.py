@@ -2148,6 +2148,172 @@ def prepare_test_catalog(
     require(len(hierarchy) == 5, f"expected 5 catalog categories, found {len(hierarchy)}")
     require(family_count == 17, f"expected 17 catalog families, found {family_count}")
 
+    def evidence_label(item: str) -> str:
+        filename = Path(urlsplit(item).path).name
+        if item.endswith("docs/index.html#typed-loop-examples"):
+            return "input/accepted shapes"
+        return {
+            "comparison.html": "before/after",
+            "input.pretty.loop": "before",
+            "optimized.loop": "after",
+            "diff.patch": "diff",
+            "validation.log": "validation log",
+            "status.txt": "compiler log",
+            "strict-loop-suite.stdout.txt": "local log",
+            "remote-ci-test-results.stdout.txt": "CI log",
+        }.get(
+            filename,
+            "test log" if filename.endswith(".stdout.txt") else filename or item,
+        )
+
+    def case_links(items: list[str]) -> str:
+        ordered = sorted(
+            items,
+            key=lambda item: evidence_label(item).endswith("log"),
+        )
+        return " &middot; ".join(
+            f'<a href="../{escape(item, quote=True)}">'
+            f'{escape(evidence_label(item))}</a>'
+            for item in ordered
+        )
+
+    def resolve_program_file(record: dict, filename: str) -> Path | None:
+        for item in record["program_evidence"]:
+            link = urlsplit(item)
+            if Path(link.path).name == filename:
+                target = (destination / unquote(link.path)).resolve()
+                if target.is_file():
+                    return target
+        for item in record["program_evidence"]:
+            link = urlsplit(item)
+            if Path(link.path).name == "comparison.html":
+                target = (destination / unquote(link.path)).resolve().parent / filename
+                if target.is_file():
+                    return target
+        return None
+
+    cases_dir = destination / "cases"
+    cases_dir.mkdir()
+    for index, record in enumerate(records):
+        before = resolve_program_file(record, "input.pretty.loop")
+        after = resolve_program_file(record, "optimized.loop")
+        exact_loop_pair = before is not None and after is not None
+        typed_shape = any(
+            item.endswith("docs/index.html#typed-loop-examples")
+            for item in record["program_evidence"]
+        )
+        if exact_loop_pair:
+            record["view_kind"] = "loop-before-after"
+            comparison = f"""
+  <div class="loop-comparison">
+    <section>
+      <h2>Before</h2>
+      <pre>{escape(before.read_text(encoding="utf-8"))}</pre>
+    </section>
+    <section>
+      <h2>Accepted Output</h2>
+      <pre>{escape(after.read_text(encoding="utf-8"))}</pre>
+    </section>
+  </div>"""
+        else:
+            record["view_kind"] = (
+                "typed-input-and-shape" if typed_shape else "condition-and-result"
+            )
+            left_heading = (
+                "Typed Input and Requested Path" if typed_shape else "Tested Condition"
+            )
+            right_heading = (
+                "Accepted Structural Result" if typed_shape else "Recorded Result"
+            )
+            expected_label = (
+                "Test"
+                if record["expected"] == "the declared unit-test condition"
+                else "Expected"
+            )
+            expected_value = (
+                record["case"]
+                if record["expected"] == "the declared unit-test condition"
+                else record["expected"]
+            )
+            coverage = (
+                f'<dt>Coverage</dt><dd>{escape(record["coverage"])}</dd>'
+                if record["coverage"] not in {"recorded result", "unit"}
+                else ""
+            )
+            comparison = f"""
+  <div class="case-side-by-side">
+    <section>
+      <h2>{left_heading}</h2>
+      <dl>
+        <dt>{expected_label}</dt><dd>{escape(expected_value)}</dd>
+        {coverage}
+      </dl>
+    </section>
+    <section>
+      <h2>{right_heading}</h2>
+      <dl>
+        <dt>Observed effect</dt><dd>{escape(record["observed_transformation"])}</dd>
+        <dt>Actual</dt><dd>{escape(record["actual"])}</dd>
+        <dt>Status</dt><dd>{escape(record["status"])}</dd>
+      </dl>
+    </section>
+  </div>"""
+
+        program_links = case_links(record["program_evidence"])
+        supporting_links = case_links(record["evidence"])
+        link_blocks = []
+        if program_links:
+            link_blocks.append(
+                f"<p><strong>Program material:</strong> {program_links}</p>"
+            )
+        if supporting_links:
+            link_blocks.append(
+                f"<p><strong>Supporting record:</strong> {supporting_links}</p>"
+            )
+        case_path = cases_dir / f"{index:04d}.html"
+        record["case_view"] = f"cases/{case_path.name}"
+        page = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{escape(record["case"])}: Test Case</title>
+  <link rel="stylesheet" href="../../../docs/artifact.css">
+</head>
+<body>
+<main>
+  <p><a href="../test-catalog.html">Test catalog</a></p>
+  <h1><code>{escape(record["case"])}</code></h1>
+  <p class="lede">{escape(record["suite"])}. {escape(record["family"])}.</p>
+{comparison}
+  <div class="case-links">
+    {chr(10).join(link_blocks)}
+  </div>
+</main>
+</body>
+</html>
+"""
+        case_path.write_text(page, encoding="utf-8")
+
+    expected_view_counts = {
+        "condition-and-result": 863,
+        "loop-before-after": 134,
+        "typed-input-and-shape": 6,
+    }
+    actual_view_counts: dict[str, int] = {}
+    for record in records:
+        view_kind = record["view_kind"]
+        actual_view_counts[view_kind] = actual_view_counts.get(view_kind, 0) + 1
+    require(
+        actual_view_counts == expected_view_counts,
+        "test-catalog case-view mismatch:\n"
+        f"expected={expected_view_counts}\nactual={actual_view_counts}",
+    )
+    require(
+        len(list(cases_dir.glob("*.html"))) == len(records),
+        "not every test configuration has a case page",
+    )
+
     catalog = {
         "counts": {
             "listed_test_configurations": len(records),
@@ -2171,25 +2337,14 @@ def prepare_test_catalog(
 
     def evidence_links(items: list[str]) -> str:
         links = []
-        for item in items:
-            filename = Path(item).name
-            if item.endswith("docs/index.html#typed-loop-examples"):
-                label = "input/accepted shapes"
-            else:
-                label = {
-                    "comparison.html": "before/after",
-                    "input.pretty.loop": "before",
-                    "optimized.loop": "after",
-                    "diff.patch": "diff",
-                    "validation.log": "validation log",
-                    "status.txt": "compiler log",
-                    "strict-loop-suite.stdout.txt": "local log",
-                    "remote-ci-test-results.stdout.txt": "CI log",
-                }.get(
-                    filename,
-                    "test log" if filename.endswith(".stdout.txt") else filename or item,
-                )
-            links.append(f'<a href="{escape(item, quote=True)}">{escape(label)}</a>')
+        for item in sorted(
+            items,
+            key=lambda item: evidence_label(item).endswith("log"),
+        ):
+            links.append(
+                f'<a href="{escape(item, quote=True)}">'
+                f'{escape(evidence_label(item))}</a>'
+            )
         return " &middot; ".join(links)
 
     command_rows = []
@@ -2235,6 +2390,8 @@ def prepare_test_catalog(
             return (
                 f'<tr data-search="{escape(search, quote=True)}">'
                 f"<td><code>{escape(record['case'])}</code></td>"
+                f'<td><a href="{escape(record["case_view"], quote=True)}">'
+                "side-by-side</a></td>"
                 f"<td>{evidence_links(record['evidence'])}</td>"
                 "</tr>"
             )
@@ -2245,7 +2402,8 @@ def prepare_test_catalog(
             f"<td>{escape(record['observed_transformation'])}</td>"
             f"<td>{escape(record['actual'])}</td>"
             f"<td class=\"{status_class}\">{escape(record['status'])}</td>"
-            f"<td>{evidence_links(record['program_evidence']) or '&mdash;'}</td>"
+            f'<td><a href="{escape(record["case_view"], quote=True)}">'
+            "side-by-side</a></td>"
             f"<td>{evidence_links(record['evidence'])}</td>"
             "</tr>"
         )
@@ -2280,6 +2438,7 @@ def prepare_test_catalog(
                     table_class = "compact-table"
                     table_head = (
                         "<thead><tr><th>Input</th>"
+                        "<th>Case view</th>"
                         "<th>Supporting record</th></tr></thead>"
                     )
                 else:
@@ -2287,7 +2446,7 @@ def prepare_test_catalog(
                     table_head = (
                         "<thead><tr><th>Case</th><th>Expected result</th>"
                         "<th>Observed effect</th><th>Actual result</th>"
-                        "<th>Status</th><th>Program view</th>"
+                        "<th>Status</th><th>Case view</th>"
                         "<th>Supporting record</th></tr></thead>"
                     )
                 suite_blocks.append(
@@ -2326,8 +2485,9 @@ def prepare_test_catalog(
 <h1>Test Catalog</h1>
 <p class="lede">
   Use the categories to find tests for a transformation or compiler interface.
-  Tests that produce Loop programs link the source and accepted output before
-  their supporting logs.
+  Every row opens a side-by-side case page. Compilation tests show the source
+  and accepted Loop when both were recorded; other tests show the tested
+  condition or proposal beside the recorded result.
 </p>
 <p class="primary-evidence">
   <strong><a href="../optimized-loop-examples/index.html">Browse source and accepted Loop programs side by side</a></strong>.

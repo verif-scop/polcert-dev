@@ -230,20 +230,39 @@ table {
   background: var(--blue-soft);
 }
 
-.loop-comparison {
+.loop-comparison,
+.case-side-by-side {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
-.loop-comparison section { min-width: 0; }
-.loop-comparison h2 { margin-top: 18px; }
+.loop-comparison section,
+.case-side-by-side section { min-width: 0; }
+
+.loop-comparison h2,
+.case-side-by-side h2 { margin-top: 18px; }
+
 .loop-comparison pre {
   min-height: 280px;
   max-height: 70vh;
   margin: 0;
   white-space: pre;
 }
+
+.case-side-by-side section {
+  padding-top: 2px;
+  border-top: 3px solid var(--line);
+}
+
+.case-side-by-side dl { margin: 0; }
+.case-side-by-side dt {
+  margin-top: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.case-side-by-side dd { margin: 3px 0 12px; }
+.case-links { margin-top: 24px; }
 
 .catalog-index {
   max-width: 760px;
@@ -433,7 +452,8 @@ td code {
   nav .minor { display: none; }
   main { width: min(100% - 28px, 1120px); padding-top: 30px; }
   .route-list { grid-template-columns: 1fr; }
-  .loop-comparison { grid-template-columns: 1fr; }
+  .loop-comparison,
+  .case-side-by-side { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
