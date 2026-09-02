@@ -16,146 +16,101 @@
     <a href="evaluation.html">Evaluation</a>
     <a href="reproduce.html">Reproduce</a>
     <div class="minor">
-      <a href="../evidence/results/test-catalog.html">Test catalog</a>
-      <a href="proof/index.html">Rocq proof index</a>
-      <a href="../source/README.md">Source map</a>
+      <a href="#compiler">Compiler infrastructure</a>
+      <a href="#proofs">Proofs</a>
+      <a href="#tests">Tests and scripts</a>
     </div>
   </nav>
 
   <main>
-    <h1>End-to-End Verified Polyhedral Compilation</h1>
+    <h1>PolCert Supplementary Artifact</h1>
     <p class="lede">
-      PolCert accepts a bounded loop program and proposed loop optimizations.
-      It checks each transformation and generates a sequential or parallel
-      target loop only when the checks succeed.
+      This artifact presents PolCert, an end-to-end verified polyhedral
+      compiler. Given a bounded affine loop nest and transformation proposals
+      from an external optimizer, PolCert produces an optimized sequential or
+      parallel loop only after all required checks succeed.
+    </p>
+    <p>
+      The main theorem states that every terminating execution of an accepted
+      target loop has a source execution from the same initial state with an
+      observationally equivalent result. The verified boundary runs from
+      structured source Loop IR to structured target Loop IR. This archive
+      contains the compiler source, Rocq proofs, generated proof documentation,
+      tests, and evaluation scripts.
     </p>
 
-    <section id="purpose">
-      <h2>What PolCert Does</h2>
+    <section id="compiler">
+      <h2>1. Compiler Infrastructure and Polyhedral Compilation</h2>
       <p>
-        A polyhedral optimizer searches for profitable execution orders and
-        loop shapes. PolCert checks the proposed schedule, tiling, and parallel
-        loops against the program's iteration domains and memory accesses. The
-        main theorem covers the complete path from the source loop to the
-        generated target loop.
+        PolCert extracts the source loop into a polyhedral program, applies
+        accepted transformations, normalizes transformed coordinates, and
+        reconstructs a target loop. Verified constructions implement
+        extraction, normalization, loop generation, and the supported
+        unrolling rewrites. Validators check optimizer proposals for affine
+        scheduling, index-set splitting, tiling, parallelization, and
+        unroll-and-jam.
       </p>
-      <div class="contract">
-        <p><strong>Accepted compilation guarantee.</strong></p>
-        <p>
-          Every execution of the generated program matches an execution of the
-          source program from the same input and produces the same result.
-        </p>
-      </div>
-    </section>
-
-    <section id="example">
-      <h2>One Compilation at a Glance</h2>
       <p>
-        This recorded example tiles a two-dimensional array update and marks
-        the innermost point loop parallel. PolCert compiled both programs and
-        ran them three times with <code>M=96</code>, <code>N=96</code>, and
-        four OpenMP threads. All results matched.
+        The affine validator checks dependence order. The ISS validator checks
+        that the proposed regions form an exact partition. The tiling
+        validator checks exact realization of source iterations and the
+        required band order. The parallelization check establishes independence
+        between distinct iterations, while unroll-and-jam validates the
+        exchanges introduced by jamming.
       </p>
-      <div class="pipeline" role="img" aria-label="Verified compilation pipeline">
-        <div class="stage verified"><b>Source Loop</b>typed array update</div>
-        <div class="stage verified"><b>Build Model</b>loop instances and accesses</div>
-        <div class="stage inherited"><b>Propose Order</b>optimizer output</div>
-        <div class="stage verified"><b>Check Order</b>dependence safety</div>
-        <div class="stage verified"><b>Check Tiling</b>complete instance mapping</div>
-        <div class="stage verified"><b>Check Parallelism</b>independent iterations</div>
-        <div class="stage inherited"><b>Generate Loops</b>verified code generation</div>
-        <div class="stage verified"><b>Target Loop</b>tiled and parallel</div>
-      </div>
-      <div class="loop-comparison compact-programs">
-        <section>
-          <h3>Input</h3>
-          <pre>context(N, M);
-
-for i0 in range(0, N) {
-  for i1 in range(0, M) {
-    A[i0][i1] = B[i0][i1] + 1;
-  }
-}</pre>
-        </section>
-        <section>
-          <h3>Accepted Output</h3>
-          <pre>context(N, M);
-
-if ((1 &lt;= N &amp;&amp; 1 &lt;= M)) {
-  for i0 in range(0, ((N + 31) / 32)) {
-    for i1 in range(0, ((M + 31) / 32)) {
-      for i2 in range(max(0, (32 * i0)), min(N, ((32 * i0) + 32))) {
-        parallel for i3 in range(max(0, (32 * i1)), min(M, ((32 * i1) + 32))) {
-          A[i2][i3] = B[i2][i3] + 1;
-        }
-      }
-    }
-  }
-}</pre>
-        </section>
-      </div>
-      <p>
-        <a href="../evidence/results/cases/0616.html" target="_blank" rel="noopener">
-          Open the complete recorded example
-        </a>
-        for the exact generated bounds, programs, parameters, and run result.
+      <p class="primary-evidence">
+        <a href="compiler.html"><strong>Compiler and polyhedral compilation overview</strong></a>
+        &nbsp;&middot;&nbsp;
+        <a href="../source/README.md">Compiler source code</a>
       </p>
     </section>
 
-    <section id="results">
-      <h2>What Was Verified and Tested</h2>
-      <dl class="performance-summary">
-        <div><dt>Documented test cases</dt><dd>1,003</dd></div>
-        <div><dt>Accepted program pairs</dt><dd>524 / 524 matched</dd></div>
-        <div><dt>Performance kernels</dt><dd>62 / 62 matched</dd></div>
-        <div><dt>Unfinished proof markers</dt><dd>0</dd></div>
-      </dl>
+    <section id="proofs">
+      <h2>2. Proofs</h2>
       <p>
-        The tests cover affine scheduling, fusion and fission, index-set
-        splitting, ordinary and two-level tiling, diamond tiling, parallel
-        loops, constant unrolling, and checked unroll-and-jam. The catalog also
-        records 123 expected rejection cases, including seven optimizer
-        proposals examined in detail.
+        Each verified pass or validator establishes a local refinement result.
+        The end-to-end proof composes these results from loop extraction,
+        through the accepted polyhedral transformations, to sequential or
+        parallel loop generation. The proof guide states the main theorem,
+        explains this composition, and links each component to its principal
+        lemmas and Rocq source files.
       </p>
-      <p>
-        <a href="../evidence/results/test-catalog.html">Browse every test</a>,
-        <a href="../evidence/performance-comparisons/index.html">inspect all 62 performance comparisons</a>,
-        or
-        <a href="../evidence/rejected-optimizer-outputs/index.html">read the detailed rejection cases</a>.
+      <p class="primary-evidence">
+        <a href="proof.html"><strong>Proof structure and main theorems</strong></a>
+        &nbsp;&middot;&nbsp;
+        <a href="proof/index.html">Generated Rocq documentation</a>
+        &nbsp;&middot;&nbsp;
+        <a href="../source/driver/VerifiedParallelCompilerConfig.v">Top-level proof source</a>
       </p>
     </section>
 
-    <section id="reading">
-      <h2>Choose a Reading Path</h2>
-      <div class="route-list reading-paths">
-        <div class="route">
-          <strong><a href="compiler.html">Understand the compiler</a></strong>
-          <p>Polyhedral model, verified pipeline, supported transformations, and a running example.</p>
-        </div>
-        <div class="route">
-          <strong><a href="proof.html">Read the proof</a></strong>
-          <p>Main theorem, proof decomposition, component arguments, and direct source links.</p>
-        </div>
-        <div class="route">
-          <strong><a href="evaluation.html">Inspect the results</a></strong>
-          <p>Test organization, before/after programs, executions, rejections, and performance.</p>
-        </div>
-        <div class="route">
-          <strong><a href="reproduce.html">Rebuild and rerun</a></strong>
-          <p>Docker commands, expected output, running times, and targeted checks.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="scope">
-      <h2>Scope</h2>
+    <section id="tests">
+      <h2>3. Tests and Scripts</h2>
       <p>
-        The theorem covers accepted structured-loop compilations through the
-        generated sequential and parallel loop semantics. Parsing, printing,
-        the optimizer's search algorithm, the external C compiler, and
-        transformations that change storage or add or remove statement
-        instances remain outside the theorem. PolCert may reject a legal
-        proposal that its checks cannot establish.
+        The end-to-end tests pass Pluto transformation proposals through the
+        extracted compiler and display the source and accepted target loops.
+        They exercise affine scheduling, fusion and fission, ISS, tiling,
+        parallelization, and generated-loop postpasses. Pluto remains
+        responsible for optimization search; PolCert checks the resulting
+        transformations without replacing that search with a restricted
+        verified optimizer.
+      </p>
+      <p>
+        The execution tests compile and run source and optimized programs with
+        identical inputs, compare their results, and record performance. The
+        rejection tests present invalid transformation proposals and the reason
+        each proposal fails validation. Focused Pluto cases show that these
+        checks detect optimizer miscompilations, so the validators can also
+        serve as a correctness oracle for other polyhedral optimizers.
+      </p>
+      <p class="primary-evidence">
+        <a href="evaluation.html"><strong>Tests and evaluation</strong></a>
+        &nbsp;&middot;&nbsp;
+        <a href="../source/tests/">Test suite and scripts</a>
+        &nbsp;&middot;&nbsp;
+        <a href="../evidence/results/test-catalog.html">Recorded test cases</a>
+        &nbsp;&middot;&nbsp;
+        <a href="reproduce.html">Reproduction commands</a>
       </p>
     </section>
   </main>
