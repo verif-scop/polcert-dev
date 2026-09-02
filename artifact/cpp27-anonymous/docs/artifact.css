@@ -362,6 +362,50 @@ table {
   background: #fbf3f3;
 }
 
+.dynamic-execution {
+  max-width: 860px;
+  margin: 34px 0 0;
+  padding: 18px 20px;
+  border-left: 4px solid #28734f;
+  background: #f0f8f4;
+}
+
+.dynamic-execution h2 {
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  font-size: 1.22rem;
+}
+
+.dynamic-execution p { margin: 0 0 12px; }
+.dynamic-execution dl { margin: 0; }
+
+.dynamic-execution dt {
+  margin-top: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.dynamic-execution dd { margin: 3px 0 12px; }
+
+.dynamic-execution code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.dynamic-execution-na {
+  max-width: 860px;
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.dynamic-execution-na summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 700;
+}
+
 .recorded-fields {
   max-width: 860px;
   margin-top: 28px;

@@ -39,7 +39,8 @@ For the complete test inventory, open
 | `evidence/README.md` | Guide to the recorded proof and test results. |
 | `evidence/optimized-loop-examples/` | Side-by-side source and accepted Loop programs, with diffs. |
 | `evidence/results/` | Complete test catalog, theorem and proof-build report, and supporting logs. |
-| `evidence/execution-comparisons/` | Checks that original and optimized programs return the same result. |
+| `evidence/results/test-catalog.html` | Every recorded test, with before/after programs and modeled-state comparisons where applicable. |
+| `evidence/execution-comparisons/` | The original 62-kernel CI execution campaign and five focused effect checks. |
 | `evidence/performance-comparisons/` | Baseline and optimized runtimes for the 62 generated whole-C kernels. |
 | `evidence/rejected-optimizer-outputs/` | Unsafe or non-certifiable optimizer proposals, their causes, and PolCert's response. |
 | `THIRD_PARTY.md` | Third-party attribution and license map. |
