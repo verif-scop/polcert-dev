@@ -1,0 +1,7 @@
+for i0 in range(0, 4) {
+  for i1 in range(max(0, (32 * i0)), min(100, ((32 * i0) + 32))) {
+    for i2 in range(0, 4) {
+      A[((4 * i1) + i2)] = ((2 * A[((4 * i1) + i2)]) + 2);
+    }
+  }
+}

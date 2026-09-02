@@ -1,0 +1,23 @@
+context(N);
+
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      y[i0] = (y[i0] + (a[i0][i1] * x[i1]));
+    }
+  }
+}
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      z[i0] = (z[i0] + (b[i0][i1] * y[i1]));
+    }
+  }
+}
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      w[i0] = (w[i0] + (b[i0][i1] * z[i1]));
+    }
+  }
+}

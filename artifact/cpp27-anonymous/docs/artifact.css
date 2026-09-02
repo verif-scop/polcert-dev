@@ -411,6 +411,29 @@ table {
   word-break: break-word;
 }
 
+.reproduction-config {
+  max-width: 860px;
+  margin: 34px 0 0;
+  padding: 18px 20px;
+  border-left: 4px solid var(--blue);
+  background: var(--blue-soft);
+}
+
+.reproduction-config h2 {
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  font-size: 1.22rem;
+}
+
+.reproduction-config dl { margin: 0; }
+.reproduction-config dt {
+  margin-top: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.reproduction-config dd { margin: 3px 0 12px; }
+
 .dynamic-execution-na {
   max-width: 860px;
   margin-top: 28px;

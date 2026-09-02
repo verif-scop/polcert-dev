@@ -1,0 +1,12 @@
+context(N, M);
+
+for i0 in range(0, min(M, N)) {
+  autocorr = (autocorr + 1);
+  temp3 = (temp3 + 1);
+}
+for i0 in range(max(0, N), M) {
+  temp3 = (temp3 + 1);
+}
+for i0 in range(max(M, 0), N) {
+  autocorr = (autocorr + 1);
+}

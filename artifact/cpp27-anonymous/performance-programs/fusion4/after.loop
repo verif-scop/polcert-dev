@@ -1,0 +1,10 @@
+for i0 in range(0, 313) {
+  for i1 in range(0, 313) {
+    for i2 in range(max(0, (32 * i0)), min(10000, ((32 * i0) + 32))) {
+      for i3 in range(max(0, (32 * i1)), min(10000, ((32 * i1) + 32))) {
+        B[i2][i3] = (i2 + i3);
+        C[i2][i3] = (B[(i2 + -1)][(i3 + -1)] + B[i2][(i3 + -1)]);
+      }
+    }
+  }
+}

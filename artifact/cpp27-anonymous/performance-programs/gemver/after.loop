@@ -1,0 +1,22 @@
+context(N);
+
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      B[i0][i1] = ((A[i0][i1] + (u1[i0] * v1[i1])) + (u2[i0] * v2[i1]));
+      x[i1] = (x[i1] + ((beta * B[i0][i1]) * y[i0]));
+    }
+  }
+}
+if (1 <= N) {
+  for i0 in range(0, N) {
+    x[i0] = (x[i0] + z[i0]);
+  }
+}
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      w[i0] = (w[i0] + ((alpha * B[i0][i1]) * x[i1]));
+    }
+  }
+}

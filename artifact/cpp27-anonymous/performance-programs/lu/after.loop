@@ -1,0 +1,12 @@
+context(N);
+
+for i0 in range(0, (N + -1)) {
+  for i1 in range((i0 + 1), N) {
+    a[i0][i1] = (a[i0][i1] / a[i0][i0]);
+  }
+  for i1 in range((i0 + 1), N) {
+    for i2 in range((i0 + 1), N) {
+      a[i1][i2] = (a[i1][i2] - (a[i1][i0] * a[i0][i2]));
+    }
+  }
+}

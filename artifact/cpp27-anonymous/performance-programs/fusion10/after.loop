@@ -1,0 +1,23 @@
+for i0 in range(0, 1) {
+  for i1 in range(max(0, (64 * i0)), min(min(((64 * i0) + 62), 4), 32)) {
+    for i2 in range((i1 / 2), min(((i1 + 2) / 2), 2)) {
+      for i3 in range((i1 + (-2 * i2)), (i1 + ((-2 * i2) + 1))) {
+        A[((2 * i2) + i3)] = 1;
+      }
+    }
+    for i2 in range(((i1 + 2) / 2), ((i1 + 4) / 2)) {
+      for i3 in range((i2 + -1), i2) {
+        for i4 in range((i1 + (-2 * i3)), (i1 + ((-2 * i3) + 1))) {
+          B[((2 * i3) + i4)] = A[((2 * i3) + i4)];
+        }
+      }
+    }
+  }
+  for i1 in range(((64 * i0) + 62), 4) {
+    for i2 in range((i1 / 2), 2) {
+      for i3 in range((i1 + (-2 * i2)), (i1 + ((-2 * i2) + 1))) {
+        A[((2 * i2) + i3)] = 1;
+      }
+    }
+  }
+}

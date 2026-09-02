@@ -145,7 +145,8 @@
         A separate whole-C campaign compared the unoptimized and accepted
         programs for 62 kernels. All 62 produced matching results. The search
         selected a non-identity route for 47 kernels and emitted a parallel
-        output for 19.
+        output for 19. Each kernel links to its complete before/accepted
+        program pair and exact run configuration.
       </p>
       <div class="wide-table">
         <table class="performance-table">
@@ -154,41 +155,41 @@
             <th>Kernel</th>
             <th>Selected checked route</th>
             <th>Baseline</th>
-            <th>Optimized</th>
+            <th>Accepted output</th>
             <th>Speedup</th>
           </tr>
         </thead>
           <tbody>
             <tr>
-            <td><code>pca</code></td>
+            <td><a href="../evidence/performance-comparisons/cases/pca.html"><code>pca</code></a></td>
             <td>Affine scheduling and tiling</td>
             <td>1.0022 s</td>
             <td>0.5571 s</td>
             <td>1.799x</td>
           </tr>
             <tr>
-            <td><code>corcol</code></td>
+            <td><a href="../evidence/performance-comparisons/cases/corcol.html"><code>corcol</code></a></td>
             <td>Affine scheduling</td>
             <td>1.7140 s</td>
             <td>0.4251 s</td>
             <td>4.032x</td>
           </tr>
             <tr>
-            <td><code>matmul</code></td>
+            <td><a href="../evidence/performance-comparisons/cases/matmul.html"><code>matmul</code></a></td>
             <td>Parallel, 4 threads</td>
             <td>1.2752 s</td>
             <td>0.3442 s</td>
             <td>3.705x</td>
           </tr>
             <tr>
-            <td><code>mvt</code></td>
+            <td><a href="../evidence/performance-comparisons/cases/mvt.html"><code>mvt</code></a></td>
             <td>ISS-enabled parallel route, 4 threads</td>
             <td>0.8898 s</td>
             <td>0.4368 s</td>
             <td>2.037x</td>
           </tr>
             <tr>
-            <td><code>adi</code></td>
+            <td><a href="../evidence/performance-comparisons/cases/adi.html"><code>adi</code></a></td>
             <td>Identity fallback</td>
             <td>3.0891 s</td>
             <td>3.1687 s</td>
@@ -202,7 +203,23 @@
         show observed end-to-end behavior rather than a stable benchmark
         ranking. The
         <a href="../evidence/performance-comparisons/index.html">complete report</a>
-        lists every kernel, route, runtime, and accepted output.
+        lists every kernel, route, runtime, and full program pair.
+      </p>
+      <h3>Recorded Configuration</h3>
+      <p>
+        The campaign used the <code>perf</code> parameter tier, one baseline run
+        and one accepted-output run per candidate, and
+        <code>cc -O3 -std=c99</code>. Parallel outputs were compiled with
+        <code>-fopenmp</code> and run with four threads. Each kernel page records
+        its parameter values and selected <code>polopt</code> options.
+      </p>
+      <pre><code>docker build -f environment/Dockerfile -t polcert-artifact .
+docker run --rm polcert-artifact performance</code></pre>
+      <p>
+        The <a href="../evidence/performance-comparisons/reproduction-config.json">complete reproduction configuration</a>
+        and <a href="../evidence/performance-comparisons/selected-pipelines.json">route selection</a>
+        are included with the report. Runtime values should be remeasured on
+        the reviewer's Docker host.
       </p>
     </section>
 

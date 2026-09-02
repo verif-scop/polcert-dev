@@ -1,0 +1,612 @@
+{
+  "cases": [
+    {
+      "after_sha256": "5eab7cb5666eed2842069108619907b5db5974a9a7c1db0d6f5d96a2df4fc30d",
+      "before_sha256": "6b65b2406fc2b4d11056f2f6f7a99ff2262884385404b25968ae12e15415b46e",
+      "case": "1dloop-invar",
+      "pipeline": "default_no_iss_affine_tiling",
+      "polopt_args": [],
+      "source": "cached_default_no_iss_affine_tiling"
+    },
+    {
+      "after_sha256": "25e3612be2c644423da19a84a785c6e20436d24b6c21cc83375687fea20a5031",
+      "before_sha256": "7400dea8dc3ce03a2f9db6a6260d2250623496a74591d8432a249d0a5615700f",
+      "case": "adi",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "cb06c305bbb276d8c5afc9b69f052c9a1f66f3385192f355a403bbaa49a35818",
+      "before_sha256": "8a9fd8943738f21015e4d3a9038ffcd6c2931607ea1a48992cbe5ccdf99eca4a",
+      "case": "advect3d",
+      "pipeline": "iss",
+      "polopt_args": [
+        "--iss"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "b8bb6221bb84d7efc98a45a25e7f77a7c18b6e8c9d0d437531e5602ebe76f63b",
+      "before_sha256": "4b787a359a21f7916c872281938357ca515c9cc07a81a5de52704abd79ff41f7",
+      "case": "corcol",
+      "pipeline": "affine_only",
+      "polopt_args": [
+        "--affine-only"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "0001d9dc2852a07fa8d2fd16294236e544eac9947714eadf237a75bbe2314ee5",
+      "before_sha256": "cbacfe2fda0c5db5aea7a6a4e4352cc50534f50f4dac1e0f72ba0804004a93d0",
+      "case": "corcol3",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "3bb7f8eeae7b015ef380d0725473a46a265c2aa65061a31bf3a451e3f8041dad",
+      "before_sha256": "26fa6a32dcf91e46b9828d5a4c78d02470484c326cf2f0abda15a23395720ef5",
+      "case": "costfunc",
+      "pipeline": "default_no_iss_affine_tiling",
+      "polopt_args": [],
+      "source": "cached_default_no_iss_affine_tiling"
+    },
+    {
+      "after_sha256": "8e164963a6422267613d25101c0f6a7b0cef4fc151a7e13569bcb604a0ca5448",
+      "before_sha256": "ebeec6089a40af6e1a627f6f5efdfcb4ce95eaef8f29acbd630eb79e30953c36",
+      "case": "covcol",
+      "pipeline": "affine_only",
+      "polopt_args": [
+        "--affine-only"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "30bd22ed7081180dbd641de5d3bcf672fd3600e2d4297c59794c721202741d1c",
+      "before_sha256": "5980555ea87d7136b61bc35cd2fceba8bc4ea7eee60445ae7938721df30bc703",
+      "case": "dct",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "91c648622cf40aff2e15328e647a2ca0bfb563f2907e2e07c9e7ebafa3ce3e09",
+      "before_sha256": "5d94a58865e35d8a0b6b014be5c8041a605195cbbbe0820c745d128ffcfe576b",
+      "case": "doitgen",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "8f8435582f925860ed2d1b672973e1c2d58effef22bc6ab0365f03fd01a9316e",
+      "before_sha256": "c8b8ba709bbcb9331c8f2cce37051f30c1bc63409a3d3e607278c75988ff0c1c",
+      "case": "dsyr2k",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "1e555dcded966481fcec0295af0e209571fa4aea6c574487906eed6477ae7788",
+      "before_sha256": "af0284a72af3ab90aa504d72279f5497cc736d9b7371cf6410c08dab8846ef05",
+      "case": "dsyrk",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "c531a256db1484bb8305163f60d38edb13bad396e7e2dc8ea985601a1ef7d1b3",
+      "before_sha256": "8932b5ea5da73c53711caac83ef501b8a7756953bf5d85a4ce2021dbe9cf071b",
+      "case": "fdtd-1d",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "7c2a68965bf52d950df4d06b5bf26a8e58d7332716e8aac7331dffe5cf93b227",
+      "before_sha256": "dea409ccf11daa1a6fec7926ad4ced904e75effabb8e6757bc2df814def2c87c",
+      "case": "fdtd-2d",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "b6bdfdd86865db95b20a7940ea90c4fee07ee9171ff60bef6456bffb747a9676",
+      "before_sha256": "88f775f012dd77478eece9ec4da32c9810eb65b577c9a4a1ef69dc32069c227e",
+      "case": "floyd",
+      "pipeline": "iss",
+      "polopt_args": [
+        "--iss"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "507c66a62479d843ba388588ca6689ec7a80e0a0a0e2b62c163c4a82334cc18d",
+      "before_sha256": "4fff6ef61284fe2ed7e7dbd1ecfb1ee97b62cb694adf95f95e99af588855fdef",
+      "case": "fusion1",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "441d7e19ff47be4a386c4e7b80de2e8a1aff89d332bcfa069ba1fea86213206b",
+      "before_sha256": "4d279850265ef5bf7daca0de0e861f79fa9c4fcb7d0279e82107906a9c00ef12",
+      "case": "fusion10",
+      "pipeline": "iss",
+      "polopt_args": [
+        "--iss"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "7a783a00f43ebeda7d8579de738bff17cb80d9c56edb5132b95d48080554e1c7",
+      "before_sha256": "9383b4e70de695b4c1e0c84f8807099743d80fdf31f08bfa63389e65c9a021f2",
+      "case": "fusion2",
+      "pipeline": "affine_only",
+      "polopt_args": [
+        "--affine-only"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "57dc97989837e38554e45dd1b2aca60fef4201bae0556e0028a77a281f8a4dbf",
+      "before_sha256": "d2942c8ea126ba18d2214f25163581cd8a43f6d0b28a7dd668118f8be93a5d71",
+      "case": "fusion3",
+      "pipeline": "affine_only",
+      "polopt_args": [
+        "--affine-only"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "f39193a3b8a410bd7c90679a8c9bed99cc9ca3241ae36c57a8f4a0b0ba8a172c",
+      "before_sha256": "7afa8e71a480f090117a00d17e1c8d866650b646aea3bf72dea6de43552b8fd1",
+      "case": "fusion4",
+      "pipeline": "default_no_iss_affine_tiling",
+      "polopt_args": [],
+      "source": "cached_default_no_iss_affine_tiling"
+    },
+    {
+      "after_sha256": "da2b705f94dc4555985ad3ddd8cfa5d359c9c061b36b28cda330cd295d0a0562",
+      "before_sha256": "b229b09e0581e02027d42a182dccad4e07d01b7fcc9a3d2fb7c60dfd7e5a9bdb",
+      "case": "fusion5",
+      "pipeline": "affine_only",
+      "polopt_args": [
+        "--affine-only"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "01c742e276c8f1db50b62ee14138de68424230df9bc9e8ea8f96f88957f811ec",
+      "before_sha256": "942afaee8d5b3123117de65f4eb360046bf920336d0328692e79d9bde7ef53c0",
+      "case": "fusion6",
+      "pipeline": "default_no_iss_affine_tiling",
+      "polopt_args": [],
+      "source": "cached_default_no_iss_affine_tiling"
+    },
+    {
+      "after_sha256": "af0b357bed6e713f309e2e08a2eba770649c9faee0610cbe0b11aebbeca7dd71",
+      "before_sha256": "a69813818b2d4c0c82758e2a7d307a5a32babceadce87b1441b28e4e68acc990",
+      "case": "fusion7",
+      "pipeline": "default_no_iss_affine_tiling",
+      "polopt_args": [],
+      "source": "cached_default_no_iss_affine_tiling"
+    },
+    {
+      "after_sha256": "9f1ca53c46cfb52b2fdb297fc04440c2a9059462c9dc87194e3dbde4e28ab0c6",
+      "before_sha256": "0a6bc47086d55eca965626e53633c8b3756f392364dc6a2574527d9cb9eb0333",
+      "case": "fusion8",
+      "pipeline": "iss",
+      "polopt_args": [
+        "--iss"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "ade4b1acea86ea5a4470800bc07806fc1cae28d0079bae9aa4a8416db1ee9955",
+      "before_sha256": "3a8be3fbef349c4c09de3fd561bcf7a6fe5875222f55ac0c9955638401231aff",
+      "case": "fusion9",
+      "pipeline": "iss_parallel_4",
+      "polopt_args": [
+        "--iss",
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "ee37e6f73bc5bdacdaef7dac0e28301664c3b2630d6b22a14707aac0f3944e6d",
+      "before_sha256": "681d936842db008f1bfe2ec012e1781cf0a814bc007dbdf1024ba0e61581c0d1",
+      "case": "gemver",
+      "pipeline": "affine_only",
+      "polopt_args": [
+        "--affine-only"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "7de03f68008f2114d819ee45504ddc2e7f0b413925d3bce54476894a72efdfac",
+      "before_sha256": "9a98d391dc3a610605055a07e42979c2682b972d6e507749d42f623d05205d03",
+      "case": "intratileopt1",
+      "pipeline": "iss_parallel_4",
+      "polopt_args": [
+        "--iss",
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "db855d16cbc6d2d20cc2da94085dcf9c3d5a2165bf3b0bb95fa0b413485d9252",
+      "before_sha256": "8cc8a07eb9e4547bcddced9bf8bac7d3e8ef56c4621f39e00a11835a1d9c2f0f",
+      "case": "intratileopt2",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "76cf6879a4b5b2e5a55c4939684cce8cfc5edb6e546f26a7643734ee9c4a402d",
+      "before_sha256": "7fbb9e32938e19d4affc8e341204400058ff9e07880d232df119366f3a32218b",
+      "case": "intratileopt3",
+      "pipeline": "iss_parallel_4",
+      "polopt_args": [
+        "--iss",
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "67b87598cb2828dd4df2e64cda4791502839b6e657fce1193771da9e43781725",
+      "before_sha256": "aac62d46a3584c45a6cc5ea6726e05eeb3cc5bac25ea86feb0e32ff352f12092",
+      "case": "intratileopt4",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "b0fa2e86b2eccdb281294f1d7c6564e56392bd1cf8a80fabe11093ebabb097ce",
+      "before_sha256": "adf84eb6f810a3fbe13d4c721e90ae6d2ca34478fc6622ce8b372bce6edfcfd4",
+      "case": "jacobi-1d-imper",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "b767bebc8a26842c13fd9d8d827cb4d8bf4345072261e5f5b7883880d6e98756",
+      "before_sha256": "78d3d74d1a4f0103b05f931316477bd6a3f4f114c753caa1885049258a74279f",
+      "case": "jacobi-2d-imper",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "59e1a77cfc1f59c06aa907d02e22798214976e1a14aa03138bf2ef0cec355634",
+      "before_sha256": "04978c46446eb3a4cb68d3bf619b64dc00679168e221ba7ec4c313cf0e20a1fc",
+      "case": "lu",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "0821e7ba20fca99fb5398e1ed1f40e492ebf87c3efff61f8ea7205cb18d4e01e",
+      "before_sha256": "14feaaed94cdd77df9a2476bd7672a58d4b27507f9ccac503414cc9860a7ce19",
+      "case": "matmul",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "862e5fa4f2fb241ec9015ea0476870dffc584433f1e4612e69510d8cccea4a04",
+      "before_sha256": "75681ba416424fccdb232bb6706d9bf23cade1ad81eaee3ca634ec1ad70baee2",
+      "case": "matmul-init",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "d8fe81f075dfbf914ba5b3349c2400b2b9f58da665791144b0d081f5bbc74830",
+      "before_sha256": "d9e7656daa58360c287b644e2f60d7e4c7d6e403db9ffe33a92404c3bb358b6f",
+      "case": "matmul-seq",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "b8a1d4cb2c5d9d6be81f83848704fc7a290754ddd2314cd0e20a5541891d1807",
+      "before_sha256": "49d296d68367516481a5c3f7c738f44a0d55b3d93beccfe1e5690e2b4b13ca26",
+      "case": "matmul-seq3",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "fe2e016b5b54c86364be4da7be168a664452408c6fad9826af0d145d84652567",
+      "before_sha256": "158093a68e92030f31129027b9715360cb630d9dfe17a4f8ce1e7d27c2f2c143",
+      "case": "multi-loop-param",
+      "pipeline": "iss",
+      "polopt_args": [
+        "--iss"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "e678ffe1386e3aafc9a8614e2800cc44437caae51bdfdfb3b66f87e14d10ce08",
+      "before_sha256": "616cfba74093c44e61bcb8884e676e26dff9dbf1fe03e19053d1817a5ba49368",
+      "case": "multi-stmt-stencil-seq",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "053e5dd3a7e3cc3ae5f3c2df545ef6d3e44c49f8f99345bb461938328c6b7f18",
+      "before_sha256": "0551a92ba36e848693ed1b7c68713bc8ef6e2b3f381ce95b3fb4d443bb6751f9",
+      "case": "mvt",
+      "pipeline": "iss_parallel_4",
+      "polopt_args": [
+        "--iss",
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "9c8e114cbe35f59318c24f048dfef89a55928b9737d3265d44500d5241d553c3",
+      "before_sha256": "df8b025bb303be7b6068a18e50471c0c32aa2cfa98a5e36d92e27dc9622b97d6",
+      "case": "mxv",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "0ed0bb914cf7077dc49083b100ae4a678dab716a14cba39dbe243dfa622c8089",
+      "before_sha256": "093e31c5f630c37ea2d3292bae971082792b9a036f9e82e436fc50ce1478a64b",
+      "case": "mxv-seq",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "46f78cfdd774dd8a4f2fbe0bbdd3d75bfaecd269618e5b189759fde989aecc85",
+      "before_sha256": "6bd8467d6991bcc33568e5b3c95311e3dbbe222704539b05682caf712f5d19bd",
+      "case": "mxv-seq3",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "c645c77f91a9d9f3f3ad3ec3f92bb65670393805bc74f0c1095d1c72164dbbcc",
+      "before_sha256": "6891c8cad0458e1583f2dbcf458ee22c718e4869d132425197bd3f2221c8b542",
+      "case": "negparam",
+      "pipeline": "affine_only",
+      "polopt_args": [
+        "--affine-only"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "1943be7293fae1b37e2f9eb4e44740129bf43459b3423869edba58e4000bf8a3",
+      "before_sha256": "4a254bae57e1e00d21f5fd367449b630cc9d63ef1b84bccaba41c780590229be",
+      "case": "nodep",
+      "pipeline": "iss",
+      "polopt_args": [
+        "--iss"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "5c8fd5d3d349186b86fd73abc904242f813af925a1e1fb2835e13642029840f9",
+      "before_sha256": "5c8fd5d3d349186b86fd73abc904242f813af925a1e1fb2835e13642029840f9",
+      "case": "noloop",
+      "pipeline": "default_no_iss_affine_tiling",
+      "polopt_args": [],
+      "source": "cached_default_no_iss_affine_tiling"
+    },
+    {
+      "after_sha256": "bdc8f9f501611cc278732e91bf9f38a8f5fcbc07c97fee7ad221cc6b4afb7023",
+      "before_sha256": "6d7765852febcc0e1b93b59ac86625a9fa0d19a8e48de264675a1657102b29f7",
+      "case": "pca",
+      "pipeline": "default_no_iss_affine_tiling",
+      "polopt_args": [],
+      "source": "cached_default_no_iss_affine_tiling"
+    },
+    {
+      "after_sha256": "2ba2b8e4d51d7380ba3535e3fc678c38b790055cc6514efdd190ce464f015a19",
+      "before_sha256": "bbd63d18151ab3892796ce246533708e57707e1d8a3a0e332976258de1b3054d",
+      "case": "polynomial",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "8acd15b99b3c0274daae7fe99b19c6ca6917d0f5d16149cde63f2aa6eb287a41",
+      "before_sha256": "6f11b36b1f9d5babad5c06e92bbb835e34b8bb43a9756f28e6bbec150894a4ef",
+      "case": "seidel",
+      "pipeline": "iss",
+      "polopt_args": [
+        "--iss"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "706fc1fe71d7118187764e50acd0325bd85366f5d447bc8a949f44f7d0e38067",
+      "before_sha256": "7fbd87314d338c9da9aa0adebae5beb1b97f3e595c76bc614387a04d69f67b25",
+      "case": "seq",
+      "pipeline": "default_no_iss_affine_tiling",
+      "polopt_args": [],
+      "source": "cached_default_no_iss_affine_tiling"
+    },
+    {
+      "after_sha256": "dc4df0fca8da167e90aa25bf9e7d6c9501ab8c7ecdb17d89ee72e6943f529d08",
+      "before_sha256": "22b99574a2f138a6d1c49f5c383cccea164db2c9943be6245bf85e140f58915e",
+      "case": "shift",
+      "pipeline": "affine_only",
+      "polopt_args": [
+        "--affine-only"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "f42accf9c95a0e46d437184a840c14b549c5cc784ca94e120e5c7e0abb509826",
+      "before_sha256": "d9a79d14531ece3a2be85c3314e28febddc070c62c5d607b820893064ccb0765",
+      "case": "spatial",
+      "pipeline": "iss_parallel_4",
+      "polopt_args": [
+        "--iss",
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "87af2e778764eaa7a555b60a8d7680d4906f14ee9308f6442fdbd0eceaaea3c7",
+      "before_sha256": "28af1743de545e77328f386cdc3774e47fde418267813187c8a83bf262a37976",
+      "case": "ssymm",
+      "pipeline": "iss_parallel_4",
+      "polopt_args": [
+        "--iss",
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "56c9493ec127c46c3bc1757e77aadf9526f3b5be3385afd0606140ea1e468d17",
+      "before_sha256": "77874bbfa1fe43b0007f627fd35213f76f6944d8f1e31d721a9ec7fcc70d3da5",
+      "case": "strmm",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "b5a853e093008a2457a2c119109e8963eb056a1085f72984c4f7a3889b6432cb",
+      "before_sha256": "b99652e745d43c4ffbadf50d123a45fd175b45a950249370c1f3e44355c4a258",
+      "case": "strsm",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "1861b5b634732b64fb59e43aeb411ef5a3e68db457481987e2ca4d2af622f7db",
+      "before_sha256": "368f4dbcf7e8fca50340fd83f1f7b13b4840eca1b1ef619b3d29630a8fed263f",
+      "case": "tce",
+      "pipeline": "identity",
+      "polopt_args": [
+        "--identity"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "385a28e927cd531d1b9ba7795fbef6aa065036729c17dbf1a82ec8f725a930c5",
+      "before_sha256": "64730a03be392f55d36eeb7974d449d77108959830563c5df45f05f3bf63ad6e",
+      "case": "tmm",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "dae35ff73fb56102335a195b36cb80e57457701e8ea702bfe8474fb05c381b84",
+      "before_sha256": "78dc3b0073cf143958cc69d238443ee30e5d7297c41d164528b055122bff9c0c",
+      "case": "tricky1",
+      "pipeline": "affine_only",
+      "polopt_args": [
+        "--affine-only"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "42085ca56294dd38d24174d6451efd53f06fd0960131c12ff61e290ea92e59e5",
+      "before_sha256": "90309132d9f66ff2b3b3275344154e9011be2c881ed76904df816fb47d071333",
+      "case": "tricky2",
+      "pipeline": "iss",
+      "polopt_args": [
+        "--iss"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "9677e2edf40a27a5d027da39301d0629add1b792a290b465d5eac16af2ea4e99",
+      "before_sha256": "30c1a3a0115383e1a83c2d19c3c0c6a85bbe0d8b1f25c7b5504a36097eaa0e83",
+      "case": "tricky3",
+      "pipeline": "iss",
+      "polopt_args": [
+        "--iss"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "a86a4b34d699f1b1de4845c02dd638e45c1540f5d3dec956f04ccfabb2b159b4",
+      "before_sha256": "0c4c54611be09f2b89edb4608f5881aaa4c7008073ca41b1f932c603006798e7",
+      "case": "tricky4",
+      "pipeline": "iss",
+      "polopt_args": [
+        "--iss"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "479b3ceb96163005cbf19d61f556b6cd36b0dfdec3ed803e368429f9da2a3397",
+      "before_sha256": "36bb572105135280d0cd01baef4d10fea2ca57b244f914c8bb0492425b8f3a85",
+      "case": "trisolv",
+      "pipeline": "parallel_4",
+      "polopt_args": [
+        "--parallel"
+      ],
+      "source": "polopt"
+    },
+    {
+      "after_sha256": "ea65cfe171dd00c80a7b8cb7388d8869172537ba6ca69dc8f90677ea44d94a2f",
+      "before_sha256": "4ed76f4afc05a66c89aa58d4cab6c39d03fe2b6009422eada9129708ea3dbea3",
+      "case": "wavefront",
+      "pipeline": "default_no_iss_affine_tiling",
+      "polopt_args": [],
+      "source": "cached_default_no_iss_affine_tiling"
+    }
+  ]
+}

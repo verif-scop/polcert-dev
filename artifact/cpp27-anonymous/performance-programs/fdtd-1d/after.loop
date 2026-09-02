@@ -1,0 +1,17 @@
+context(T, N);
+
+if (2 <= N) {
+  for i0 in range(1, (T + 1)) {
+    for i1 in range(1, N) {
+      e[i1] = (e[i1] - (coeff1 * (h[i1] - h[(i1 + -1)])));
+    }
+    for i1 in range(0, N) {
+      h[i1] = (h[i1] - (coeff2 * (e[(i1 + 1)] - e[i1])));
+    }
+  }
+}
+if ((N <= 1 && 1 <= N)) {
+  for i0 in range(1, (T + 1)) {
+    h[0] = (h[0] - (coeff2 * (e[1] - e[0])));
+  }
+}

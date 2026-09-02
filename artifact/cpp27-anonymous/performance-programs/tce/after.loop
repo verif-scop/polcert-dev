@@ -1,0 +1,54 @@
+context(N);
+
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      for i2 in range(0, N) {
+        for i3 in range(0, N) {
+          for i4 in range(0, N) {
+            T1[i0][i1][i2][i3] = (T1[i0][i1][i2][i3] + (A[i4][i1][i2][i3] * C4[i4][i0]));
+          }
+        }
+      }
+    }
+  }
+}
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      for i2 in range(0, N) {
+        for i3 in range(0, N) {
+          for i4 in range(0, N) {
+            T2[i0][i1][i2][i3] = (T2[i0][i1][i2][i3] + (T1[i0][i4][i2][i3] * C3[i4][i1]));
+          }
+        }
+      }
+    }
+  }
+}
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      for i2 in range(0, N) {
+        for i3 in range(0, N) {
+          for i4 in range(0, N) {
+            T3[i0][i1][i2][i3] = (T3[i0][i1][i2][i3] + (T2[i0][i1][i4][i3] * C2[i4][i2]));
+          }
+        }
+      }
+    }
+  }
+}
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      for i2 in range(0, N) {
+        for i3 in range(0, N) {
+          for i4 in range(0, N) {
+            B[i0][i1][i2][i3] = (B[i0][i1][i2][i3] + (T3[i0][i1][i2][i4] * C1[i4][i3]));
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+context(m, n);
+
+if (1 <= m) {
+  parallel for i0 in range(0, ((m + 32) / 32)) {
+    for i1 in range(max(1, (32 * i0)), min((m + 1), ((32 * i0) + 32))) {
+      stddev[i1] = 0.0;
+      mean[i1] = 0.0;
+    }
+  }
+}
+if ((1 <= m && 1 <= n)) {
+  parallel for i0 in range(0, ((m + 32) / 32)) {
+    for i1 in range(0, ((n + 32) / 32)) {
+      for i2 in range(max((32 * i0), 1), min(((32 * i0) + 32), (m + 1))) {
+        for i3 in range(max((32 * i1), 1), min(((32 * i1) + 32), (n + 1))) {
+          mean[i2] = (mean[i2] + data[i3][i2]);
+        }
+      }
+    }
+  }
+}
+if (1 <= m) {
+  parallel for i0 in range(0, ((m + 32) / 32)) {
+    for i1 in range(max(1, (32 * i0)), min((m + 1), ((32 * i0) + 32))) {
+      mean[i1] = (mean[i1] / float_n);
+    }
+  }
+}
+if ((1 <= n && 1 <= m)) {
+  parallel for i0 in range(0, ((m + 32) / 32)) {
+    for i1 in range(0, ((n + 32) / 32)) {
+      for i2 in range(max((32 * i0), 1), min(((32 * i0) + 32), (m + 1))) {
+        for i3 in range(max((32 * i1), 1), min(((32 * i1) + 32), (n + 1))) {
+          stddev[i2] = (stddev[i2] + ((data[i3][i2] - mean[i2]) * (data[i3][i2] - mean[i2])));
+        }
+      }
+    }
+  }
+}
+if (1 <= m) {
+  parallel for i0 in range(0, ((m + 32) / 32)) {
+    for i1 in range(max((32 * i0), 1), min(((32 * i0) + 32), (m + 1))) {
+      stddev[i1] = (stddev[i1] / float_n);
+      stddev[i1] = my_sqrt_array(stddev, i1);
+      stddev[i1] = ((stddev[i1] <= eps) ? 1.0 : stddev[i1]);
+    }
+  }
+}

@@ -1,0 +1,29 @@
+context(N);
+
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      for i2 in range(0, N) {
+        C[i0][i1] = (C[i0][i1] + (A[i0][i2] * B[i2][i1]));
+      }
+    }
+  }
+}
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      for i2 in range(0, N) {
+        F[i0][i1] = (F[i0][i1] + (D[i0][i2] * E[i2][i1]));
+      }
+    }
+  }
+}
+if (1 <= N) {
+  for i0 in range(0, N) {
+    for i1 in range(0, N) {
+      for i2 in range(0, N) {
+        G[i0][i1] = (G[i0][i1] + (C[i0][i2] * F[i2][i1]));
+      }
+    }
+  }
+}

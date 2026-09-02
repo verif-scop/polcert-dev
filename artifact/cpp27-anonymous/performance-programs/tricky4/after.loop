@@ -1,0 +1,5 @@
+context(M);
+
+for i0 in range(0, ((-1 * M) + 1)) {
+  s = (s + 1);
+}

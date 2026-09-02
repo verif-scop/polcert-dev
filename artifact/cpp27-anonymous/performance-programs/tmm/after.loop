@@ -1,0 +1,17 @@
+context(NMAX);
+
+if (1 <= NMAX) {
+  parallel for i0 in range(0, ((NMAX + 31) / 32)) {
+    for i1 in range(max(((32 * i0) / 32), 0), ((NMAX + 31) / 32)) {
+      for i2 in range(max(0, ((32 * i0) / 32)), ((NMAX + 31) / 32)) {
+        for i3 in range(max((32 * i0), 0), min(min(min(NMAX, ((32 * i1) + 32)), ((32 * i0) + 32)), ((32 * i2) + 32))) {
+          for i4 in range(max((32 * i1), i3), min(((32 * i1) + 32), NMAX)) {
+            for i5 in range(max((32 * i2), i3), min(((32 * i2) + 32), NMAX)) {
+              C[i3][i4] = (C[i3][i4] + (A[i3][i5] * B[i5][i4]));
+            }
+          }
+        }
+      }
+    }
+  }
+}

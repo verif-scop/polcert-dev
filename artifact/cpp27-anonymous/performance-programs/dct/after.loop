@@ -1,0 +1,23 @@
+context(M);
+
+if (1 <= M) {
+  for i0 in range(0, M) {
+    for i1 in range(0, M) {
+      temp2d[i0][i1] = 0.0;
+      for i2 in range(0, M) {
+        temp2d[i0][i1] = (temp2d[i0][i1] + (block[i0][i2] * cos1[i1][i2]));
+      }
+    }
+  }
+}
+if (1 <= M) {
+  for i0 in range(0, M) {
+    for i1 in range(0, M) {
+      sum2[i0][i1] = 0.0;
+      for i2 in range(0, M) {
+        sum2[i0][i1] = (sum2[i0][i1] + (cos1[i0][i2] * temp2d[i2][i1]));
+      }
+      block[i0][i1] = sum2[i0][i1];
+    }
+  }
+}

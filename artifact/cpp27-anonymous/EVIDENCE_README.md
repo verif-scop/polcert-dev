@@ -7,7 +7,7 @@ design and main results.
 | --- | --- |
 | Which transformations and compiler options were tested? | [`results/test-catalog.html`](results/test-catalog.html) |
 | Did accepted source and optimized programs produce the same result? | [`results/test-catalog.html`](results/test-catalog.html) |
-| What performance was recorded? | [`performance-comparisons/index.html`](performance-comparisons/index.html) |
+| What performance was recorded, with which programs and settings? | [`performance-comparisons/index.html`](performance-comparisons/index.html) |
 | Why were unsafe or non-certifiable proposals rejected? | [`rejected-optimizer-outputs/index.html`](rejected-optimizer-outputs/index.html) |
 | Did every proof and public compiler route build? | [`results/proof-report.md`](results/proof-report.md) |
 

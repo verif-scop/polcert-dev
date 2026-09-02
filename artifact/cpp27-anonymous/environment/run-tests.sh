@@ -43,6 +43,9 @@ case "${mode}" in
   bugs)
     exec make test-pluto-bugs
     ;;
+  performance)
+    exec make test-end-to-end-generated-perf
+    ;;
   proof)
     . tools/ci/ci_resources.sh
     jobs="$(ci_choose_jobs PROOF_JOBS 2 6144)"
@@ -57,7 +60,7 @@ case "${mode}" in
     ;;
   *)
     printf 'unknown mode: %s\n' "${mode}" >&2
-    printf 'modes: smoke, full, ci [shard], bugs, proof, all, shell\n' >&2
+    printf 'modes: smoke, full, ci [shard], bugs, performance, proof, all, shell\n' >&2
     exit 2
     ;;
 esac

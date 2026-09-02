@@ -1,0 +1,87 @@
+context(N, M, L);
+
+if ((1 <= M && (1 <= L && 1 <= N))) {
+  for i0 in range(0, min(min(((M + 31) / 32), ((L + 31) / 32)), ((N + 31) / 32))) {
+    for i1 in range(max((32 * i0), 0), min(min(min(M, ((32 * i0) + 32)), L), N)) {
+      a[i1] = b[i1];
+      a[i1] = b[i1];
+      a[i1] = b[i1];
+    }
+    for i1 in range(N, min(min(M, ((32 * i0) + 32)), L)) {
+      a[i1] = b[i1];
+      a[i1] = b[i1];
+    }
+    for i1 in range(M, min(min(((32 * i0) + 32), L), N)) {
+      a[i1] = b[i1];
+      a[i1] = b[i1];
+    }
+    for i1 in range(max(M, N), min(((32 * i0) + 32), L)) {
+      a[i1] = b[i1];
+    }
+    for i1 in range(L, min(min(M, ((32 * i0) + 32)), N)) {
+      a[i1] = b[i1];
+      a[i1] = b[i1];
+    }
+    for i1 in range(max(L, N), min(M, ((32 * i0) + 32))) {
+      a[i1] = b[i1];
+    }
+    for i1 in range(max(M, L), min(((32 * i0) + 32), N)) {
+      a[i1] = b[i1];
+    }
+  }
+}
+for i0 in range(max(0, ((N + 31) / 32)), min(((M + 31) / 32), ((L + 31) / 32))) {
+  for i1 in range((32 * i0), min(min(L, ((32 * i0) + 32)), M)) {
+    a[i1] = b[i1];
+    a[i1] = b[i1];
+  }
+  for i1 in range(M, min(L, ((32 * i0) + 32))) {
+    a[i1] = b[i1];
+  }
+  for i1 in range(L, min(((32 * i0) + 32), M)) {
+    a[i1] = b[i1];
+  }
+}
+for i0 in range(max(((M + 31) / 32), 0), min(((L + 31) / 32), ((N + 31) / 32))) {
+  for i1 in range((32 * i0), min(min(L, ((32 * i0) + 32)), N)) {
+    a[i1] = b[i1];
+    a[i1] = b[i1];
+  }
+  for i1 in range(N, min(L, ((32 * i0) + 32))) {
+    a[i1] = b[i1];
+  }
+  for i1 in range(L, min(((32 * i0) + 32), N)) {
+    a[i1] = b[i1];
+  }
+}
+for i0 in range(max(max(((M + 31) / 32), 0), ((N + 31) / 32)), ((L + 31) / 32)) {
+  for i1 in range((32 * i0), min(L, ((32 * i0) + 32))) {
+    a[i1] = b[i1];
+  }
+}
+if ((1 <= M && 1 <= N)) {
+  for i0 in range(max(0, ((L + 31) / 32)), min(((M + 31) / 32), ((N + 31) / 32))) {
+    for i1 in range(max(0, (32 * i0)), min(min(M, ((32 * i0) + 32)), N)) {
+      a[i1] = b[i1];
+      a[i1] = b[i1];
+    }
+    for i1 in range(N, min(M, ((32 * i0) + 32))) {
+      a[i1] = b[i1];
+    }
+    for i1 in range(M, min(((32 * i0) + 32), N)) {
+      a[i1] = b[i1];
+    }
+  }
+}
+for i0 in range(max(max(0, ((L + 31) / 32)), ((N + 31) / 32)), ((M + 31) / 32)) {
+  for i1 in range((32 * i0), min(M, ((32 * i0) + 32))) {
+    a[i1] = b[i1];
+  }
+}
+if (1 <= N) {
+  for i0 in range(max(max(((M + 31) / 32), ((L + 31) / 32)), 0), ((N + 31) / 32)) {
+    for i1 in range(max(0, (32 * i0)), min(N, ((32 * i0) + 32))) {
+      a[i1] = b[i1];
+    }
+  }
+}

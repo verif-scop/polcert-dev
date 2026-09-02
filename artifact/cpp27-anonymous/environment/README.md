@@ -28,6 +28,7 @@ modes are:
 | `docker run --rm polcert-artifact full` | Run all 30 artifact checks. |
 | `docker run --rm polcert-artifact ci` | Run all seven CI test groups in sequence. |
 | `docker run --rm polcert-artifact bugs` | Run seven Pluto reliability checks, including the historical snapshot. |
+| `docker run --rm polcert-artifact performance` | Rebuild and run the selected before/after programs for all 62 performance kernels. |
 | `docker run --rm polcert-artifact proof` | Clean and rebuild the proofs, unfinished-proof gate, and extraction. |
 | `docker run --rm polcert-artifact all` | Run `full` and every CI test group; do not repeat `proof`. |
 | `docker run --rm -it polcert-artifact shell` | Open a shell in the built environment. |

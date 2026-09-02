@@ -4624,11 +4624,18 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
     source_dir = source / "tests/end-to-end-generated"
     report_path = source_dir / "best_pipeline_report.json"
     selection_path = source_dir / "best_pipelines.json"
+    snapshot_dir = PACKAGE_DIR / "performance-programs"
+    snapshot_manifest_path = snapshot_dir / "manifest.json"
     require(report_path.is_file(), f"missing performance report: {report_path}")
     require(selection_path.is_file(), f"missing pipeline selection: {selection_path}")
+    require(
+        snapshot_manifest_path.is_file(),
+        f"missing performance program manifest: {snapshot_manifest_path}",
+    )
 
     report = load_json(report_path)
     selection = load_json(selection_path)
+    snapshot_manifest = load_json(snapshot_manifest_path)
     require(len(report) == 62, f"expected 62 performance cases, found {len(report)}")
     require(
         set(report) == set(selection["cases"]),
@@ -4651,6 +4658,22 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
         set(pipeline_specs) == set(pipeline_labels),
         "performance pipeline definitions differ from the documented routes",
     )
+    snapshot_records = {
+        item["case"]: item for item in snapshot_manifest["cases"]
+    }
+    require(
+        len(snapshot_records) == len(snapshot_manifest["cases"]),
+        "duplicate case in performance program manifest",
+    )
+    require(
+        set(snapshot_records) == set(report),
+        "performance program snapshots and measurements differ",
+    )
+
+    destination.mkdir()
+    shutil.copytree(snapshot_dir, destination / "programs")
+    case_pages = destination / "cases"
+    case_pages.mkdir()
 
     def requires_parallelized(pipeline: str) -> bool:
         spec = pipeline_specs[pipeline]
@@ -4666,9 +4689,17 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
     def seconds(value: float) -> str:
         return f"{value:.6f}" if value < 0.01 else f"{value:.4f}"
 
+    def parameters_text(params: dict) -> str:
+        return ", ".join(f"{key}={value}" for key, value in sorted(params.items()))
+
     rows = []
     selected_records = []
-    for case in sorted(report):
+    case_order = sorted(report)
+    for case_index, case in enumerate(case_order):
+        require(
+            re.fullmatch(r"[a-z0-9][a-z0-9-]*", case) is not None,
+            f"performance case cannot be used as a portable page name: {case}",
+        )
         case_report = report[case]
         candidates_by_pipeline = {
             item["pipeline_name"]: item
@@ -4750,6 +4781,42 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
             ),
             f"best optimized time summary mismatch for {case}",
         )
+        snapshot = snapshot_records[case]
+        spec = pipeline_specs[best]
+        require(
+            snapshot["pipeline"] == best,
+            f"performance program route mismatch for {case}",
+        )
+        require(
+            snapshot["polopt_args"] == spec.get("polopt_args", []),
+            f"performance program options mismatch for {case}",
+        )
+        require(
+            snapshot["source"]
+            == spec.get("source", "cached_default_no_iss_affine_tiling"),
+            f"performance program source mismatch for {case}",
+        )
+        before_path = snapshot_dir / case / "before.loop"
+        after_path = snapshot_dir / case / "after.loop"
+        require(before_path.is_file(), f"missing baseline program for {case}")
+        require(after_path.is_file(), f"missing accepted output for {case}")
+        require(
+            sha256(before_path) == snapshot["before_sha256"],
+            f"baseline program hash mismatch for {case}",
+        )
+        require(
+            sha256(after_path) == snapshot["after_sha256"],
+            f"accepted output hash mismatch for {case}",
+        )
+        before_text = before_path.read_text(encoding="utf-8")
+        after_text = after_path.read_text(encoding="utf-8")
+        polopt_args = spec.get("polopt_args", [])
+        route_options = " ".join(polopt_args) if polopt_args else "default route"
+        compile_command = (
+            "cc -fopenmp -O3 -std=c99 PROGRAM.c -lm -o PROGRAM"
+            if candidate["parallelized_loop"]
+            else "cc -O3 -std=c99 PROGRAM.c -lm -o PROGRAM"
+        )
         record = {
             "case": case,
             "pipeline": best,
@@ -4762,21 +4829,103 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
             "params": candidate["params"],
             "measurement_runs": 1,
             "exact_match": True,
+            "polopt_args": polopt_args,
+            "compiler_command": compile_command,
+            "page": f"cases/{case}.html",
+            "before_program": f"programs/{case}/before.loop",
+            "accepted_program": f"programs/{case}/after.loop",
         }
         selected_records.append(record)
 
         rows.append(
             "<tr>"
-            f"<td><code>{escape(case)}</code></td>"
+            f'<td><a href="cases/{escape(case)}.html"><code>{escape(case)}</code></a></td>'
             f"<td>{escape(pipeline_labels[best])}</td>"
             f"<td>{seconds(record['baseline_seconds'])} s</td>"
             f"<td>{seconds(record['optimized_seconds'])} s</td>"
             f"<td>{record['speedup']:.3f}x</td>"
             f"<td>{'yes' if record['parallelized'] else 'no'}</td>"
             '<td class="status-pass">same result</td>'
+            f'<td><a href="cases/{escape(case)}.html">before / accepted output</a></td>'
             "</tr>"
         )
 
+        previous_link = (
+            f'<a href="{escape(case_order[case_index - 1])}.html">'
+            f'Previous: <code>{escape(case_order[case_index - 1])}</code></a>'
+            if case_index > 0
+            else ""
+        )
+        next_link = (
+            f'<a href="{escape(case_order[case_index + 1])}.html">'
+            f'Next: <code>{escape(case_order[case_index + 1])}</code></a>'
+            if case_index + 1 < len(case_order)
+            else ""
+        )
+        pager_parts = [part for part in (previous_link, next_link) if part]
+        execution_text = (
+            f"{record['omp_threads']} threads "
+            f"(OMP_NUM_THREADS={record['omp_threads']}, OMP_DYNAMIC=FALSE)"
+            if record["parallelized"]
+            else "1 thread"
+        )
+        case_page = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Performance: {escape(case)}</title>
+  <link rel="stylesheet" href="../../../docs/artifact.css">
+</head>
+<body>
+<main>
+  <p class="breadcrumbs"><a href="../../../docs/index.html">Overview</a><span>/</span><a href="../../../docs/evaluation.html">Evaluation</a><span>/</span><a href="../index.html">Performance</a><span>/</span> {escape(case)}</p>
+  <h1><code>{escape(case)}</code></h1>
+  <p class="lede">
+    These are the complete baseline and PolCert-accepted Loop programs used
+    for this recorded whole-C comparison.
+  </p>
+  <dl class="performance-summary">
+    <div><dt>Baseline</dt><dd>{seconds(record['baseline_seconds'])} s</dd></div>
+    <div><dt>Accepted output</dt><dd>{seconds(record['optimized_seconds'])} s</dd></div>
+    <div><dt>Speedup</dt><dd>{record['speedup']:.3f}x</dd></div>
+    <div><dt>Program result</dt><dd class="status-pass">Same</dd></div>
+  </dl>
+  <div class="loop-comparison compact-programs">
+    <section>
+      <h2>Before</h2>
+      <pre><code>{escape(before_text)}</code></pre>
+      <p><a href="../programs/{escape(case)}/before.loop">Open baseline program</a></p>
+    </section>
+    <section>
+      <h2>Accepted Output</h2>
+      <pre><code>{escape(after_text)}</code></pre>
+      <p><a href="../programs/{escape(case)}/after.loop">Open accepted program</a></p>
+    </section>
+  </div>
+  <section class="reproduction-config">
+    <h2>Recorded Configuration</h2>
+    <dl>
+      <dt>Checked route</dt><dd>{escape(pipeline_labels[best])}</dd>
+      <dt><code>polopt</code> options</dt><dd><code>{escape(route_options)}</code></dd>
+      <dt>Kernel parameters</dt><dd><code>{escape(parameters_text(record['params']))}</code></dd>
+      <dt>C compilation</dt><dd><code>{escape(compile_command)}</code></dd>
+      <dt>Execution</dt><dd>1 baseline run and 1 accepted-output run; {escape(execution_text)}</dd>
+      <dt>Observed result</dt><dd>Both executions produced exactly the same output.</dd>
+    </dl>
+  </section>
+  <p class="case-pager"><a href="../index.html">All 62 kernels</a>{' &middot; ' if pager_parts else ''}{' &middot; '.join(pager_parts)}</p>
+</main>
+</body>
+</html>
+"""
+        (case_pages / f"{case}.html").write_text(case_page, encoding="utf-8")
+
+    require(len(rows) == 62, f"expected 62 performance table rows, found {len(rows)}")
+    require(
+        len(list(case_pages.glob("*.html"))) == 62,
+        "performance case page coverage is incomplete",
+    )
     nonidentity = sum(item["pipeline"] != "identity" for item in selected_records)
     nonidentity_speedups = sum(
         item["pipeline"] != "identity" and item["speedup"] > 1.0
@@ -4790,9 +4939,9 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
     )
     require(parallelized == 19, f"expected 19 parallel outputs, found {parallelized}")
 
-    destination.mkdir()
     shutil.copy2(report_path, destination / "all-candidates.json")
     shutil.copy2(selection_path, destination / "selected-pipelines.json")
+    shutil.copy2(source_dir / "param_tiers.json", destination / "parameter-tiers.json")
     summary = {
         "method": (
             "one recorded timed execution per candidate; baseline time divided by "
@@ -4807,6 +4956,30 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
     }
     (destination / "results.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    reproduction = {
+        "container_commands": [
+            "docker build -f environment/Dockerfile -t polcert-artifact .",
+            "docker run --rm polcert-artifact performance",
+        ],
+        "tier": "perf",
+        "candidate_measurement_runs_per_program": 1,
+        "timeout_seconds_per_optimizer_or_program_run": 300,
+        "compiler": "cc -O3 -std=c99 PROGRAM.c -lm -o PROGRAM",
+        "parallel_compiler": "cc -fopenmp -O3 -std=c99 PROGRAM.c -lm -o PROGRAM",
+        "parallel_environment": {
+            "OMP_DYNAMIC": "FALSE",
+            "OMP_NUM_THREADS": 4,
+        },
+        "case_parameters": "results.json -> selected[].params",
+        "selected_routes": "selected-pipelines.json -> cases",
+        "route_options": "selected-pipelines.json -> pipelines",
+        "programs": "programs/<case>/{before,after}.loop",
+        "note": "Elapsed times depend on the Docker host and should be remeasured locally.",
+    }
+    (destination / "reproduction-config.json").write_text(
+        json.dumps(reproduction, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
@@ -4825,7 +4998,8 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
   <p class="lede">
     Each row compares an unoptimized Loop program with a PolCert-accepted
     output inside the same generated whole-C harness. Both executables received
-    the same input, and every selected pair produced the same result.
+    the same input, and every selected pair produced the same result. Open any
+    row to inspect the complete programs side by side.
   </p>
   <dl class="performance-summary">
     <div><dt>Compared kernels</dt><dd>{len(selected_records)}</dd></div>
@@ -4855,19 +5029,36 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
       <thead>
         <tr>
           <th>Kernel</th><th>Selected checked route</th><th>Baseline</th>
-          <th>Optimized</th><th>Speedup</th><th>Parallel output</th>
-          <th>Program result</th>
+          <th>Accepted output</th><th>Speedup</th><th>Parallel output</th>
+          <th>Program result</th><th>Programs</th>
         </tr>
       </thead>
       <tbody>{chr(10).join(rows)}</tbody>
     </table>
   </div>
+  <h2>Reproduce the Comparison</h2>
+  <p>
+    The recorded search used the <code>perf</code> parameter tier, one timed
+    execution of each baseline and candidate, <code>cc -O3 -std=c99</code>,
+    and four OpenMP threads for parallel routes. Rebuild the packaged
+    environment and rerun the selected 62 routes with:
+  </p>
+  <pre><code>docker build -f environment/Dockerfile -t polcert-artifact .
+docker run --rm polcert-artifact performance</code></pre>
+  <p>
+    Exact route options are in <a href="selected-pipelines.json">selected-pipelines.json</a>,
+    per-kernel sizes are in <a href="results.json">results.json</a>, and the
+    consolidated settings are in <a href="reproduction-config.json">reproduction-config.json</a>.
+    Elapsed times depend on the Docker host.
+  </p>
   <details class="supporting-files">
     <summary>Supporting data</summary>
     <p>
       <a href="results.json">selected measurements</a> &middot;
       <a href="all-candidates.json">all pipeline candidates</a> &middot;
-      <a href="selected-pipelines.json">selected pipeline map</a>
+      <a href="selected-pipelines.json">selected pipeline map</a> &middot;
+      <a href="parameter-tiers.json">parameter tiers</a> &middot;
+      <a href="reproduction-config.json">reproduction configuration</a>
     </p>
   </details>
 </main>

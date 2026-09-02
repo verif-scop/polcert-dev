@@ -1,0 +1,9 @@
+context(N);
+
+s = 0.0;
+if (1 <= N) {
+  for i0 in range(0, N) {
+    x[i0] = (a[i0] + b[i0]);
+    s = (s + (x[i0] * 3));
+  }
+}

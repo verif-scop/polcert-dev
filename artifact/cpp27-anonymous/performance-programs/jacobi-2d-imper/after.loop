@@ -1,0 +1,16 @@
+context(T, N);
+
+if (4 <= N) {
+  for i0 in range(0, T) {
+    for i1 in range(2, (N + -1)) {
+      for i2 in range(2, (N + -1)) {
+        b[i1][i2] = (0.2 * ((((a[i1][i2] + a[i1][(i2 + -1)]) + a[i1][(i2 + 1)]) + a[(i1 + 1)][i2]) + a[(i1 + -1)][i2]));
+      }
+    }
+    for i1 in range(2, (N + -1)) {
+      for i2 in range(2, (N + -1)) {
+        a[i1][i2] = b[i1][i2];
+      }
+    }
+  }
+}

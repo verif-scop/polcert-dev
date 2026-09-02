@@ -1,0 +1,20 @@
+context(N);
+
+if (1 <= N) {
+  parallel for i0 in range(0, ((N + 31) / 32)) {
+    for i1 in range(max((32 * i0), 0), min(((32 * i0) + 32), N)) {
+      y[i1] = 0;
+    }
+  }
+}
+if (1 <= N) {
+  parallel for i0 in range(0, ((N + 31) / 32)) {
+    for i1 in range(0, ((N + 31) / 32)) {
+      for i2 in range(max(0, (32 * i0)), min(N, ((32 * i0) + 32))) {
+        for i3 in range(max(0, (32 * i1)), min(N, ((32 * i1) + 32))) {
+          y[i2] = (y[i2] + (a[i2][i3] * x[i3]));
+        }
+      }
+    }
+  }
+}

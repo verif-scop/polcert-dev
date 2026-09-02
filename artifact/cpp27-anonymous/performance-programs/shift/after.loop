@@ -1,0 +1,14 @@
+context(n);
+
+for i0 in range(0, n) {
+  a[i0][0] = (b[i0][-1] + a[i0][-1]);
+  for i1 in range(1, n) {
+    for i2 in range((i1 + -1), i1) {
+      b[i0][i2] = (a[(i0 + -1)][(i2 + 1)] + b[(i0 + -1)][i2]);
+    }
+    a[i0][i1] = (b[i0][(i1 + -1)] + a[i0][(i1 + -1)]);
+  }
+  for i1 in range((n + -1), n) {
+    b[i0][i1] = (a[(i0 + -1)][(i1 + 1)] + b[(i0 + -1)][i1]);
+  }
+}
