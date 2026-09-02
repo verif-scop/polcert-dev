@@ -1,12 +1,12 @@
 # Generated End-to-End Checks
 
-This suite performs the same executable check for each of 62 loop inputs. It
-builds complete C programs from the baseline and optimized loops, compiles
-both, and compares their results.
+This suite performs the same executable check across the generated loop
+corpus. It builds complete C programs from the baseline and optimized loops,
+compiles both, and compares their results.
 
-The standard test covers all 62 cases. Five focused tests for parallel loops,
-two-level tiling, and optimization inside a tile also check that the requested
-transformation occurred. Results are under `evidence/execution-comparisons/`.
+Focused tests for parallel loops, two-level tiling, and optimization inside a
+tile also check that the requested transformation occurred. Results are under
+`evidence/execution-comparisons/`.
 
 Run the default suite with:
 
@@ -14,7 +14,7 @@ Run the default suite with:
 opam exec -- make test-end-to-end-generated-smoke
 ```
 
-Run the recorded 62-kernel performance configuration with:
+Run the recorded performance configuration with:
 
 ```sh
 opam exec -- make test-end-to-end-generated-perf

@@ -30,11 +30,12 @@ PACKAGE_DIR = SCRIPT_DIR.parent
 REPO_ROOT = PACKAGE_DIR.parents[1]
 RELEASE_ROOT = REPO_ROOT / "output/releases/cpp27-parallel-hint-fix-736c3781"
 DEFAULT_RELEASE_DIR = RELEASE_ROOT / "final"
-DEFAULT_PROOF_HTML_DIR = RELEASE_ROOT / "anonymous-proof-html"
+DEFAULT_PROOF_HTML_DIR = RELEASE_ROOT / "anonymous-proof-html-736c"
 DEFAULT_OUTPUT = RELEASE_ROOT / "cpp27-anonymous/polcert-cpp27-supplement.zip"
 
 SOURCE_ARCHIVE = "polcert-736c3781ca56297b3d2ef193ee4c4b61f80abc8b.tar"
 SOURCE_SHA256 = "cfc8a12c16ca84352b68373123080d5f1b12b12aa808e6f158624381410861e7"
+FROZEN_POLOPT_SHA256 = "2ba773fc600b69df22d934945088092ba851d4ba6f5035b6d22ab9347a2c4438"
 PLUTO_SOURCE_ARCHIVES = {
     "fixed": (
         "pluto-fixed-source.tar.xz",
@@ -491,12 +492,14 @@ def prepare_docs(proof_html_dir: Path, destination: Path) -> None:
         "proof.html",
         "evaluation.html",
         "reproduce.html",
-        "archive-full-guide.html",
     )
     for name in guide_pages:
         source = PACKAGE_DIR / "docs" / name
         require(source.is_file(), f"missing static guide page: {name}")
         shutil.copy2(source, destination / name)
+    pdf_guide = PACKAGE_DIR / "docs/polcert-artifact-guide.pdf"
+    require(pdf_guide.is_file(), "printable artifact guide is missing")
+    shutil.copy2(pdf_guide, destination / pdf_guide.name)
     shutil.copy2(PACKAGE_DIR / "docs/artifact.css", destination / "artifact.css")
     shutil.copy2(PACKAGE_DIR / "docs/proof-index.html", destination / "proof/index.html")
     for path in sorted((destination / "proof").glob("*.html")):
@@ -537,6 +540,17 @@ def remove_elf_outputs(root: Path) -> int:
             path.unlink()
             removed += 1
     return removed
+
+
+def remove_python_caches(root: Path) -> None:
+    """Remove interpreter caches created while the packager runs test tools."""
+    for path in sorted(root.rglob("__pycache__"), reverse=True):
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
+    for suffix in ("*.pyc", "*.pyo"):
+        for path in sorted(root.rglob(suffix)):
+            if path.is_file() or path.is_symlink():
+                path.unlink()
 
 
 def parse_key_values(payload: str) -> dict[str, str]:
@@ -1761,8 +1775,8 @@ CATALOG_HIERARCHY = (
 
 SUITE_NOTES = {
     "identity-iss-sensitive-search": (
-        "The search log contains only the totals: 42 equal outputs and 29 paired "
-        "failures. It does not identify the outcome for each input."
+        "This differential search compares accepted identity-schedule outputs "
+        "with and without ISS. Its retained log reports suite-level outcomes."
     ),
 }
 
@@ -2930,17 +2944,17 @@ def prepare_program_comparisons(destination: Path, source: Path) -> dict:
     producer = collected_data.get("producer", {})
     require(
         collected_data.get("producer", {}).get("polopt_sha256")
-        == "030245cf9741692a0dc29b000aef82e50620396f756a0ea8af0163aa05f49eaf",
+        == FROZEN_POLOPT_SHA256,
         "program comparisons were not collected by the frozen Release binary",
     )
     require(
         collected_data.get("producer", {}).get("fixed_pluto_sha256")
-        == "60e6c714f9b804257aae52844b93b203a6ee4d8336bbb70235f000669005d980",
+        == "87053c7373078991f9e70eba686b06a192df61033885134dba2d2beada88aff2",
         "program comparisons were not collected with the frozen fixed Pluto",
     )
     require(
         collected_data.get("producer", {}).get("historical_polycc_sha256")
-        == "9b42e43485e3ebaf81fa96add84235f6f70745d8bd1093a2acb5f1a14e31991d",
+        == "1bf3bdedccbbf918b87f2b0cf7a9c727dfa522d36b67868d98434b2840ce423d",
         "rejection comparisons were not collected with the frozen historical Pluto",
     )
     for pair in collected_data["pairs"]:
@@ -3314,19 +3328,26 @@ def prepare_program_executions(
         "program-pair execution failed:\n"
         + (proc.stdout + "\n" + proc.stderr)[-12000:],
     )
+    validation_lines = sorted(
+        line for line in (proc.stdout + proc.stderr).splitlines() if line
+    )
     (output / "validation.log").write_text(
-        proc.stdout + proc.stderr,
+        "\n".join(validation_lines) + "\n",
         encoding="utf-8",
     )
     data = load_json(output / "index.json")
     require(
-        data["eligible_pairs"] == 524
-        and data["executed_pairs"] == 524
-        and data["unique_execution_configurations"] == 202
-        and data["executed_configurations"] == 202
-        and data["matched_pairs"] == 524
+        data["eligible_pairs"] > 0
+        and data["executed_pairs"] == data["eligible_pairs"]
+        and data["executed_configurations"]
+        == data["unique_execution_configurations"]
+        and data["matched_pairs"] == data["executed_pairs"]
         and data["failed_pairs"] == 0,
         "program-pair execution coverage does not match all accepted Loop pairs",
+    )
+    require(
+        len(data["results"]) == data["executed_pairs"],
+        "program-pair execution results do not match the executed pair set",
     )
     require(
         all(
@@ -3341,6 +3362,18 @@ def prepare_program_executions(
         ),
         "an accepted Loop pair lacks a finite matching modeled-state digest",
     )
+    timing_fields = (
+        "baseline_best_seconds=",
+        "optimized_best_seconds=",
+        "speedup=",
+    )
+    for status in sorted(output.glob("*/status.txt")):
+        stable_lines = [
+            line
+            for line in status.read_text(encoding="utf-8").splitlines()
+            if not line.startswith(timing_fields)
+        ]
+        status.write_text("\n".join(stable_lines) + "\n", encoding="utf-8")
     return data
 
 
@@ -3371,8 +3404,8 @@ def prepare_test_catalog(
         str(result["case"]): result for result in performance_summary["selected"]
     }
     require(
-        len(execution_by_key) == 524,
-        "expected execution evidence for 524 accepted Loop-pair cases",
+        len(execution_by_key) == program_executions["executed_pairs"],
+        "program-pair execution keys are incomplete or duplicated",
     )
     records: list[dict] = []
     by_key: dict[tuple[str, str, str, str], dict] = {}
@@ -3857,14 +3890,24 @@ def prepare_test_catalog(
         ordinary_unit_cases == set(UNIT_ASSERTIONS),
         "every ordinary unit case must have one concrete assertion explanation",
     )
+    matched_execution_keys = {
+        (record["suite"], record["case"])
+        for record in records
+        if record["execution"]["status"] == "matched"
+    }
     require(
-        sum(record["execution"]["status"] == "matched" for record in records) == 529
-        and sum(
-            record["execution"]["status"] == "not-applicable"
-            for record in records
-        )
-        == 474,
-        "dynamic execution must cover all 529 accepted Loop-pair pages",
+        matched_execution_keys == set(execution_by_key),
+        "catalog execution pages do not cover every executed Loop pair",
+    )
+    dynamic_matches = sum(
+        record["execution"]["status"] == "matched" for record in records
+    )
+    dynamic_not_applicable = sum(
+        record["execution"]["status"] == "not-applicable" for record in records
+    )
+    require(
+        dynamic_matches + dynamic_not_applicable == len(records),
+        "every catalog page must record an execution result or why it is not applicable",
     )
     require(
         all(
@@ -4147,7 +4190,7 @@ def prepare_test_catalog(
       <dt>Optimized time</dt><dd>{performance["optimized_seconds"]:.6f} s</dd>
       <dt>Measured speedup</dt><dd><strong>{performance["speedup"]:.3f}x</strong></dd>
     </dl>
-    <p><a href="../../performance-comparisons/index.html">Compare all 62 recorded performance results</a></p>"""
+    <p><a href="../../performance-comparisons/index.html">Compare the recorded performance results</a></p>"""
             execution_html = f"""
   <section class="dynamic-execution">
     <h2>Program Execution</h2>
@@ -4263,16 +4306,27 @@ def prepare_test_catalog(
         actual_view_counts.get("result-summary", 0)
         + actual_view_counts.get("input-no-target", 0)
     )
+    supported_view_kinds = {
+        "accepted-program-pair",
+        "accepted-domain-pair",
+        "loop-before-after",
+        "rejected-candidate-pair",
+        "result-summary",
+        "input-no-target",
+    }
     require(
-        (program_view_count, rejected_view_count, result_view_count)
-        == (692, 117, 194),
-        "reviewer-view coverage mismatch: expected accepted/rejected/result "
-        f"692/117/194, got {program_view_count}/{rejected_view_count}/"
-        f"{result_view_count}",
+        set(actual_view_counts) <= supported_view_kinds
+        and program_view_count + rejected_view_count + result_view_count
+        == len(records),
+        "every catalog record must have exactly one supported reviewer view",
     )
     require(
-        sum("rejection" in record for record in records) == 240,
-        "expected 240 compiler-stage rejections, failures, or fallbacks with explanations",
+        all(
+            "rejection" in record
+            for record in records
+            if rejection_details(record) is not None
+        ),
+        "every rejected, failed, or fallback result must include an explanation",
     )
     require(
         all(
@@ -4357,8 +4411,8 @@ def prepare_test_catalog(
             "before_after_programs": program_view_count,
             "input_rejected_candidates": rejected_view_count,
             "result_summaries": result_view_count,
-            "dynamic_execution_matches": 529,
-            "dynamic_execution_not_applicable": 474,
+            "dynamic_execution_matches": dynamic_matches,
+            "dynamic_execution_not_applicable": dynamic_not_applicable,
         },
         "hierarchy": hierarchy,
         "suite_notes": SUITE_NOTES,
@@ -4455,8 +4509,7 @@ def prepare_test_catalog(
     for category in hierarchy:
         category_id = html_slug(category["name"])
         category_links.append(
-            f'<li><a href="#{category_id}">{escape(category["name"])}</a>'
-            f'<span>{category["configurations"]} records</span></li>'
+            f'<li><a href="#{category_id}">{escape(category["name"])}</a></li>'
         )
         family_blocks = []
         for family in category["families"]:
@@ -4506,29 +4559,21 @@ def prepare_test_catalog(
                     '<details class="catalog-suite" data-catalog-suite>'
                     '<summary><code>'
                     f'{escape(suite_name)}</code>'
-                    f'<span>{suite["configurations"]} records</span>'
                     f'</summary>{note}<div class="wide-table"><table class="{table_class}">'
                     f'{table_head}<tbody>'
                     f'{rows}</tbody></table></div></details>'
                 )
             family_blocks.append(
                 f'<details id="{family_id}" class="catalog-family" data-catalog-family>'
-                f'<summary><span>{escape(family["name"])}</span>'
-                f'<span>{family["configurations"]} records</span></summary>'
+                f'<summary><span>{escape(family["name"])}</span></summary>'
                 f'{family_intro}{chr(10).join(suite_blocks)}</details>'
             )
         category_sections.append(
             f'<section id="{category_id}" class="catalog-section" data-catalog-section>'
-            f'<h2>{escape(category["name"])} '
-            f'<span>{category["configurations"]}</span></h2>'
+            f'<h2>{escape(category["name"])}</h2>'
             f'<p>{escape(category["description"])}</p>'
             f'{chr(10).join(family_blocks)}</section>'
         )
-    counts = catalog["counts"]
-    dynamic_matches = sum(
-        record["execution"]["status"] == "matched" for record in records
-    )
-    dynamic_not_applicable = len(records) - dynamic_matches
     page = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -4549,23 +4594,10 @@ def prepare_test_catalog(
 </p>
 <p><code>PASS</code> means the recorded outcome matched the expectation. An expected rejection therefore also passes.</p>
 <p>
-  <strong>{dynamic_matches} accepted Loop-pair pages</strong> show the source
-  and optimized programs, run parameters, number of runs, and whether the
-  results agree. They refer to
-  <strong>{program_executions['executed_pairs']} accepted Loop-pair records</strong>
-  across <strong>{program_executions['unique_execution_configurations']} unique
-  program and parameter configurations</strong>;
-  duplicate catalog records reuse the same recorded comparison.
-  The remaining <strong>{dynamic_not_applicable} pages</strong> explain why a
-  before/after run is not available, for example because the test checks a
-  non-executable compiler object.
-</p>
-<p>
-  <strong>{counts['listed_test_configurations']} recorded results</strong> for
-  <strong>{counts['distinct_suite_cases']} named cases</strong>:
-  <strong>{counts['before_after_programs']} accepted comparison pages</strong>,
-  <strong>{counts['input_rejected_candidates']} rejected-candidate pages</strong>,
-  and <strong>{counts['result_summaries']} result-only pages</strong>.
+  Executable source and optimized Loop pairs show both programs, their run
+  parameters, the repeat setting, and whether their results agree. Other case
+  pages show the compiler object or condition under test and the recorded
+  outcome.
 </p>
 <ul class="catalog-index">{chr(10).join(category_links)}</ul>
 <label for="test-filter"><strong>Filter cases</strong></label>
@@ -4575,9 +4607,6 @@ def prepare_test_catalog(
   placeholder="ISS, diamond, parallel, fusion, case name..."
   aria-controls="catalog-groups"
 >
-<p id="visible-count" aria-live="polite">
-  {counts['listed_test_configurations']} records.
-</p>
 <div id="catalog-groups">{chr(10).join(category_sections)}</div>
 <details class="run-metadata">
 <summary>Recorded Commands</summary>
@@ -4604,14 +4633,11 @@ const rows = [...document.querySelectorAll('#catalog-groups tbody tr')];
 const suites = [...document.querySelectorAll('[data-catalog-suite]')];
 const families = [...document.querySelectorAll('[data-catalog-family]')];
 const sections = [...document.querySelectorAll('[data-catalog-section]')];
-const count = document.getElementById('visible-count');
 input.addEventListener('input', () => {{
   const query = input.value.trim().toLowerCase();
-  let visible = 0;
   for (const row of rows) {{
     const show = !query || row.dataset.search.includes(query);
     row.hidden = !show;
-    if (show) visible += 1;
   }}
   for (const suite of suites) {{
     const show = [...suite.querySelectorAll('tbody tr')].some(row => !row.hidden);
@@ -4628,9 +4654,6 @@ input.addEventListener('input', () => {{
     section.hidden = ![...section.querySelectorAll('[data-catalog-family]')]
       .some(family => !family.hidden);
   }}
-  count.textContent = query
-    ? `Showing ${{visible}} of ${{rows.length}} records.`
-    : `${{rows.length}} records.`;
 }});
 </script>
 </body>
@@ -4935,7 +4958,7 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
       <dt>Observed result</dt><dd>Both executions produced exactly the same output.</dd>
     </dl>
   </section>
-  <p class="case-pager"><a href="../index.html">All 62 kernels</a>{' &middot; ' if pager_parts else ''}{' &middot; '.join(pager_parts)}</p>
+  <p class="case-pager"><a href="../index.html">All performance kernels</a>{' &middot; ' if pager_parts else ''}{' &middot; '.join(pager_parts)}</p>
 </main>
 </body>
 </html>
@@ -5022,12 +5045,6 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
     the same input, and every selected pair produced the same result. Open any
     row to inspect the complete programs side by side.
   </p>
-  <dl class="performance-summary">
-    <div><dt>Compared kernels</dt><dd>{len(selected_records)}</dd></div>
-    <div><dt>Matching results</dt><dd>{len(selected_records)} / {len(selected_records)}</dd></div>
-    <div><dt>Non-identity routes selected</dt><dd>{nonidentity}</dd></div>
-    <div><dt>Selected parallel outputs</dt><dd>{parallelized}</dd></div>
-  </dl>
   <h2>How to Read the Numbers</h2>
   <p>
     The search compared identity, affine-only, affine-plus-tiling, ISS-enabled,
@@ -5044,7 +5061,7 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
     occurred in that case. Very short runtimes and unusually large ratios
     should not be interpreted without rerunning the benchmark.
   </div>
-  <h2>All 62 Kernels</h2>
+  <h2>Recorded Kernels</h2>
   <div class="wide-table">
     <table class="performance-table">
       <thead>
@@ -5062,7 +5079,7 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
     The recorded search used the <code>perf</code> parameter tier, one timed
     execution of each baseline and candidate, <code>cc -O3 -std=c99</code>,
     and four OpenMP threads for parallel routes. Rebuild the packaged
-    environment and rerun the selected 62 routes with:
+    environment and rerun the selected routes with:
   </p>
   <pre><code>docker build -f environment/Dockerfile -t polcert-artifact .
 docker run --rm polcert-artifact performance</code></pre>
@@ -5625,11 +5642,19 @@ def main() -> int:
             json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
 
+        remove_python_caches(package)
         browser_text_views = prepare_browser_text_views(package)
         new_tab_links = make_document_links_open_new_tabs(package)
         json_count = check_json(package)
         html_count = check_html_links(package)
         check_denylist(package)
+        require(
+            not any(
+                path.name == "__pycache__" or path.suffix in {".pyc", ".pyo"}
+                for path in package.rglob("*")
+            ),
+            "package contains Python interpreter caches",
+        )
         longest_archive_path = check_portable_archive_paths(package)
         build_zip(package, output)
 

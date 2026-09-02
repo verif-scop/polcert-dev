@@ -20,15 +20,15 @@ default checks took about 31 minutes. The final image was about 2.1 GB; hardware
 and cache state affect these values. On an ARM host, enable emulation and add
 `--platform linux/amd64` to the build command.
 
-The default command runs 25 compiler and executable checks. Other
-modes are:
+The default command runs the main compiler and executable checks. Other modes
+are:
 
 | Command | Work performed |
 | --- | --- |
-| `docker run --rm polcert-artifact full` | Run all 30 artifact checks. |
-| `docker run --rm polcert-artifact ci` | Run all seven CI test groups in sequence. |
-| `docker run --rm polcert-artifact bugs` | Run seven Pluto reliability checks, including the historical snapshot. |
-| `docker run --rm polcert-artifact performance` | Rebuild and run the selected before/after programs for all 62 performance kernels. |
+| `docker run --rm polcert-artifact full` | Run the complete artifact check set. |
+| `docker run --rm polcert-artifact ci` | Run every CI test group in sequence. |
+| `docker run --rm polcert-artifact bugs` | Run the Pluto reliability checks, including the historical snapshot. |
+| `docker run --rm polcert-artifact performance` | Rebuild and run the selected before/after performance programs. |
 | `docker run --rm polcert-artifact proof` | Clean and rebuild the proofs, unfinished-proof gate, and extraction. |
 | `docker run --rm polcert-artifact all` | Run `full` and every CI test group; do not repeat `proof`. |
 | `docker run --rm -it polcert-artifact shell` | Open a shell in the built environment. |

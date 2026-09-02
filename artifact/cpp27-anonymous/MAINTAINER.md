@@ -11,30 +11,30 @@ generated Rocq HTML. Generate the Rocq HTML from the frozen image before
 packaging:
 
 ```sh
-docker run --name polcert-proof-doc --entrypoint bash \
-  polcert-artifact:state-eq-polyhedral-verification-complete-2026-08-29-v10 \
-  -lc 'eval "$(opam env --switch=polcert)" && make proof-documentation'
-
-docker cp \
-  polcert-proof-doc:/polcert/doc/proof-html \
-  output/releases/state-eq-polyhedral-verification-complete-2026-08-29-v10/anonymous-proof-html
-
-docker rm polcert-proof-doc
+docker run --rm --entrypoint bash \
+  -v "$PWD:/workspace" \
+  polcert-cpp27-anonymous-736c \
+  -lc 'eval "$(opam env --switch=polcert)" && \
+    cd /workspace/work/verified-compilation-v10-driver && \
+    make proof-documentation && \
+    rm -rf /workspace/output/releases/cpp27-parallel-hint-fix-736c3781/anonymous-proof-html-736c && \
+    cp -a doc/proof-html \
+      /workspace/output/releases/cpp27-parallel-hint-fix-736c3781/anonymous-proof-html-736c'
 ```
 
-Regenerate the reviewer-facing program comparisons from the
-frozen Release image. The collector checks the exact `polopt`, fixed Pluto, and
-historical Pluto binary hashes. It stores accepted outputs and rejected
+Regenerate the reviewer-facing program comparisons from the configured build
+of the source snapshot. The collector checks the exact `polopt`, fixed Pluto,
+and historical Pluto binary hashes. It stores accepted outputs and rejected
 candidates under the release result tree:
 
 ```sh
-docker run --rm --entrypoint /bin/sh \
-  -v "$PWD:/workspace" -w /polcert \
-  -e POLCERT_PLUTO=/pluto/tool/pluto \
-  polcert-artifact:state-eq-polyhedral-verification-complete-2026-08-29-v10 \
+docker run --rm --entrypoint bash \
+  -v "$PWD:/workspace" \
+  -e POLCERT_BUGGY_POLYCC=/opt/polcert/pluto-historical/polycc \
+  polcert-cpp27-anonymous-736c \
   -lc 'python3 /workspace/artifact/cpp27-anonymous/bin/collect_program_comparisons.py \
     --source /polcert \
-    --output /workspace/output/releases/state-eq-polyhedral-verification-complete-2026-08-29-v10/final/polcert-artifact-check/program-comparisons \
+    --output /workspace/output/releases/cpp27-parallel-hint-fix-736c3781/final/polcert-artifact-check/program-comparisons \
     --force'
 ```
 
@@ -52,10 +52,9 @@ python3 artifact/cpp27-anonymous/bin/prepare_anonymous.py --force
 ## Packaging Boundary
 
 The submission archive includes formal source, both Pluto source snapshots,
-proof HTML, and local evidence. It excludes the release Docker image and GitHub
-Actions records because those objects carry account, repository, and Git-history
-metadata. The publication package under `artifact/zenodo-v10/` retains those
-exact identities.
+proof HTML, local evidence, and sanitized CI output. It excludes the release
+Docker image and account, repository, and Git-history metadata. The publication
+package under `artifact/zenodo-v10/` retains those exact identities.
 
 The source filter removes release orchestration, historical proof audits, and a
 tracked local ELF containing its build path. It must not modify any `.v` file;
@@ -65,9 +64,9 @@ the packager checks the complete formal-source hash map before writing output.
 
 The packager checks:
 
-- exact frozen source and 30/30 artifact acceptance;
+- the exact frozen source and successful artifact checks;
 - byte identity of every formal source file;
-- all 1003 case pages, including the exact accepted/rejected/result view counts;
+- one supported reviewer view for every catalog record;
 - every JSON file;
 - every relative HTML target and fragment;
 - ZIP CRC integrity and deterministic archive construction;

@@ -18,8 +18,8 @@
     <div class="minor">
       <a href="#guarantee">Correctness statement</a>
       <a href="#top-theorems">Top theorems</a>
-      <a href="#proof-path">Proof path</a>
-      <a href="#components">Component reading</a>
+      <a href="#proof-path">Proof composition</a>
+      <a href="#components">Core components</a>
       <a href="proof/index.html">Rocq proof index</a>
     </div>
   </nav>
@@ -27,9 +27,9 @@
   <main>
     <h1>Proof Guide</h1>
     <p class="lede">
-      Start with the correctness statement and the seven-step proof path. The
-      component table then points to the main theorem and source files for each
-      substantial argument.
+      PolCert's top-level refinement theorem composes correctness results for
+      extraction, validation, code generation, and loop postpasses. This page
+      links each argument to its main theorem and Rocq source.
     </p>
 
     <section id="guarantee">
@@ -91,7 +91,7 @@
     </section>
 
     <section id="proof-path">
-      <h2>Proof Path</h2>
+      <h2>Proof Composition</h2>
       <div class="proof-step">
         <div class="number">1</div>
         <div>
@@ -144,7 +144,7 @@
     </section>
 
     <section id="components">
-      <h2>Core Component Reading</h2>
+      <h2>Core Components</h2>
       <div class="wide-table">
         <table class="compact-table">
           <thead>
@@ -223,15 +223,14 @@
         </tbody>
       </table>
       <p>
-        Use the <a href="proof/index.html">Rocq proof index</a> after choosing a
-        component above. The generated pages are declaration-level reference,
-        while this page supplies the reading order.
+        The <a href="proof/index.html">Rocq proof index</a> provides
+        declaration-level documentation for these components.
       </p>
     </section>
 
     <p class="footer">
-      Build status and route coverage are recorded in the
-      <a href="../evidence/results/proof-report.md">proof report</a>.
+      The <a href="../evidence/results/proof-report.md">proof report</a> records
+      the clean build and proof-integrity checks.
     </p>
   </main>
 </div>

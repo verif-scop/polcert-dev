@@ -1,7 +1,7 @@
 # Results
 
-Start with [`../docs/evaluation.html`](../docs/evaluation.html) for the test
-design and main results.
+The [`evaluation report`](../docs/evaluation.html) summarizes the test design
+and main results.
 
 | Question | Report |
 | --- | --- |

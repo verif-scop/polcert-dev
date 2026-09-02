@@ -87,7 +87,7 @@
           </tr>
           <tr>
             <td>Pluto adapter</td>
-            <td>Invoke Pluto and read its schedule, phase, ISS, parallel, and vector proposals.</td>
+            <td>Invoke Pluto and read its schedule, phase, ISS, parallel, and vector proposals. Map raw parallel hints to the canonical schedule coordinates checked by PolCert.</td>
             <td><a href="../source/driver/Scheduler.ml"><code>Scheduler.ml</code></a>, <a href="../source/driver/PhaseISS.ml"><code>PhaseISS.ml</code></a>, <a href="../source/driver/PhaseTiling.ml"><code>PhaseTiling.ml</code></a></td>
           </tr>
           <tr>
@@ -186,9 +186,9 @@
             </tr>
             <tr>
               <td>Parallel eligibility (optional)</td>
-              <td>Checks one or more proposed schedule dimensions in the current-coordinate view. A vector request uses the same certificate and requires an innermost generated loop.</td>
+              <td>Maps a Pluto parallel hint from raw scattering rows to the canonical schedule, then checks the selected dimensions in the current-coordinate view. A vector request uses the same certificate and requires an innermost generated loop.</td>
               <td>Instances that differ at a selected dimension, under the same outer prefix, may exchange order. This supports arbitrary interleavings of each generated parallel loop.</td>
-              <td><a href="../source/src/ParallelValidator.v"><code>ParallelValidator.v</code></a></td>
+              <td><a href="../source/driver/Scheduler.ml"><code>Scheduler.ml</code></a>, <a href="../source/src/OpenScop.v"><code>OpenScop.v</code></a>, <a href="../source/src/ParallelValidator.v"><code>ParallelValidator.v</code></a></td>
             </tr>
             <tr>
               <td>Codegen preparation</td>
