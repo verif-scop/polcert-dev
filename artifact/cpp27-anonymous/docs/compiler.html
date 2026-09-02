@@ -17,6 +17,7 @@
     <a href="reproduce.html">Reproduce</a>
     <div class="minor">
       <a href="#model">Polyhedral model</a>
+      <a href="#entry">Executable entry point</a>
       <a href="#pipeline">Verified pipeline</a>
       <a href="#transformations">Transformations</a>
       <a href="#instructions">Instruction interface</a>
@@ -27,8 +28,10 @@
   <main>
     <h1>Compiler</h1>
     <p class="lede">
-      PolCert represents a bounded loop as statement instances, checks proposed
-      transformations over those instances, and reconstructs a target loop.
+      PolCert compiles a bounded affine loop through a polyhedral intermediate
+      representation. Verified passes perform representation changes. A
+      validator accepts an optimizer proposal only after checking its
+      correctness conditions.
     </p>
 
     <section id="model">
@@ -45,72 +48,186 @@
         Loop optimization changes the schedule or introduces new coordinates.
         It must preserve every original statement instance and respect any
         memory dependence that constrains execution order.
+        The source and intermediate representations are defined in
+        <a href="../source/polygen/Loop.v"><code>Loop.v</code></a> and
+        <a href="../source/src/PolyLang.v"><code>PolyLang.v</code></a>;
+        parallel output uses
+        <a href="../source/polygen/ParallelLoop.v"><code>ParallelLoop.v</code></a>.
+      </p>
+    </section>
+
+    <section id="entry">
+      <h2>Executable Entry Point</h2>
+      <p>
+        The <code>polopt</code> executable accepts a structured <code>.loop</code>
+        file and Pluto-compatible optimization options. The parser and
+        elaborator construct the source <code>Loop</code> program. Pluto then
+        proposes schedules, tiling phases, ISS data, and concurrency hints.
+        Route selection passes those proposals to the corresponding extracted
+        validators and verified compiler functions.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Wrapper component</th>
+            <th>Function</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Parser and elaborator</td>
+            <td>Parse <code>.loop</code> syntax and construct a well-scoped source <code>Loop</code> program.</td>
+            <td><a href="../source/syntax/SLoopParse.ml"><code>SLoopParse.ml</code></a>, <a href="../source/syntax/SLoopElab.ml"><code>SLoopElab.ml</code></a></td>
+          </tr>
+          <tr>
+            <td>Option and route selection</td>
+            <td>Interpret native and Pluto-compatible options, reject unsupported combinations, and select a checked compiler route.</td>
+            <td><a href="../source/syntax/SLoopCli.ml"><code>SLoopCli.ml</code></a>, <a href="../source/syntax/SLoopConfig.ml"><code>SLoopConfig.ml</code></a>, <a href="../source/syntax/SLoopRoute.ml"><code>SLoopRoute.ml</code></a></td>
+          </tr>
+          <tr>
+            <td>Pluto adapter</td>
+            <td>Invoke Pluto and read its schedule, phase, ISS, parallel, and vector proposals.</td>
+            <td><a href="../source/driver/Scheduler.ml"><code>Scheduler.ml</code></a>, <a href="../source/driver/PhaseISS.ml"><code>PhaseISS.ml</code></a>, <a href="../source/driver/PhaseTiling.ml"><code>PhaseTiling.ml</code></a></td>
+          </tr>
+          <tr>
+            <td>Extracted compiler interface</td>
+            <td>Instantiate the verified sequential and parallel configurations for extraction to OCaml.</td>
+            <td><a href="../source/syntax/SVerifiedCompilerConfig.v"><code>SVerifiedCompilerConfig.v</code></a>, <a href="../source/syntax/SVerifiedParallelCompilerConfig.v"><code>SVerifiedParallelCompilerConfig.v</code></a></td>
+          </tr>
+          <tr>
+            <td>Dispatch and output</td>
+            <td>Run the selected extracted function and print the accepted target loop or a rejection message.</td>
+            <td><a href="../source/syntax/SLoopDispatch.ml"><code>SLoopDispatch.ml</code></a>, <a href="../source/syntax/SLoopMain.ml"><code>SLoopMain.ml</code></a>, <a href="../source/syntax/SLoopPretty.ml"><code>SLoopPretty.ml</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        The end-to-end theorem begins at the structured source <code>Loop</code>
+        program, after parsing and elaboration. Pluto and the surrounding OCaml
+        wrapper may choose a route or produce a proposal, but they cannot make
+        a failed validator return an accepted target.
       </p>
     </section>
 
     <section id="pipeline">
       <h2>The Verified Pipeline</h2>
-      <div class="pipeline" role="img" aria-label="Detailed PolCert compilation pipeline">
-        <div class="stage verified"><b>Extract</b>source loop to instances</div>
-        <div class="stage verified"><b>Prepare</b>explicit bounds</div>
-        <div class="stage verified"><b>Split</b>optional ISS</div>
-        <div class="stage verified"><b>Schedule</b>check new order</div>
-        <div class="stage verified"><b>Tile</b>check grouping and order</div>
-        <div class="stage verified"><b>Generate</b>model to loops</div>
-        <div class="stage verified"><b>Parallelize</b>check selected loops</div>
-        <div class="stage verified"><b>Postpass</b>checked unrolling or jam</div>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Stage</th>
-            <th>Input</th>
-            <th>What the check establishes</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Extraction</td>
-            <td>Bounded source loop</td>
-            <td>The model executes exactly the source statement instances in source order.</td>
-          </tr>
-          <tr>
-            <td>Index-set splitting</td>
-            <td>Proposed partition of instances</td>
-            <td>The parts cover the original set without overlap.</td>
-          </tr>
-          <tr>
-            <td>Affine scheduling</td>
-            <td>Proposed schedule</td>
-            <td>Every reversed pair can safely exchange order.</td>
-          </tr>
-          <tr>
-            <td>Tiling</td>
-            <td>Tile sizes and tiled schedule</td>
-            <td>Each source instance has one tiled coordinate and the tile order is safe.</td>
-          </tr>
-          <tr>
-            <td>Loop generation</td>
-            <td>Checked polyhedral program</td>
-            <td>The generated loop executes the checked instances.</td>
-          </tr>
-          <tr>
-            <td>Parallelization</td>
-            <td>Selected generated dimensions</td>
-            <td>Every allowed interleaving matches a valid sequential execution.</td>
-          </tr>
-          <tr>
-            <td>Loop postpass</td>
-            <td>Generated Loop program</td>
-            <td>Supported unrolling and jam rewrites preserve the generated program.</td>
-          </tr>
-        </tbody>
-      </table>
       <p>
-        Every optional stage has a correctness theorem that connects its output
-        to its input. If a required check fails, the compiler emits no optimized
-        program. When an option is explicitly best-effort, its failed check may
-        retain the last accepted program.
+        The diagram gives the stage order. ISS, affine scheduling, tiling,
+        post-tiling scheduling, concurrency, and loop postpasses are optional;
+        the selected configuration determines which of them run.
+      </p>
+      <div class="pipeline complete-pipeline" role="img" aria-label="PolCert compilation stages in execution order">
+        <div class="stage verified"><b>Extract</b>Loop to polyhedral IR</div>
+        <div class="stage verified"><b>Strengthen</b>materialize implied guards</div>
+        <div class="stage verified"><b>ISS</b>check an optional partition</div>
+        <div class="stage verified"><b>Affine</b>check an optional schedule</div>
+        <div class="stage verified"><b>Tile</b>check added coordinates</div>
+        <div class="stage verified"><b>Post-affine</b>check a tiled reschedule</div>
+        <div class="stage verified"><b>Current view</b>compose coordinate maps</div>
+        <div class="stage verified"><b>Parallel check</b>certify selected dimensions</div>
+        <div class="stage verified"><b>Prepare</b>pad codegen dimensions</div>
+        <div class="stage verified"><b>Generate</b>generate and annotate loops</div>
+        <div class="stage verified"><b>Cleanup</b>simplify generated loops</div>
+        <div class="stage verified"><b>Postpass</b>optional unroll or jam</div>
+      </div>
+      <div class="wide-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Input and result</th>
+              <th>Correctness argument</th>
+              <th>Implementation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Loop extraction</td>
+              <td>Converts a structured <code>Loop</code> program to statement domains, accesses, and a source schedule.</td>
+              <td>The polyhedral program executes exactly the source statement instances in source order.</td>
+              <td><a href="../source/src/Extractor.v"><code>Extractor.v</code></a>, <a href="../source/src/ExtractorCorrect.v"><code>ExtractorCorrect.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Domain strengthening</td>
+              <td>Adds parameter and enclosing-loop guards that are already implied by the extracted domains.</td>
+              <td>The added constraints are redundant, so the set and order of statement instances are unchanged.</td>
+              <td><a href="../source/src/StrengthenDomain.v"><code>StrengthenDomain.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Index-set splitting (optional)</td>
+              <td>Replaces a statement domain with a proposed collection of subdomains.</td>
+              <td>The checker establishes exact coverage, pairwise disjointness, and preservation of the statement payload.</td>
+              <td><a href="../source/src/ISSValidator.v"><code>ISSValidator.v</code></a>, <a href="../source/src/ISSValidatorCorrect.v"><code>ISSValidatorCorrect.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Affine scheduling (optional)</td>
+              <td>Replaces schedule coordinates; this represents interchange, skewing, fusion, fission, and related affine changes.</td>
+              <td>For every pair whose order changes, the validator proves that exchanging the pair is safe.</td>
+              <td><a href="../source/src/AffineValidator.v"><code>AffineValidator.v</code></a>, <a href="../source/src/Validator.v"><code>Validator.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Tiling (optional)</td>
+              <td>Adds tile and intra-tile coordinates for ordinary, two-level, or diamond tiling.</td>
+              <td>The tiling witness maps every source instance to the candidate coordinates, and the checked band order permits the introduced grouping.</td>
+              <td><a href="../source/src/TilingRelation.v"><code>TilingRelation.v</code></a>, <a href="../source/src/TilingBandDirectRuntime.v"><code>TilingBandDirectRuntime.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Post-tiling affine scheduling (optional)</td>
+              <td>Applies another affine schedule to the tiled program, including changes to intra-tile order.</td>
+              <td>The same affine validator checks the new order against the post-tiling program.</td>
+              <td><a href="../source/driver/ParallelPolOpt.v"><code>ParallelPolOpt.v</code></a>, <a href="../source/src/AffineValidator.v"><code>AffineValidator.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Current-coordinate view</td>
+              <td>Composes earlier coordinate maps so code generation works directly with the current transformed indices.</td>
+              <td>The view changes the representation of coordinates, not the represented statement instances.</td>
+              <td><a href="../source/src/PolyLang.v"><code>PolyLang.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Parallel eligibility (optional)</td>
+              <td>Checks one or more proposed schedule dimensions in the current-coordinate view before annotated loop generation.</td>
+              <td>Instances that differ at a selected dimension, under the same outer prefix, may exchange order. This supports arbitrary interleavings of the generated parallel loop.</td>
+              <td><a href="../source/src/ParallelValidator.v"><code>ParallelValidator.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Codegen preparation</td>
+              <td>Pads domains, schedules, accesses, and coordinate maps to one program-wide dimension and records shorter statement depths with zero constraints.</td>
+              <td>Padding preserves the current polyhedral program and supplies the dimension invariants required by loop generation.</td>
+              <td><a href="../source/src/PrepareCodegen.v"><code>PrepareCodegen.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Loop generation and annotation</td>
+              <td>Generates a sequential <code>Loop</code> or a <code>ParallelLoop</code> whose certified dimensions carry parallel annotations.</td>
+              <td>The generated loop realizes the checked instance order; parallel annotations are added only for certified dimensions.</td>
+              <td><a href="../source/polygen/CodeGen.v"><code>CodeGen.v</code></a>, <a href="../source/src/ParallelCodegenCore.v"><code>ParallelCodegenCore.v</code></a>, <a href="../source/src/ParallelCodegenCorrect.v"><code>ParallelCodegenCorrect.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Generated-loop cleanup</td>
+              <td>Eliminates singleton loops and simplifies generated expressions and statements.</td>
+              <td>Each cleanup has a semantic-preservation theorem. Parallel codegen uses the cleaned result only when its trace check succeeds; otherwise it retains the safe uncleaned result.</td>
+              <td><a href="../source/polygen/LoopSingletonCleanup.v"><code>LoopSingletonCleanup.v</code></a>, <a href="../source/polygen/LoopCleanup.v"><code>LoopCleanup.v</code></a>, <a href="../source/polygen/ParallelLoop.v"><code>ParallelLoop.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Loop postpasses (optional)</td>
+              <td>Applies constant-bound unrolling or checked block/remainder unroll-and-jam to generated loops. A parallel route after unroll-and-jam re-extracts the changed loop and validates its parallel dimensions again.</td>
+              <td>Unrolling covers the original iteration range exactly. Jamming also validates the exchanges introduced by fusion.</td>
+              <td><a href="../source/polygen/LoopUnroll.v"><code>LoopUnroll.v</code></a>, <a href="../source/src/LoopJamValidator.v"><code>LoopJamValidator.v</code></a>, <a href="../source/driver/VerifiedLoopPostpass.v"><code>VerifiedLoopPostpass.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Configuration and composition</td>
+              <td>Selects a supported sequential, parallel, or innermost-vector route and composes its stage results.</td>
+              <td>The public end-to-end theorem covers every accepted configuration. Unsupported configurations return no target program.</td>
+              <td><a href="../source/driver/VerifiedParallelCompilerConfig.v"><code>VerifiedParallelCompilerConfig.v</code></a>, <a href="../source/driver/ExtractedPipelineCorrect.v"><code>ExtractedPipelineCorrect.v</code></a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Optimizer output is always a proposal. A mandatory check must succeed
+        before its route returns a target. ISS inference is optional: if it
+        produces no valid split, compilation continues from the preceding
+        verified intermediate program.
       </p>
     </section>
 
@@ -156,68 +273,98 @@ if ((1 &lt;= N &amp;&amp; 1 &lt;= M)) {
         The parallel check establishes that different <code>i3</code>
         iterations do not conflict. The
         <a href="../evidence/results/cases/0616.html" target="_blank" rel="noopener">complete case page</a>
-        shows the exact generated bounds and its three matching executions.
+        shows the exact generated bounds and matching execution results.
       </p>
     </section>
 
     <section id="transformations">
-      <h2>Supported Transformations</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Loop transformation</th>
-            <th>Change in the model</th>
-            <th>Checked condition</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Affine scheduling, including fusion and fission</td>
-            <td>Replace ordering coordinates.</td>
-            <td>No dependence is reversed.</td>
-          </tr>
-          <tr>
-            <td>Index-set splitting (ISS)</td>
-            <td>Replace one statement domain with disjoint parts.</td>
-            <td>The parts cover the original domain exactly.</td>
-          </tr>
-          <tr>
-            <td>Ordinary tiling</td>
-            <td>Add tile and point coordinates.</td>
-            <td>The coordinate mapping is complete and the selected band is permutable.</td>
-          </tr>
-          <tr>
-            <td>Two-level tiling</td>
-            <td>Add two nested groups of tile coordinates.</td>
-            <td>Both levels preserve instances and have a safe order.</td>
-          </tr>
-          <tr>
-            <td>Diamond tiling</td>
-            <td>Use coupled tile coordinates for wavefront-shaped tiles.</td>
-            <td>The same instance mapping and band-order obligations hold.</td>
-          </tr>
-          <tr>
-            <td>Parallelization</td>
-            <td>Allow iterations of selected generated loops to interleave.</td>
-            <td>Cross-iteration statement instances may exchange order.</td>
-          </tr>
-          <tr>
-            <td>Innermost concurrency</td>
-            <td>Apply parallel semantics only to an innermost loop.</td>
-            <td>The parallel check succeeds and the selected loop is innermost.</td>
-          </tr>
-          <tr>
-            <td>Constant and block unrolling</td>
-            <td>Expand or group loop iterations.</td>
-            <td>The expanded ranges cover the original range exactly.</td>
-          </tr>
-          <tr>
-            <td>Unroll-and-jam</td>
-            <td>Fuse corresponding inner loops after block unrolling.</td>
-            <td>The fused bodies may safely exchange order.</td>
-          </tr>
-        </tbody>
-      </table>
+      <h2>Supported Transformations and Cleanup Passes</h2>
+      <div class="wide-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Transformation</th>
+              <th>Effect</th>
+              <th>Acceptance condition</th>
+              <th>Implementation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Affine scheduling</td>
+              <td>Changes loop order and shape; covers interchange, skewing, fusion, and fission.</td>
+              <td>Every statement pair whose order reverses may safely exchange.</td>
+              <td><a href="../source/src/AffineValidator.v"><code>AffineValidator.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Index-set splitting (ISS)</td>
+              <td>Splits one statement domain into disjoint pieces, which may then receive different schedules.</td>
+              <td>The pieces preserve the statement and form an exact partition of the source domain.</td>
+              <td><a href="../source/src/ISSValidator.v"><code>ISSValidator.v</code></a>, <a href="../source/src/ISSWitness.v"><code>ISSWitness.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Ordinary tiling</td>
+              <td>Adds rectangular tile coordinates and intra-tile point coordinates.</td>
+              <td>The candidate realizes every source instance exactly once and the tiled band has a safe order.</td>
+              <td><a href="../source/src/TilingRelation.v"><code>TilingRelation.v</code></a>, <a href="../source/src/TilingBandScheduleValidator.v"><code>TilingBandScheduleValidator.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Two-level tiling</td>
+              <td>Adds two nested levels of tile coordinates.</td>
+              <td>Both levels satisfy the instance-mapping and band-order obligations for a recognized layout.</td>
+              <td><a href="../source/src/TilingBandDirectRuntime.v"><code>TilingBandDirectRuntime.v</code></a>, <a href="../source/src/TilingBandMixedSecondValidator.v"><code>TilingBandMixedSecondValidator.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Diamond tiling</td>
+              <td>Uses coupled tile coordinates to form wavefront-shaped tiles; full-diamond routes use the same checked tiling boundary.</td>
+              <td>The candidate satisfies the same exact instance mapping and band-order obligations as other accepted tiling layouts.</td>
+              <td><a href="../source/src/TilingBandDirectRuntime.v"><code>TilingBandDirectRuntime.v</code></a>, <a href="../source/driver/PolOpt.v"><code>PolOpt.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Post-tiling affine scheduling</td>
+              <td>Reschedules the tiled program, including its intra-tile loops.</td>
+              <td>The affine validator accepts the new schedule relative to the tiled program.</td>
+              <td><a href="../source/driver/ParallelPolOpt.v"><code>ParallelPolOpt.v</code></a>, <a href="../source/src/Validator.v"><code>Validator.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Parallelization</td>
+              <td>Marks one or more generated loop dimensions as parallel, allowing their iterations to interleave.</td>
+              <td>Statement instances from distinct iterations at each selected dimension may exchange order.</td>
+              <td><a href="../source/src/ParallelValidator.v"><code>ParallelValidator.v</code></a>, <a href="../source/src/ParallelCodegenCore.v"><code>ParallelCodegenCore.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Innermost vector annotation</td>
+              <td>Uses the parallel certificate for an innermost loop and records the more restricted vector mode.</td>
+              <td>The parallel check succeeds and the selected generated loop is innermost.</td>
+              <td><a href="../source/src/ParallelCodegenCore.v"><code>ParallelCodegenCore.v</code></a>, <a href="../source/src/ParallelCodegenCorrect.v"><code>ParallelCodegenCorrect.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Constant-bound unrolling</td>
+              <td>Expands sequential loops whose complete iteration range is known.</td>
+              <td>The expanded statements cover the original range exactly. Parallel loop annotations are retained and are not themselves unrolled.</td>
+              <td><a href="../source/polygen/LoopUnroll.v"><code>LoopUnroll.v</code></a>, <a href="../source/driver/VerifiedParallelCompilerConfig.v"><code>VerifiedParallelCompilerConfig.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Block and remainder unrolling</td>
+              <td>Executes full blocks of a chosen factor and handles the remaining iterations separately.</td>
+              <td>The block and remainder ranges partition the original loop range.</td>
+              <td><a href="../source/polygen/LoopUnroll.v"><code>LoopUnroll.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Unroll-and-jam</td>
+              <td>Block-unrolls an outer loop and fuses corresponding inner loops.</td>
+              <td>The unrolling is exact, and the validator accepts every exchange introduced by the fusion.</td>
+              <td><a href="../source/src/LoopJamValidator.v"><code>LoopJamValidator.v</code></a>, <a href="../source/src/LoopJamBridge.v"><code>LoopJamBridge.v</code></a>, <a href="../source/src/LoopJamLower.v"><code>LoopJamLower.v</code></a></td>
+            </tr>
+            <tr>
+              <td>Singleton-loop and expression cleanup</td>
+              <td>Removes one-iteration loops and simplifies generated loop syntax.</td>
+              <td>The cleaned loop has the same executions as the generated loop.</td>
+              <td><a href="../source/polygen/LoopSingletonCleanup.v"><code>LoopSingletonCleanup.v</code></a>, <a href="../source/polygen/LoopCleanup.v"><code>LoopCleanup.v</code></a>, <a href="../source/polygen/ParallelLoop.v"><code>ParallelLoop.v</code></a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <section id="instructions">
@@ -227,8 +374,8 @@ if ((1 &lt;= N &amp;&amp; 1 &lt;= M)) {
         the <a href="../source/polygen/InstrTy.v"><code>INSTR</code></a>
         interface. They do not require instructions to be empty or tied to one
         frontend. The text <code>.loop</code> examples use a lightweight
-        instruction model. Six additional examples instantiate typed scalar
-        and array operations in
+        instruction model. Additional examples instantiate typed scalar and
+        array operations in
         <a href="../source/samples/CTypedLoopSamples.v"><code>CTypedLoopSamples.v</code></a>.
       </p>
       <p>
@@ -240,9 +387,6 @@ if ((1 &lt;= N &amp;&amp; 1 &lt;= M)) {
       </p>
     </section>
 
-    <p class="footer">
-      Next: <a href="proof.html">read how these stage theorems compose</a>.
-    </p>
   </main>
 </div>
 </body>

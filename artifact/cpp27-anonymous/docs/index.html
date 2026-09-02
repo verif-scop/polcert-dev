@@ -42,21 +42,22 @@
     <section id="compiler">
       <h2>1. Compiler Infrastructure and Polyhedral Compilation</h2>
       <p>
-        PolCert extracts the source loop into a polyhedral program, applies
-        accepted transformations, normalizes transformed coordinates, and
-        reconstructs a target loop. Verified constructions implement
-        extraction, normalization, loop generation, and the supported
-        unrolling rewrites. Validators check optimizer proposals for affine
-        scheduling, index-set splitting, tiling, parallelization, and
-        unroll-and-jam.
+        The <code>polopt</code> executable parses a structured loop, invokes
+        Pluto to obtain optimization proposals, and dispatches to an extracted
+        verified route. PolCert then extracts the source loop, materializes
+        implied domain guards, and applies the selected index-set splitting,
+        affine scheduling, tiling, post-tiling scheduling, and parallelization
+        stages. It normalizes transformed coordinates, prepares loop
+        generation, generates and cleans a sequential or parallel loop, and
+        applies an optional unrolling or unroll-and-jam postpass.
       </p>
       <p>
-        The affine validator checks dependence order. The ISS validator checks
-        that the proposed regions form an exact partition. The tiling
-        validator checks exact realization of source iterations and the
-        required band order. The parallelization check establishes independence
-        between distinct iterations, while unroll-and-jam validates the
-        exchanges introduced by jamming.
+        Verified passes implement extraction, domain strengthening, coordinate
+        normalization, loop generation, cleanup, and unrolling. Validators
+        check affine schedules, exact ISS partitions, tiling instance maps and
+        band order, parallel dimensions, and the exchanges introduced by
+        jamming. The compiler page lists every stage and links it to the
+        corresponding source and proof files.
       </p>
       <p class="primary-evidence">
         <a href="compiler.html"><strong>Compiler and polyhedral compilation overview</strong></a>
