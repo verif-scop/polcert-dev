@@ -222,21 +222,24 @@ docker run --rm polcert-artifact performance</code></pre>
     </section>
 
     <section id="rejections">
-      <h2>Rejected Optimizer Proposals</h2>
+      <h2>Optimizer Reliability Cases</h2>
       <p>
         Negative tests submit candidates that violate schedule legality,
         tiling realization, parallel-dimension eligibility, or compiler-route
         requirements. PolCert must reject such candidates rather than emit an
-        unchecked optimized loop.
+        unchecked optimized loop. A positive regression test checks that a
+        valid Pluto parallel hint is mapped to and certified against the
+        intended canonical schedule coordinate.
       </p>
       <p>
-        The <a href="../evidence/rejected-optimizer-outputs/index.html">rejection report</a>
-        states, for each case, the violated condition, the optimizer source of
-        the proposal, and whether PolCert rejected the complete output or kept
-        a certified subset. The focused cases include confirmed Pluto
-        miscompilations, an unsafe optimizer control input, a historical fork
-        regression, and a non-certifiable parallel hint. The linked bug-report
-        draft provides reproduction commands and root-cause analysis.
+        The <a href="../evidence/optimizer-reliability/index.html">reliability report</a>
+        states, for each case, the checked condition, the optimizer source of
+        the proposal, and whether PolCert rejected an unsafe effect, kept a
+        certified subset, or accepted a correctly mapped hint. The focused
+        cases include confirmed Pluto miscompilations, an unsafe optimizer
+        control input, a historical fork regression, and a parallel-hint
+        coordinate-mapping case. The linked bug-report draft provides
+        reproduction commands and root-cause analysis.
       </p>
     </section>
   </main>

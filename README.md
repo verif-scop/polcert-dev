@@ -8,8 +8,8 @@ maintained in a separate Git worktree and is not tracked here.
 
 - Proof and compiler source: `work/verified-compilation-v10-driver/`
   - branch: `artifact/verified-compilation-v10-driver-finalization`
-  - commit: `9d612d02ac8f27d46c5ec632f912f8a67939e748`
-  - tag: `state-eq-polyhedral-verification-complete-2026-08-29-v10`
+  - commit: `736c3781ca56297b3d2ef193ee4c4b61f80abc8b`
+  - baseline tag: `state-eq-polyhedral-verification-complete-2026-08-29-v10`
 - CPP 2027 anonymous supplement: `artifact/cpp27-anonymous/`
 - Post-review Zenodo release interface: `artifact/zenodo-v10/`
 - Frozen v9 artifact reference: `artifact/state-eq/`

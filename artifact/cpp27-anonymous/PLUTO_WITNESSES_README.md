@@ -1,7 +1,7 @@
-# Rejected Optimizer Outputs
+# Optimizer Reliability Cases
 
-Open `index.html` for the shortest case-by-case account. It states why each
-proposal is invalid, what PolCert did, and where the relevant Pluto logic
+Open `index.html` for the shortest case-by-case account. It states the checked
+condition, what PolCert did, and where the relevant Pluto logic
 resides. The recorded checks are in `results.json` and `validation.log`.
 
 The cases have three different statuses:
@@ -11,7 +11,7 @@ The cases have three different statuses:
 | `auto-affine-lp-cc-scaling`, `vanished-outer-parallel`, `notile-unrolljam-nonpermutable`, `tiling-innerpar-satvec` | Confirmed silent miscompilations in the checked official Pluto revision. |
 | `affine-fst-reversed` | An unsafe optional control interface; this is not an automatic-scheduler defect. |
 | `diamond-nointratile-reschedule` | A phase-dump fork regression, absent from official Pluto and fixed in the ordinary artifact version. |
-| `matmul-parallel-hint` | A non-certifiable hint that PolCert handles conservatively; no Pluto miscompilation is claimed. |
+| `matmul-parallel-hint` | A raw-to-canonical parallel-hint mapping regression; no Pluto miscompilation is claimed. |
 
 `BUG_REPORT_DRAFT.md` contains the reproduction cases, observed wrong results,
 source-level root causes, and official-version rechecks for the four

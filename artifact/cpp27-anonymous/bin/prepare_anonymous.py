@@ -28,16 +28,13 @@ import zipfile
 SCRIPT_DIR = Path(__file__).resolve().parent
 PACKAGE_DIR = SCRIPT_DIR.parent
 REPO_ROOT = PACKAGE_DIR.parents[1]
-RELEASE_ROOT = (
-    REPO_ROOT
-    / "output/releases/state-eq-polyhedral-verification-complete-2026-08-29-v10"
-)
+RELEASE_ROOT = REPO_ROOT / "output/releases/cpp27-parallel-hint-fix-736c3781"
 DEFAULT_RELEASE_DIR = RELEASE_ROOT / "final"
 DEFAULT_PROOF_HTML_DIR = RELEASE_ROOT / "anonymous-proof-html"
 DEFAULT_OUTPUT = RELEASE_ROOT / "cpp27-anonymous/polcert-cpp27-supplement.zip"
 
-SOURCE_ARCHIVE = "polcert-47d611721ca45b0f3963531ef4f01f297e577ae5.tar"
-SOURCE_SHA256 = "87cefe16af005a7477a9ec752c874ab4925d43dd1499af8500cf71fb62245aba"
+SOURCE_ARCHIVE = "polcert-736c3781ca56297b3d2ef193ee4c4b61f80abc8b.tar"
+SOURCE_SHA256 = "cfc8a12c16ca84352b68373123080d5f1b12b12aa808e6f158624381410861e7"
 PLUTO_SOURCE_ARCHIVES = {
     "fixed": (
         "pluto-fixed-source.tar.xz",
@@ -80,6 +77,8 @@ E2E_RECORDED_LOOP_CASES = {
 }
 
 REPLACEMENTS = {
+    "736c3781ca56297b3d2ef193ee4c4b61f80abc8b": "validated-source-snapshot",
+    "736c3781": "validated-source-snapshot",
     "47d611721ca45b0f3963531ef4f01f297e577ae5": "validated-source-snapshot",
     "47d6117": "validated-source-snapshot",
     "386c5502b445091b324e1751b69aff15645f805d": "validated-source-snapshot",
@@ -112,6 +111,7 @@ REPLACEMENTS = {
     "hughshine/pluto-verif": "pluto-build",
     "hughshine/polcert": "polcert-build",
     "Hughshine/PolCert": "PolCert",
+    "33609055208": "validation-run",
     "/home/hugh": "/build",
 }
 
@@ -127,6 +127,8 @@ DENYLIST = (
     "github.com/verif-scop",
     "verif-scop/",
     "verif-scop",
+    "736c3781ca56297b3d2ef193ee4c4b61f80abc8b",
+    "736c3781",
     "47d611721ca45b0f3963531ef4f01f297e577ae5",
     "47d6117",
     "386c5502b445091b324e1751b69aff15645f805d",
@@ -155,6 +157,7 @@ DENYLIST = (
     "state-eq-polyhedral-verification",
     "artifact/verified-compilation",
     "33243898549",
+    "33609055208",
 )
 
 BROWSER_TEXT_SUFFIXES = {
@@ -546,8 +549,9 @@ def parse_key_values(payload: str) -> dict[str, str]:
 
 
 def prepare_executable_checks(release_dir: Path, destination: Path) -> dict:
-    ci_log = release_dir / "github-actions-33243898549.log"
-    require(ci_log.is_file(), "generated executable-check log is missing")
+    ci_logs = sorted(release_dir.glob("github-actions-*.log"))
+    require(len(ci_logs) == 1, f"expected one GitHub Actions log, found {len(ci_logs)}")
+    ci_log = ci_logs[0]
     payloads = []
     for line in ci_log.read_text(encoding="utf-8").splitlines():
         position = line.find("[E2E-GEN")
@@ -819,7 +823,7 @@ def prepare_witness_results(destination: Path) -> dict:
             "case": "auto-affine-lp-cc-scaling",
             "log_marker": "[pluto-auto-affine-lp] OK",
             "kind": "Confirmed official Pluto miscompilation",
-            "reason_not_accepted": (
+            "condition": (
                 "A real S3-to-S1 dependence is reversed after connected-component "
                 "relabeling lets LP integerization scale its endpoints differently."
             ),
@@ -834,7 +838,7 @@ def prepare_witness_results(destination: Path) -> dict:
             "case": "affine-fst-reversed",
             "log_marker": "[pluto-affine-bug] OK",
             "kind": "Unsafe Pluto control interface",
-            "reason_not_accepted": (
+            "condition": (
                 "The supplied .fst grouping places a consumer before its producer, "
                 "but Pluto accepts the complete lexicographically illegal schedule."
             ),
@@ -849,13 +853,14 @@ def prepare_witness_results(destination: Path) -> dict:
             "case": "vanished-outer-parallel",
             "log_marker": "[pluto-miscompile] OK",
             "kind": "Confirmed official Pluto miscompilation",
-            "reason_not_accepted": (
+            "condition": (
                 "After a one-trip outer coordinate disappears, an off-by-one band "
                 "test transfers its parallel annotation to a dependent inner recurrence."
             ),
             "polcert_outcome": (
-                "Strict hint mapping rejects the vanished loop, and a direct check also "
-                "rejects the dependent inner loop."
+                "PolCert keeps the hint on its canonical one-iteration coordinate "
+                "instead of transferring it inward; direct validation rejects the "
+                "dependent inner loop."
             ),
             "pluto_location": "tool/ast_transform.c:75-95",
             "draft_section": "P2",
@@ -864,7 +869,7 @@ def prepare_witness_results(destination: Path) -> dict:
             "case": "notile-unrolljam-nonpermutable",
             "log_marker": "[pluto-unrolljam-bug] OK",
             "kind": "Confirmed official Pluto miscompilation",
-            "reason_not_accepted": (
+            "condition": (
                 "Under --notile, candidate discovery assumes one tiled level and crosses "
                 "the real permutable-band boundary, jamming a dependence-carrying loop."
             ),
@@ -878,13 +883,13 @@ def prepare_witness_results(destination: Path) -> dict:
             "case": "tiling-innerpar-satvec",
             "log_marker": "[pluto-tiling-bug] OK",
             "kind": "Confirmed official Pluto miscompilation",
-            "reason_not_accepted": (
+            "condition": (
                 "Pluto moves dependence-satisfaction bits to a tile dimension without "
                 "constructing the schedule that would satisfy those dependences."
             ),
             "polcert_outcome": (
-                "The legal rectangular tiling is accepted; the unsafe parallel loop is "
-                "removed or rejected in strict mode."
+                "The legal tiling and mapped one-iteration coordinate are accepted; "
+                "direct validation rejects the dependence-carrying tile loop."
             ),
             "pluto_location": "lib/tile.c:433-478",
             "draft_section": "P4",
@@ -893,7 +898,7 @@ def prepare_witness_results(destination: Path) -> dict:
             "case": "diamond-nointratile-reschedule",
             "log_marker": "[pluto-diamond-nointra] OK",
             "kind": "Fork-specific regression, fixed in the ordinary artifact Pluto",
-            "reason_not_accepted": (
+            "condition": (
                 "A phase-dump patch made a mandatory diamond-schedule restore depend on "
                 "the optional intra-tile pass, producing a wrong execution order."
             ),
@@ -906,15 +911,15 @@ def prepare_witness_results(destination: Path) -> dict:
         },
         {
             "case": "matmul-parallel-hint",
-            "log_marker": "[pluto-bug] explicit-RAR matmul parallel-hint case reproduced",
-            "kind": "Non-certifiable hint, not a demonstrated Pluto miscompilation",
-            "reason_not_accepted": (
-                "The hinted coordinate cannot be certified as a safe generated parallel "
-                "loop for this matrix-multiplication schedule."
+            "log_marker": "[pluto-bug] explicit-RAR matmul hint certifies the intended loop",
+            "kind": "Parallel-hint coordinate-mapping regression",
+            "condition": (
+                "The raw Pluto scattering coordinate must map to the intended "
+                "canonical schedule coordinate rather than a compact C loop depth."
             ),
             "polcert_outcome": (
-                "Strict mode rejects with no output; permissive mode chooses a different "
-                "certified dimension."
+                "Strict and permissive modes map the hint through schedule "
+                "canonicalization and certify the intended loop."
             ),
             "pluto_location": "No Pluto defect claimed",
             "draft_section": "not in the upstream bug draft",
@@ -939,7 +944,7 @@ def prepare_witness_results(destination: Path) -> dict:
             "<tr>"
             f'<td><a href="{name}/README.md"><code>{name}</code></a><br>'
             f'{escape(case["kind"])}</td>'
-            f'<td>{escape(case["reason_not_accepted"])}</td>'
+            f'<td>{escape(case["condition"])}</td>'
             f'<td>{escape(case["polcert_outcome"])}</td>'
             f'<td><code>{escape(case["pluto_location"])}</code><br>'
             f'Draft: {escape(case["draft_section"])}</td>'
@@ -955,15 +960,15 @@ def prepare_witness_results(destination: Path) -> dict:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Rejected or Replaced Optimizer Effects</title>
+  <title>Optimizer Reliability Cases</title>
   <link rel="stylesheet" href="../../docs/artifact.css">
 </head>
 <body>
 <main>
-  <h1>Rejected or Replaced Optimizer Effects</h1>
+  <h1>Optimizer Reliability Cases</h1>
   <p>
-    Each row states either the violated condition or the missing certificate,
-    followed by the observed PolCert response. The
+    Each row states the condition under test and the observed PolCert response.
+    The
     <a href="BUG_REPORT_DRAFT.md">upstream bug-report draft</a> gives
     reproduction commands, wrong results, root causes, and official-version
     checks for P1-P4 and C1; F1 belongs only to the development fork.
@@ -972,7 +977,7 @@ def prepare_witness_results(destination: Path) -> dict:
     <thead>
       <tr>
         <th>Case</th>
-        <th>Why PolCert cannot accept it</th>
+        <th>Condition under test</th>
         <th>PolCert result</th>
         <th>Pluto source or status</th>
       </tr>
@@ -1091,7 +1096,7 @@ def copy_remote_ci_test_results(release_dir: Path, raw_output: Path) -> list[dic
     elapsed: dict[str, str] = {}
     result_pattern = re.compile(
         r"\[[A-Za-z0-9_./-]+\] (?:PASS|OK)\b.*"
-        r"|\[pluto-bug\] explicit-RAR matmul parallel-hint case reproduced"
+        r"|\[pluto-bug\] explicit-RAR matmul hint certifies the intended loop"
     )
     for line in ci_logs[0].read_text(encoding="utf-8").splitlines():
         timing = line.find("[ci-timing]")
@@ -1110,7 +1115,7 @@ def copy_remote_ci_test_results(release_dir: Path, raw_output: Path) -> list[dic
     require(len(starts) == 45, f"expected 45 timed CI phases, found {len(starts)}")
     require(set(starts) == set(elapsed), "remote CI timing start/end mismatch")
     require(
-        "[pluto-bug] explicit-RAR matmul parallel-hint case reproduced" in payloads,
+        "[pluto-bug] explicit-RAR matmul hint certifies the intended loop" in payloads,
         "remote CI output is missing the matmul parallel-hint witness",
     )
     (raw_output / "remote-ci-test-results.stdout.txt").write_text(
@@ -1177,17 +1182,17 @@ def observed_transformation(
     if "status:pluto_final_schedule_rejected" in lower_expected:
         return "No optimizer candidate; Pluto refused its illegal final schedule"
     if is_expected_rejection(expected, actual, coverage):
-        rejected_effects = {
+        reliability_effects = {
             "auto-affine-lp-cc-scaling": "Affine rescheduling reversed a dependence",
             "affine-fst-reversed": "External grouping placed a consumer before its producer",
             "vanished-outer-parallel": "A parallel annotation moved to a dependent inner loop",
             "notile-unrolljam-nonpermutable": "Loop jamming crossed a permutable-band boundary",
             "tiling-innerpar-satvec": "Tiling was legal, but the parallel annotation was unsafe",
             "diamond-nointratile-reschedule": "Diamond schedule restoration was omitted",
-            "matmul-parallel-hint": "The requested parallel dimension was not certifiable",
+            "matmul-parallel-hint": "A raw scattering coordinate was formerly interpreted as C loop depth",
         }
-        if lower_case in rejected_effects:
-            return rejected_effects[lower_case]
+        if lower_case in reliability_effects:
+            return reliability_effects[lower_case]
         if lower_suite == "pluto-compat-suite":
             return "Driver option request rejected; no transformation applied"
         if "non-innermost-vector" in lower_expected or lower_expected.startswith(
@@ -1736,11 +1741,11 @@ CATALOG_HIERARCHY = (
         ),
     ),
     (
-        "Rejected Candidates",
-        "Candidates that PolCert rejects without emitting unchecked code.",
+        "Validation Boundaries",
+        "Cases that exercise rejection of unsafe effects and faithful handling of valid optimizer hints.",
         (
             ("Tiling and Consumer Rejections", ("second-level rejection",)),
-            ("Invalid and Non-Certifiable Proposals", ("optimizer-output rejection",)),
+            ("Optimizer Reliability Cases", ("optimizer reliability",)),
         ),
     ),
     (
@@ -1891,9 +1896,9 @@ CATALOG_CASE_GUIDANCE = {
         "Injects one declared fault into a tiling, affine, or consumer stage and checks the exact failure boundary.",
         "A composed route must stop at the first uncertified stage and must never emit an unchecked program.",
     ),
-    "optimizer-output rejection": (
-        "Replays an optimizer proposal or hint that PolCert cannot certify.",
-        "These cases demonstrate that optimizer output is evidence to check, not a trusted correctness claim.",
+    "optimizer reliability": (
+        "Replays unsafe optimizer proposals and a valid parallel-hint mapping case.",
+        "The route must reject uncertified effects while preserving and certifying a valid optimizer hint against the intended loop.",
     ),
     "legacy failure propagation": (
         "Invokes a legacy adapter with a deliberately missing input or configuration and checks its exit status.",
@@ -2148,7 +2153,12 @@ def explain_expected_outcome(record: dict) -> str:
         )
     if expected == "the declared unit-test condition":
         return f"The test requires that {UNIT_ASSERTIONS[record['case']]}."
-    if record["suite"] == "optimizer-output rejection":
+    if record["case"] == "matmul-parallel-hint":
+        return (
+            "The raw Pluto hint must map to the intended canonical schedule "
+            "coordinate, and both strict and permissive routes must certify it."
+        )
+    if record["suite"] == "optimizer reliability":
         return f"The route must reject or replace the uncertifiable effect described here: {expected}"
     if expected == "forward:true,reverse:true":
         return "Both source-to-optimized and optimized-to-source refinement checks must succeed."
@@ -2439,19 +2449,27 @@ def explain_verdict(record: dict, rejection: dict | None) -> str:
         return "This page reports membership in an aggregate search result, not a per-input pass or failure."
     if rejection:
         classification = rejection["classification"]
+        if record["case"] == "matmul-parallel-hint":
+            return "PASS means the raw Pluto hint was mapped to the intended canonical coordinate and that coordinate was certified."
         if classification.startswith("Unsupported producer"):
             return "PASS means the observed Pluto frontend failure matched the producer-side expectation; PolCert did not receive a candidate."
         if classification.startswith("Illegal final schedule"):
             return "PASS means Pluto refused the illegal final schedule as expected; this is a producer-side result."
         if classification.startswith("Exploratory export failure"):
             return "PASS means the harness recorded this known export failure in the suite totals; no program comparison succeeded for this input."
-        if classification.startswith("Verified") or record["case"] == "matmul-parallel-hint":
+        if classification.startswith("Verified"):
             return "PASS means the verified part was retained and the uncertifiable optional effect was not emitted."
         return "PASS means the expected rejection or certified fallback occurred at the declared boundary."
     return "PASS means the recorded behavior matched the expected result for this case."
 
 
 def execution_not_applicable_reason(record: dict) -> str:
+    if record["case"] == "matmul-parallel-hint":
+        return (
+            "This focused case checks hint-coordinate mapping and the selected "
+            "parallel loop directly in the compiler output; it has no separate "
+            "whole-C execution record."
+        )
     if "rejection" in record:
         return (
             "The requested candidate was not accepted as a target. This case checks "
@@ -2623,7 +2641,7 @@ def rejection_details(record: dict) -> dict | None:
             "reason": "The proposed local jam would move a body whose access escapes the affine context used by the local certificate. PolCert keeps the checked block-unrolled structure and omits that jam.",
         }
 
-    if suite == "optimizer-output rejection":
+    if suite == "optimizer reliability":
         details = {
             "auto-affine-lp-cc-scaling": {
                 "classification": "Confirmed official Pluto automatic-scheduler miscompilation",
@@ -2644,7 +2662,7 @@ def rejection_details(record: dict) -> dict | None:
                 "reason": "The surviving inner loop carries a j-1 to j recurrence and therefore cannot use interleaving parallel semantics.",
                 "optimizer_error": "After a one-trip outer coordinate disappears, an off-by-one band-boundary test transfers its parallel annotation to the dependent inner loop.",
                 "correctness_consequence": "Parallel interleavings violate the recurrence; a recorded four-thread run changes the result from 10000 to 2499.",
-                "polcert_response": "Strict hint mapping finds no surviving certifiable coordinate, and direct validation also rejects the dependent inner loop.",
+                "polcert_response": "PolCert preserves the hint on its canonical one-iteration coordinate instead of transferring it inward; direct validation rejects the dependent inner loop.",
             },
             "notile-unrolljam-nonpermutable": {
                 "classification": "Confirmed official Pluto unroll-and-jam miscompilation",
@@ -2658,7 +2676,7 @@ def rejection_details(record: dict) -> dict | None:
                 "reason": "The two-dimensional recurrence has cross-tile dependences, so the selected tile loop is not parallel.",
                 "optimizer_error": "Pluto moves dependence-satisfaction bits to an outer tile dimension and clears inner bits without constructing the schedule that would satisfy those dependences.",
                 "correctness_consequence": "OpenMP tile interleavings violate the recurrence and produce nondeterministic wrong results.",
-                "polcert_response": "PolCert accepts the legal rectangular tiling but independently rejects or removes the unsafe parallel overlay.",
+                "polcert_response": "PolCert accepts the legal rectangular tiling and the mapped one-iteration coordinate; direct validation rejects the dependence-carrying tile-loop coordinate.",
             },
             "diamond-nointratile-reschedule": {
                 "classification": "Historical phase-dump-fork regression; fixed in the packaged ordinary Pluto",
@@ -2668,11 +2686,11 @@ def rejection_details(record: dict) -> dict | None:
                 "polcert_response": "PolCert conservatively rejects this mixed-scalar candidate; a separate pure-diamond typed example is accepted.",
             },
             "matmul-parallel-hint": {
-                "classification": "Non-certifiable optimizer hint; no Pluto miscompilation claimed",
-                "reason": "The hinted coordinate cannot obtain the concrete certificate required for a generated parallel loop.",
-                "optimizer_error": "No optimizer defect is established. Pluto supplies a hint, but a hint is not a proof of independence.",
-                "correctness_consequence": "PolCert makes no claim that the raw Pluto program is wrong; it only refuses to emit an unproved annotation.",
-                "polcert_response": "Strict mode emits no output. Permissive mode rejects the hint and selects a different dimension that passes validation.",
+                "classification": "Parallel-hint coordinate-mapping regression; no Pluto miscompilation claimed",
+                "reason": "The raw Pluto scattering coordinate must be mapped through the same row retention used by schedule canonicalization.",
+                "optimizer_error": "No optimizer defect is established. The former PolCert adapter replaced Pluto's raw coordinate with a compact C loop depth.",
+                "correctness_consequence": "The former mapping could reject a certifiable hinted loop or validate a different safe coordinate; the validator still prevented an unsafe annotation.",
+                "polcert_response": "Strict and permissive modes now certify the intended canonical schedule coordinate.",
             },
         }
         return details[case]
@@ -3472,7 +3490,7 @@ def prepare_test_catalog(
                     ]
                 )
             )
-        if suite == "optimizer-output rejection" and case == "matmul-parallel-hint":
+        if suite == "optimizer reliability" and case == "matmul-parallel-hint":
             current["input_program"] = {
                 "path": "../../source/tests/polopt-generated/inputs/matmul.loop",
                 "label": "Input Loop Program",
@@ -3705,14 +3723,18 @@ def prepare_test_catalog(
     for witness in witness_summary["results"]:
         add(
             {
-                "suite": "optimizer-output rejection",
+                "suite": "optimizer reliability",
                 "case": witness["case"],
-                "expected": witness["reason_not_accepted"],
+                "expected": witness["condition"],
                 "actual": witness["polcert_outcome"],
-                "coverage": "rejection-contract",
+                "coverage": (
+                    "parallel-hint-mapping"
+                    if witness["case"] == "matmul-parallel-hint"
+                    else "rejection-contract"
+                ),
                 "source": ["local release validation", "remote CI"],
                 "evidence": [
-                    "../rejected-optimizer-outputs/index.html",
+                    "../optimizer-reliability/index.html",
                     "raw/remote-ci-test-results.stdout.txt",
                 ],
                 "occurrences": 2,
@@ -3784,7 +3806,7 @@ def prepare_test_catalog(
         "parallel-loop validation": 9,
         "ISS validator": 7,
         "ISS from live Pluto output": 7,
-        "optimizer-output rejection": 7,
+        "optimizer reliability": 7,
         "OpenScop round trips": 6,
         "typed C instruction pipelines": 6,
         "scalar-interleaved tiling": 5,
@@ -4042,14 +4064,13 @@ def prepare_test_catalog(
         rejection_html = ""
         if "rejection" in record:
             rejection = record["rejection"]
-            if rejection["classification"].startswith("Unsupported producer"):
+            if record["case"] == "matmul-parallel-hint":
+                heading = "Why the Mapping Matters"
+            elif rejection["classification"].startswith("Unsupported producer"):
                 heading = "Why the Pipeline Stops"
             elif rejection["classification"].startswith("Exploratory export failure"):
                 heading = "Why No Comparison Is Available"
-            elif (
-                rejection["classification"].startswith("Verified")
-                or record["case"] == "matmul-parallel-hint"
-            ):
+            elif rejection["classification"].startswith("Verified"):
                 heading = "Why the Requested Effect Is Not Applied"
             elif rejection["classification"] == "Expected adapter failure":
                 heading = "Why Failure Is Expected"
@@ -5173,9 +5194,9 @@ def prepare_evidence(
         source,
         destination / "performance-comparisons",
     )
-    rejected = destination / "rejected-optimizer-outputs"
-    copy_bug_witnesses(source, rejected, release_dir, bug_report_draft)
-    witness_summary = prepare_witness_results(rejected)
+    reliability = destination / "optimizer-reliability"
+    copy_bug_witnesses(source, reliability, release_dir, bug_report_draft)
+    witness_summary = prepare_witness_results(reliability)
     program_pairs = prepare_program_comparisons(details, source)
     program_executions = prepare_program_executions(source, details)
     test_catalog = prepare_test_catalog(

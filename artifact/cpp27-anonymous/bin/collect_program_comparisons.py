@@ -856,7 +856,7 @@ class Collector:
                     f"exit={proc.returncode}\n{proc.stdout[-2000:]}",
                 )
                 self.add_pair(
-                    "optimizer-output rejection",
+                    "optimizer reliability",
                     case,
                     source.read_text(encoding="utf-8"),
                     generated.read_text(encoding="utf-8"),
@@ -870,7 +870,7 @@ class Collector:
                         "historical Pluto revision used by the rejection test."
                     ),
                 )
-        print("[optimizer-output rejection] collected 5", flush=True)
+        print("[optimizer reliability] collected 5", flush=True)
 
     def collect_diamond_rejection(self) -> None:
         wrapper = Path(
@@ -910,7 +910,7 @@ class Collector:
                 }
             )
             checked = self.run_polopt(
-                "optimizer-output rejection",
+                "optimizer reliability",
                 case,
                 [fixture],
                 args,
@@ -938,7 +938,7 @@ class Collector:
             )
             proposal = candidates[0]
             self.add_pair(
-                "optimizer-output rejection",
+                "optimizer reliability",
                 case,
                 (proposal / "before.scop").read_text(encoding="utf-8"),
                 (proposal / "candidate.scop").read_text(encoding="utf-8"),
@@ -952,7 +952,7 @@ class Collector:
                     "code generation; no target Loop program is emitted."
                 ),
             )
-        print("[optimizer-output rejection] collected diamond candidate", flush=True)
+        print("[optimizer reliability] collected diamond candidate", flush=True)
 
     def collect_live_iss_rejection(self) -> None:
         module = load_module(
