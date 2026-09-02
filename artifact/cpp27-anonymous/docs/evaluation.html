@@ -16,7 +16,7 @@
     <a href="evaluation.html" aria-current="page">Evaluation</a>
     <a href="reproduce.html">Reproduce</a>
     <div class="minor">
-      <a href="#coverage">Test coverage</a>
+      <a href="#functional">Functional tests</a>
       <a href="#execution">Program execution</a>
       <a href="#performance">Performance</a>
       <a href="#rejections">Rejected proposals</a>
@@ -27,51 +27,62 @@
   <main>
     <h1>Evaluation</h1>
     <p class="lede">
-      Each recorded case identifies the requested check, the observed loop
-      transformation, the program result when executable, and PolCert's
-      response to invalid proposals.
+      In addition to the formal verification, this artifact includes
+      functional, executable, performance, and rejection tests for the
+      extracted compiler. They inspect the generated loops and run accepted
+      programs to check their results and performance.
     </p>
 
-    <section id="coverage">
-      <h2>Test Coverage</h2>
+    <section id="functional">
+      <h2>Functional Tests by Transformation</h2>
       <p>
-        The catalog contains 1,003 case pages. Each page states the question,
-        expected result, observed transformation, and outcome. When a test has
-        source and optimized Loop programs, the page displays them side by side.
+        The test catalog records the input, expected behavior, observed
+        transformation, and accepted output or rejection for each case. Tests
+        with source and optimized Loop programs display the programs side by
+        side.
       </p>
       <table>
         <thead>
           <tr>
-            <th>Group</th>
-            <th>Cases</th>
-            <th>What it checks</th>
+            <th>Transformation</th>
+            <th>Tested behavior</th>
+            <th>Evidence</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Verified transformations</td>
-            <td>469</td>
-            <td>Affine scheduling, fusion and fission, ISS, tiling, parallel loops, and unroll-and-jam.</td>
+            <td>Affine scheduling</td>
+            <td>Schedule changes, including loop fusion and fission, appear in the accepted target; illegal reorderings are rejected.</td>
+            <td><a href="../evidence/results/test-catalog.html#affine-schedule-validation">Affine scheduling</a></td>
           </tr>
           <tr>
-            <td>End-to-end checks</td>
-            <td>156</td>
-            <td>Complete compiler routes, typed instruction programs, generated C programs, and result comparisons.</td>
+            <td>Index-set splitting</td>
+            <td>The output partitions statement instances into the proposed regions and remains compatible with later transformations.</td>
+            <td><a href="../evidence/results/test-catalog.html#index-set-splitting-iss">Index-set splitting</a></td>
           </tr>
           <tr>
-            <td>Compiler interface</td>
-            <td>199</td>
-            <td>Option combinations, routing, parsing, and output behavior.</td>
+            <td>Tiling</td>
+            <td>Ordinary, two-level, and diamond tiling produce the expected tile and point loops through the checked tiling route.</td>
+            <td>
+              <a href="../evidence/results/test-catalog.html#one-level-and-direct-tiling-validation">ordinary</a>,
+              <a href="../evidence/results/test-catalog.html#two-level-tiling">two-level</a>, and
+              <a href="../evidence/results/test-catalog.html#diamond-tiling">diamond</a>
+            </td>
           </tr>
           <tr>
-            <td>Rejected candidates</td>
-            <td>123</td>
-            <td>Invalid schedules, tilings, dimensions, hints, and unsupported combinations.</td>
+            <td>Parallelization</td>
+            <td>Accepted dimensions become parallel loops; dependent or non-certifiable dimensions do not.</td>
+            <td><a href="../evidence/results/test-catalog.html#parallel-loops">Parallel loops</a></td>
           </tr>
           <tr>
-            <td>Test harness</td>
-            <td>56</td>
-            <td>Failure reporting, fixture checks, and catalog consistency.</td>
+            <td>Generated-loop postpasses</td>
+            <td>Constant unrolling, block unrolling, and unroll-and-jam change the output only when their checks succeed.</td>
+            <td><a href="../evidence/results/test-catalog.html#unroll-and-jam">Loop postpasses</a></td>
+          </tr>
+          <tr>
+            <td>Composed pipelines</td>
+            <td>Transformation combinations pass through the complete compiler, including typed instruction examples and driver option routes.</td>
+            <td><a href="../evidence/results/test-catalog.html#end-to-end-checks">Composed pipelines</a></td>
           </tr>
         </tbody>
       </table>
@@ -84,22 +95,11 @@
     <section id="execution">
       <h2>Program Execution</h2>
       <p>
-        The audit compiled and ran every saved, accepted before/after Loop pair
-        with the same parameters and input initialization. Identical program
-        and parameter combinations were executed once and reused by duplicate
-        catalog records.
-      </p>
-      <dl class="performance-summary">
-        <div><dt>Accepted pair records</dt><dd>524</dd></div>
-        <div><dt>Matching results</dt><dd>524 / 524</dd></div>
-        <div><dt>Distinct executions</dt><dd>202</dd></div>
-        <div><dt>Mismatches</dt><dd>0</dd></div>
-      </dl>
-      <p>
-        Each applicable case page reports the parameter values, number of runs,
-        OpenMP thread count when relevant, and the comparison result. Validator
-        unit tests that do not represent two executable programs explain what
-        object was checked instead.
+        For each saved, executable before/after Loop pair, the harness compiles
+        and runs both programs with the same parameters and input
+        initialization, then compares their results. Each case page reports
+        the parameters, repetitions, OpenMP thread count when relevant, and
+        comparison result.
       </p>
       <table>
         <thead>
@@ -118,12 +118,12 @@
           <tr>
             <td><a href="../evidence/results/cases/0615.html" target="_blank" rel="noopener">Typed tiling example</a></td>
             <td>Two tile loops added around a pointwise update.</td>
-            <td><code>M=96</code>, <code>N=96</code>; results matched.</td>
+            <td>Source and optimized results matched.</td>
           </tr>
           <tr>
             <td><a href="../evidence/results/cases/0616.html" target="_blank" rel="noopener">Typed parallel example</a></td>
             <td>Tiling followed by one checked parallel point loop.</td>
-            <td>3 runs, 4 threads; all results matched.</td>
+            <td>Source and optimized results matched.</td>
           </tr>
           <tr>
             <td><a href="../evidence/results/cases/0617.html" target="_blank" rel="noopener">Typed two-level tiling</a></td>
@@ -143,10 +143,9 @@
       <h2>Performance Comparisons</h2>
       <p>
         A separate whole-C campaign compared the unoptimized and accepted
-        programs for 62 kernels. All 62 produced matching results. The search
-        selected a non-identity route for 47 kernels and emitted a parallel
-        output for 19. Each kernel links to its complete before/accepted
-        program pair and exact run configuration.
+        programs. Each linked kernel page records the complete before/accepted
+        program pair, selected compiler route, matching execution result, and
+        measured runtime.
       </p>
       <div class="wide-table">
         <table class="performance-table">
@@ -199,9 +198,8 @@
         </table>
       </div>
       <p>
-        Each candidate was timed once in the recorded search, so these numbers
-        show observed end-to-end behavior rather than a stable benchmark
-        ranking. The
+        These measurements record end-to-end behavior on the preparation host;
+        they are not a stable benchmark ranking. The
         <a href="../evidence/performance-comparisons/index.html">complete report</a>
         lists every kernel, route, runtime, and full program pair.
       </p>
@@ -226,22 +224,21 @@ docker run --rm polcert-artifact performance</code></pre>
     <section id="rejections">
       <h2>Rejected Optimizer Proposals</h2>
       <p>
-        Seven focused cases cover four confirmed Pluto miscompilations, one
-        unsafe Pluto control interface, one historical fork regression, and one
-        non-certifiable parallel hint that is not classified as a Pluto defect.
+        Negative tests submit candidates that violate schedule legality,
+        tiling realization, parallel-dimension eligibility, or compiler-route
+        requirements. PolCert must reject such candidates rather than emit an
+        unchecked optimized loop.
       </p>
       <p>
         The <a href="../evidence/rejected-optimizer-outputs/index.html">rejection report</a>
         states, for each case, the violated condition, the optimizer source of
         the proposal, and whether PolCert rejected the complete output or kept
-        a certified subset. The linked bug-report draft includes reproduction
-        commands and root-cause analysis.
+        a certified subset. The focused cases include confirmed Pluto
+        miscompilations, an unsafe optimizer control input, a historical fork
+        regression, and a non-certifiable parallel hint. The linked bug-report
+        draft provides reproduction commands and root-cause analysis.
       </p>
     </section>
-
-    <p class="footer">
-      Next: <a href="reproduce.html">rebuild the artifact or rerun a targeted check</a>.
-    </p>
   </main>
 </div>
 </body>
