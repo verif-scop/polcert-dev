@@ -144,10 +144,6 @@
 
     <section id="components">
       <h2>Core Component Reading</h2>
-      <p>
-        The estimates count the listed theorem bodies and selected supporting
-        lemmas, not every definition in the repository.
-      </p>
       <div class="wide-table">
         <table class="compact-table">
           <thead>
@@ -155,7 +151,6 @@
             <th>Component</th>
             <th>Proof idea</th>
             <th>Start here</th>
-            <th>Selected proof</th>
           </tr>
         </thead>
           <tbody>
@@ -163,37 +158,31 @@
             <td>Extraction</td>
             <td>Induct over the source loop and reconstruct its ordered statement instances.</td>
             <td><a href="../source/src/ExtractorCorrect.v"><code>ExtractorCorrect.v</code></a><br><a href="proof/polcert.src.ExtractorCorrect.html#ExtractorCorrect.extractor_correct"><code>extractor_correct</code></a></td>
-            <td>about 700 lines</td>
           </tr>
             <tr>
             <td>Index-set splitting</td>
             <td>Coverage preserves every instance; disjointness prevents duplication.</td>
             <td><a href="../source/src/ISSValidatorCorrect.v"><code>ISSValidatorCorrect.v</code></a><br><a href="proof/polcert.src.ISSValidatorCorrect.html#ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct"><code>checked_iss_complete_cut_shape_validate_semantics_correct</code></a></td>
-            <td>about 376 lines</td>
           </tr>
             <tr>
             <td>Affine scheduling</td>
             <td>Decompose the new order into adjacent exchanges and prove every reversed pair safe.</td>
             <td><a href="../source/src/AffineValidator.v"><code>AffineValidator.v</code></a><br><a href="proof/polcert.src.AffineValidator.html#AffineValidator.validate_correct"><code>validate_correct</code></a></td>
-            <td>about 410 lines</td>
           </tr>
             <tr>
             <td>Tiling</td>
             <td>Prove a bijection between source and tiled coordinates, then prove the checked band order safe.</td>
             <td><a href="../source/src/TilingRelation.v"><code>TilingRelation.v</code></a><br><a href="../source/src/TilingBandScheduleValidator.v"><code>TilingBandScheduleValidator.v</code></a></td>
-            <td>about 1,578 lines</td>
           </tr>
             <tr>
             <td>Parallel loops</td>
             <td>Map generated events to checked instances and reorder each interleaving into a sequential execution.</td>
             <td><a href="../source/src/ParallelCodegenCorrect.v"><code>ParallelCodegenCorrect.v</code></a><br><a href="proof/polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.checked_annotated_codegen_many_correct_general_certified"><code>checked_annotated_codegen_many_correct_general_certified</code></a></td>
-            <td>about 725 lines</td>
           </tr>
             <tr>
             <td>Unrolling and jam</td>
             <td>Cover the original range exactly; validate the exchanges needed to fuse inner loops.</td>
             <td><a href="../source/polygen/LoopUnroll.v"><code>LoopUnroll.v</code></a><br><a href="../source/src/LoopJamBridge.v"><code>LoopJamBridge.v</code></a></td>
-            <td>read by transformation</td>
           </tr>
           </tbody>
         </table>
