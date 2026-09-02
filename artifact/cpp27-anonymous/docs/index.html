@@ -95,8 +95,7 @@
         including affine scheduling, fusion and fission, ISS, tiling,
         two-level and diamond tiling, and parallel-loop generation. Each
         applicable case shows the actual input and accepted output, then runs
-        both from the same deterministic state and reports the SHA-256 digests
-        computed over their modeled scalars and array elements.
+        both with the same inputs and reports whether their results agree.
       </p>
       <p class="primary-evidence">
         <strong>
@@ -351,13 +350,12 @@ if ((7 &lt;= T &amp;&amp; 11 &lt;= N)) {
       <p>
         The generated whole-C campaign compiles both the unoptimized input loop
         and a PolCert-accepted output, runs both programs with the same data,
-        and compares an index-weighted summary of their modeled state. It also
-        records exploratory runtimes for six checked pipeline choices on 62
-        kernels.
+        and checks that their results agree. It also records runtimes for six
+        checked pipeline choices on 62 kernels.
       </p>
       <dl class="performance-summary">
         <div><dt>Compared kernels</dt><dd>62</dd></div>
-        <div><dt>Exact summary matches</dt><dd>62</dd></div>
+        <div><dt>Matching results</dt><dd>62 / 62</dd></div>
         <div><dt>Non-identity routes selected</dt><dd>47</dd></div>
         <div><dt>Selected parallel outputs</dt><dd>19</dd></div>
       </dl>
@@ -366,16 +364,16 @@ if ((7 &lt;= T &amp;&amp; 11 &lt;= N)) {
         Loop-pair record, not only these performance kernels. It executes each
         unique program and parameter configuration once; duplicate records
         reuse that result. Each applicable case page shows the two programs,
-        parameter values, number of modeled state values hashed, and both
-        SHA-256 digests.
+        parameter values, run count, thread count where relevant, and whether
+        the results agree.
         Non-executable validator objects and expected rejections state why this
-        comparison does not apply.
+        before/after run is not available.
       </p>
       <dl class="performance-summary">
-        <div><dt>Matching Loop-pair digests</dt><dd>524 / 524</dd></div>
-        <div><dt>Unique execution configurations</dt><dd>202</dd></div>
-        <div><dt>Catalog pages with execution results</dt><dd>529</dd></div>
-        <div><dt>Failed comparisons</dt><dd>0</dd></div>
+        <div><dt>Programs with matching results</dt><dd>524 / 524</dd></div>
+        <div><dt>Distinct program/parameter runs</dt><dd>202</dd></div>
+        <div><dt>Test pages showing execution</dt><dd>529</dd></div>
+        <div><dt>Result mismatches</dt><dd>0</dd></div>
       </dl>
       <p class="primary-evidence">
         <strong>
@@ -926,7 +924,7 @@ if ((7 &lt;= T &amp;&amp; 11 &lt;= N)) {
             <td><a href="#claim-e2e">main theorem and executable compiler theorem</a></td>
             <td>
               <a href="../evidence/results/proof-report.md">theorem and proof-build report</a>;
-              <a href="../evidence/results/test-catalog.html">modeled-state comparisons by test case</a>;
+              <a href="../evidence/results/test-catalog.html">program results by test case</a>;
               <a href="../evidence/performance-comparisons/index.html">performance comparisons</a>
             </td>
           </tr>

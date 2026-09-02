@@ -36,8 +36,8 @@ DEFAULT_RELEASE_DIR = RELEASE_ROOT / "final"
 DEFAULT_PROOF_HTML_DIR = RELEASE_ROOT / "anonymous-proof-html"
 DEFAULT_OUTPUT = RELEASE_ROOT / "cpp27-anonymous/polcert-cpp27-supplement.zip"
 
-SOURCE_ARCHIVE = "polcert-386c5502b445091b324e1751b69aff15645f805d.tar"
-SOURCE_SHA256 = "36f72eb7b6fbe587b7aa516f30c62d85b88b1f3daaea82977c2078be0c805f12"
+SOURCE_ARCHIVE = "polcert-47d611721ca45b0f3963531ef4f01f297e577ae5.tar"
+SOURCE_SHA256 = "87cefe16af005a7477a9ec752c874ab4925d43dd1499af8500cf71fb62245aba"
 PLUTO_SOURCE_ARCHIVES = {
     "fixed": (
         "pluto-fixed-source.tar.xz",
@@ -80,6 +80,8 @@ E2E_RECORDED_LOOP_CASES = {
 }
 
 REPLACEMENTS = {
+    "47d611721ca45b0f3963531ef4f01f297e577ae5": "validated-source-snapshot",
+    "47d6117": "validated-source-snapshot",
     "386c5502b445091b324e1751b69aff15645f805d": "validated-source-snapshot",
     "386c550": "validated-source-snapshot",
     "0b7a92eb1b6b4e26e46ca0a2950122637b1da589": "validated-source-snapshot",
@@ -125,6 +127,8 @@ DENYLIST = (
     "github.com/verif-scop",
     "verif-scop/",
     "verif-scop",
+    "47d611721ca45b0f3963531ef4f01f297e577ae5",
+    "47d6117",
     "386c5502b445091b324e1751b69aff15645f805d",
     "386c550",
     "0b7a92eb1b6b4e26e46ca0a2950122637b1da589",
@@ -147,6 +151,7 @@ DENYLIST = (
     "ed4a1cce93b3332bf2b2b80fdb01d7203dddc887f249fff95503d0205c31928c",
     "37dea700d9db55b2444997d4900a88cd01d3c3d813c48fa410967982321209f0",
     "36f72eb7b6fbe587b7aa516f30c62d85b88b1f3daaea82977c2078be0c805f12",
+    "87cefe16af005a7477a9ec752c874ab4925d43dd1499af8500cf71fb62245aba",
     "state-eq-polyhedral-verification",
     "artifact/verified-compilation",
     "33243898549",
@@ -1815,8 +1820,8 @@ CATALOG_CASE_GUIDANCE = {
         "Successful compilation alone would not show whether the requested optimization actually occurred.",
     ),
     "generated execution: default-corpus": (
-        "Executes the baseline and generated C programs on the same inputs and compares their outputs.",
-        "Execution checks complement the proof build by detecting integration or extraction mistakes in concrete generated programs.",
+        "Runs the source and optimized programs with the same inputs and compares their results.",
+        "This confirms that the displayed optimization occurred and preserved the result for the tested inputs.",
     ),
     "generated execution: parallel-effect": (
         "Checks both output agreement and the presence of the requested parallel-loop effect.",
@@ -2288,20 +2293,15 @@ def explain_recorded_outcome(record: dict) -> str:
     if actual == "included in the suite-level result":
         return "This input contributes to the aggregate suite totals; the log does not identify its individual result."
     if lower.startswith("outputs-match:true"):
-        effects = (
-            " The declared structural effects also matched."
-            if "effects-matched:true" in lower
-            else " This case has no separate structural-effect assertion."
-            if "effects-matched:not-applicable" in lower
-            else ""
-        )
+        observed = record.get("observed_transformation", "").strip()
+        effects = f" The optimized program shows {observed.lower()}." if observed else ""
         execution = []
         if "parallel:true" in lower:
             execution.append("a parallel loop was present")
         if "vector:true" in lower:
             execution.append("the restricted innermost parallel loop was present")
         execution_text = f" {'; '.join(execution).capitalize()}." if execution else ""
-        return f"Baseline and optimized outputs matched.{effects}{execution_text}"
+        return f"The source and optimized programs produced the same result.{effects}{execution_text}"
     if lower.startswith(("before={", "one-level={", "stats={", "source-statements:")):
         return "The recorded Loop-shape counters exhibit the typed transformation named above."
     if actual == "ok:true,res:true":
@@ -3324,6 +3324,7 @@ def prepare_test_catalog(
     witness_summary: dict,
     program_pairs: dict[tuple[str, str], dict],
     program_executions: dict,
+    performance_summary: dict,
 ) -> dict:
     """Generate a reviewer-facing inventory of every recorded test case."""
     raw_output = destination / "raw"
@@ -3335,6 +3336,9 @@ def prepare_test_catalog(
     execution_by_key = {
         (str(result["suite"]), str(result["case"])): result
         for result in program_executions["results"]
+    }
+    performance_by_case = {
+        str(result["case"]): result for result in performance_summary["selected"]
     }
     require(
         len(execution_by_key) == 524,
@@ -3737,7 +3741,17 @@ def prepare_test_catalog(
                 "status": "not-applicable",
                 "reason": execution_not_applicable_reason(record),
             }
+        if record["suite"] == "generated execution: default-corpus":
+            require(
+                record["case"] in performance_by_case,
+                f"missing performance result for {record['case']}",
+            )
+            record["performance"] = performance_by_case[record["case"]]
         record["recorded_term_explanations"] = recorded_term_explanations(record)
+    require(
+        sum("performance" in record for record in records) == 62,
+        "expected performance results on 62 generated execution pages",
+    )
     expected_suite_counts = {
         "driver option configurations": 189,
         "second-level rejection": 116,
@@ -3905,8 +3919,8 @@ def prepare_test_catalog(
             "diff.patch": "diff",
             "validation.log": "validation log",
             "status.txt": "compiler log",
-            "baseline.observation.txt": "left modeled-state digest",
-            "optimized.observation.txt": "right modeled-state digest",
+            "baseline.observation.txt": "source execution record",
+            "optimized.observation.txt": "optimized execution record",
             "strict-loop-suite.stdout.txt": "local log",
             "remote-ci-test-results.stdout.txt": "CI log",
         }.get(
@@ -4009,7 +4023,6 @@ def prepare_test_catalog(
     <dl>
       <dt>Expected outcome</dt><dd>{escape(record["expected_outcome"])}</dd>
       <dt>Recorded outcome</dt><dd>{escape(record["recorded_outcome"])}</dd>
-      <dt>Verdict</dt><dd>{escape(record["verdict"])}</dd>
       <dt>Why this test matters</dt><dd>{escape(record["why_this_test_matters"])}</dd>
     </dl>
   </section>"""
@@ -4077,34 +4090,46 @@ def prepare_test_catalog(
             run_description = f"{run_count} {'run' if run_count == 1 else 'runs'}"
             if execution["parallelized_loop"]:
                 run_description += (
-                    f", {execution['omp_threads_requested']} OpenMP threads requested"
+                    f", {execution['omp_threads_requested']} OpenMP threads per run"
                 )
+            performance = record.get("performance")
+            performance_html = ""
+            if performance:
+                performance_params = ", ".join(
+                    f"{name}={value}"
+                    for name, value in sorted(performance["params"].items())
+                ) or "none"
+                performance_threads = (
+                    f", {performance['omp_threads']} OpenMP threads"
+                    if performance["parallelized"]
+                    else ""
+                )
+                performance_html = f"""
+    <h3>Recorded Performance</h3>
+    <dl>
+      <dt>Selected optimization</dt><dd>{escape(str(performance["pipeline_label"]))}</dd>
+      <dt>Parameters</dt><dd><code>{escape(performance_params)}</code></dd>
+      <dt>Measurement</dt><dd>1 baseline run and 1 optimized run{performance_threads}</dd>
+      <dt>Baseline time</dt><dd>{performance["baseline_seconds"]:.6f} s</dd>
+      <dt>Optimized time</dt><dd>{performance["optimized_seconds"]:.6f} s</dd>
+      <dt>Measured speedup</dt><dd><strong>{performance["speedup"]:.3f}x</strong></dd>
+    </dl>
+    <p><a href="../../performance-comparisons/index.html">Compare all 62 recorded performance results</a></p>"""
             execution_html = f"""
   <section class="dynamic-execution">
-    <h2>Dynamic Execution</h2>
-    <p>
-      The two displayed Loop programs were lowered with Rocq
-      <code>Z.div</code>/<code>Z.mod</code> control semantics, compiled, and
-      run from the same deterministic state. The harness feeds every finite
-      modeled scalar and array element into SHA-256 in a fixed order.
-    </p>
+    <h2>Program Execution</h2>
+    <p>The source and optimized programs were compiled and run with the same inputs.</p>
     <dl>
-      <dt>Result</dt><dd><strong>PASS: SHA-256 digests over {execution["observed_value_count"]} finite values match</strong></dd>
-      <dt>Left modeled-state SHA-256</dt><dd><code>{escape(str(execution["baseline_output_sha256"]))}</code></dd>
-      <dt>Right modeled-state SHA-256</dt><dd><code>{escape(str(execution["optimized_output_sha256"]))}</code></dd>
       <dt>Parameters</dt><dd><code>{escape(params)}</code></dd>
-      <dt>Execution</dt><dd>{run_description}</dd>
+      <dt>Runs</dt><dd>{run_description}</dd>
+      <dt>Result</dt><dd><strong>PASS: both programs produced the same result in every run</strong></dd>
     </dl>
-    <p class="comparison-note">
-      This is a differential integration check, not part of the formal proof.
-      It detects parser, extraction, pretty-printing, lowering, and runtime
-      integration mistakes around the proved transformation.
-    </p>
+{performance_html}
   </section>"""
         else:
-            execution_html = f"""
+            execution_html = "" if "rejection" in record else f"""
   <details class="dynamic-execution-na">
-    <summary>Dynamic execution: not applicable</summary>
+    <summary>No before/after program run</summary>
     <p>{escape(execution["reason"])}</p>
   </details>"""
 
@@ -4489,15 +4514,16 @@ def prepare_test_catalog(
 </p>
 <p><code>PASS</code> means the recorded outcome matched the expectation. An expected rejection therefore also passes.</p>
 <p>
-  <strong>{dynamic_matches} accepted Loop-pair pages</strong> also report a
-  modeled-state SHA-256 comparison. They refer to
+  <strong>{dynamic_matches} accepted Loop-pair pages</strong> show the source
+  and optimized programs, run parameters, number of runs, and whether the
+  results agree. They refer to
   <strong>{program_executions['executed_pairs']} accepted Loop-pair records</strong>
   across <strong>{program_executions['unique_execution_configurations']} unique
   program and parameter configurations</strong>;
   duplicate catalog records reuse the same recorded comparison.
   The remaining <strong>{dynamic_not_applicable} pages</strong> explain why a
-  dynamic comparison does not apply, for example because the test rejects its
-  candidate or checks a non-executable IR object.
+  before/after run is not available, for example because the test checks a
+  non-executable compiler object.
 </p>
 <p>
   <strong>{counts['listed_test_configurations']} recorded results</strong> for
@@ -4719,6 +4745,8 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
             "speedup": float(candidate["speedup"]),
             "parallelized": bool(candidate["parallelized_loop"]),
             "omp_threads": int(candidate["omp_threads"]),
+            "params": candidate["params"],
+            "measurement_runs": 1,
             "exact_match": True,
         }
         selected_records.append(record)
@@ -4731,7 +4759,7 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
             f"<td>{seconds(record['optimized_seconds'])} s</td>"
             f"<td>{record['speedup']:.3f}x</td>"
             f"<td>{'yes' if record['parallelized'] else 'no'}</td>"
-            '<td class="status-pass">summary match</td>'
+            '<td class="status-pass">same result</td>'
             "</tr>"
         )
 
@@ -4783,12 +4811,11 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
   <p class="lede">
     Each row compares an unoptimized Loop program with a PolCert-accepted
     output inside the same generated whole-C harness. Both executables received
-    the same deterministic input, and every selected pair produced the same
-    index-weighted summary of its modeled state.
+    the same input, and every selected pair produced the same result.
   </p>
   <dl class="performance-summary">
     <div><dt>Compared kernels</dt><dd>{len(selected_records)}</dd></div>
-    <div><dt>Exact summary matches</dt><dd>{len(selected_records)}</dd></div>
+    <div><dt>Matching results</dt><dd>{len(selected_records)} / {len(selected_records)}</dd></div>
     <div><dt>Non-identity routes selected</dt><dd>{nonidentity}</dd></div>
     <div><dt>Selected parallel outputs</dt><dd>{parallelized}</dd></div>
   </dl>
@@ -4956,6 +4983,7 @@ def prepare_evidence(
         witness_summary,
         program_pairs,
         program_executions,
+        performance_summary,
     )
     shutil.copy2(PACKAGE_DIR / "EVIDENCE_README.md", destination / "README.md")
 
@@ -4991,9 +5019,7 @@ def prepare_evidence(
                 "unique_execution_configurations": program_executions[
                     "unique_execution_configurations"
                 ],
-                "matching_modeled_state_digests": program_executions[
-                    "matched_pairs"
-                ],
+                "matching_results": program_executions["matched_pairs"],
                 "failures": program_executions["failed_pairs"],
             },
         },

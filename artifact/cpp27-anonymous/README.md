@@ -7,7 +7,7 @@ after the required checks succeed.
 
 The main theorem is end to end: whenever PolCert accepts a compilation, every
 execution of the generated program has a matching execution of the source
-program with the same modeled memory. The optimizer that searches for a good
+program with the same result. The optimizer that searches for a good
 transformation need not be trusted.
 
 This archive contains the source snapshot, proof scripts for the Rocq proof
@@ -39,7 +39,7 @@ For the complete test inventory, open
 | `evidence/README.md` | Guide to the recorded proof and test results. |
 | `evidence/optimized-loop-examples/` | Side-by-side source and accepted Loop programs, with diffs. |
 | `evidence/results/` | Complete test catalog, theorem and proof-build report, and supporting logs. |
-| `evidence/results/test-catalog.html` | Every recorded test, with before/after programs and modeled-state comparisons where applicable. |
+| `evidence/results/test-catalog.html` | Every recorded test, with before/after programs, run settings, and results where applicable. |
 | `evidence/execution-comparisons/` | The original 62-kernel CI execution campaign and five focused effect checks. |
 | `evidence/performance-comparisons/` | Baseline and optimized runtimes for the 62 generated whole-C kernels. |
 | `evidence/rejected-optimizer-outputs/` | Unsafe or non-certifiable optimizer proposals, their causes, and PolCert's response. |
