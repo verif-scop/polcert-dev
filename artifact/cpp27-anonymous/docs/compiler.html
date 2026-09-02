@@ -19,7 +19,7 @@
       <a href="#model">Polyhedral model</a>
       <a href="#entry">Executable entry point</a>
       <a href="#pipeline">Verified pipeline</a>
-      <a href="#transformations">Transformations</a>
+      <a href="#running-example">Running example</a>
       <a href="#instructions">Instruction interface</a>
       <a href="../evidence/results/test-catalog.html">Test catalog</a>
     </div>
@@ -168,9 +168,9 @@
             </tr>
             <tr>
               <td>Tiling (optional)</td>
-              <td>Adds tile and intra-tile coordinates for ordinary, two-level, or diamond tiling.</td>
+              <td>Ordinary tiling adds rectangular tile and point coordinates; two-level tiling adds nested tile levels; diamond and full-diamond routes use coupled wavefront coordinates.</td>
               <td>The tiling witness maps every source instance to the candidate coordinates, and the checked band order permits the introduced grouping.</td>
-              <td><a href="../source/src/TilingRelation.v"><code>TilingRelation.v</code></a>, <a href="../source/src/TilingBandDirectRuntime.v"><code>TilingBandDirectRuntime.v</code></a></td>
+              <td><a href="../source/src/TilingRelation.v"><code>TilingRelation.v</code></a>, <a href="../source/src/TilingBandScheduleValidator.v"><code>TilingBandScheduleValidator.v</code></a>, <a href="../source/src/TilingBandMixedSecondValidator.v"><code>TilingBandMixedSecondValidator.v</code></a>, <a href="../source/src/TilingBandDirectRuntime.v"><code>TilingBandDirectRuntime.v</code></a></td>
             </tr>
             <tr>
               <td>Post-tiling affine scheduling (optional)</td>
@@ -186,8 +186,8 @@
             </tr>
             <tr>
               <td>Parallel eligibility (optional)</td>
-              <td>Checks one or more proposed schedule dimensions in the current-coordinate view before annotated loop generation.</td>
-              <td>Instances that differ at a selected dimension, under the same outer prefix, may exchange order. This supports arbitrary interleavings of the generated parallel loop.</td>
+              <td>Checks one or more proposed schedule dimensions in the current-coordinate view. A vector request uses the same certificate and requires an innermost generated loop.</td>
+              <td>Instances that differ at a selected dimension, under the same outer prefix, may exchange order. This supports arbitrary interleavings of each generated parallel loop.</td>
               <td><a href="../source/src/ParallelValidator.v"><code>ParallelValidator.v</code></a></td>
             </tr>
             <tr>
@@ -210,8 +210,8 @@
             </tr>
             <tr>
               <td>Loop postpasses (optional)</td>
-              <td>Applies constant-bound unrolling or checked block/remainder unroll-and-jam to generated loops. A parallel route after unroll-and-jam re-extracts the changed loop and validates its parallel dimensions again.</td>
-              <td>Unrolling covers the original iteration range exactly. Jamming also validates the exchanges introduced by fusion.</td>
+              <td>Applies constant-bound unrolling, or block and remainder unrolling followed by checked loop jamming. A parallel route after unroll-and-jam re-extracts the changed loop and validates its parallel dimensions again.</td>
+              <td>Each unrolling form covers the original iteration range exactly. Jamming also validates the exchanges introduced by fusion.</td>
               <td><a href="../source/polygen/LoopUnroll.v"><code>LoopUnroll.v</code></a>, <a href="../source/src/LoopJamValidator.v"><code>LoopJamValidator.v</code></a>, <a href="../source/driver/VerifiedLoopPostpass.v"><code>VerifiedLoopPostpass.v</code></a></td>
             </tr>
             <tr>
@@ -275,96 +275,6 @@ if ((1 &lt;= N &amp;&amp; 1 &lt;= M)) {
         <a href="../evidence/results/cases/0616.html" target="_blank" rel="noopener">complete case page</a>
         shows the exact generated bounds and matching execution results.
       </p>
-    </section>
-
-    <section id="transformations">
-      <h2>Supported Transformations and Cleanup Passes</h2>
-      <div class="wide-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Transformation</th>
-              <th>Effect</th>
-              <th>Acceptance condition</th>
-              <th>Implementation</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Affine scheduling</td>
-              <td>Changes loop order and shape; covers interchange, skewing, fusion, and fission.</td>
-              <td>Every statement pair whose order reverses may safely exchange.</td>
-              <td><a href="../source/src/AffineValidator.v"><code>AffineValidator.v</code></a></td>
-            </tr>
-            <tr>
-              <td>Index-set splitting (ISS)</td>
-              <td>Splits one statement domain into disjoint pieces, which may then receive different schedules.</td>
-              <td>The pieces preserve the statement and form an exact partition of the source domain.</td>
-              <td><a href="../source/src/ISSValidator.v"><code>ISSValidator.v</code></a>, <a href="../source/src/ISSWitness.v"><code>ISSWitness.v</code></a></td>
-            </tr>
-            <tr>
-              <td>Ordinary tiling</td>
-              <td>Adds rectangular tile coordinates and intra-tile point coordinates.</td>
-              <td>The candidate realizes every source instance exactly once and the tiled band has a safe order.</td>
-              <td><a href="../source/src/TilingRelation.v"><code>TilingRelation.v</code></a>, <a href="../source/src/TilingBandScheduleValidator.v"><code>TilingBandScheduleValidator.v</code></a></td>
-            </tr>
-            <tr>
-              <td>Two-level tiling</td>
-              <td>Adds two nested levels of tile coordinates.</td>
-              <td>Both levels satisfy the instance-mapping and band-order obligations for a recognized layout.</td>
-              <td><a href="../source/src/TilingBandDirectRuntime.v"><code>TilingBandDirectRuntime.v</code></a>, <a href="../source/src/TilingBandMixedSecondValidator.v"><code>TilingBandMixedSecondValidator.v</code></a></td>
-            </tr>
-            <tr>
-              <td>Diamond tiling</td>
-              <td>Uses coupled tile coordinates to form wavefront-shaped tiles; full-diamond routes use the same checked tiling boundary.</td>
-              <td>The candidate satisfies the same exact instance mapping and band-order obligations as other accepted tiling layouts.</td>
-              <td><a href="../source/src/TilingBandDirectRuntime.v"><code>TilingBandDirectRuntime.v</code></a>, <a href="../source/driver/PolOpt.v"><code>PolOpt.v</code></a></td>
-            </tr>
-            <tr>
-              <td>Post-tiling affine scheduling</td>
-              <td>Reschedules the tiled program, including its intra-tile loops.</td>
-              <td>The affine validator accepts the new schedule relative to the tiled program.</td>
-              <td><a href="../source/driver/ParallelPolOpt.v"><code>ParallelPolOpt.v</code></a>, <a href="../source/src/Validator.v"><code>Validator.v</code></a></td>
-            </tr>
-            <tr>
-              <td>Parallelization</td>
-              <td>Marks one or more generated loop dimensions as parallel, allowing their iterations to interleave.</td>
-              <td>Statement instances from distinct iterations at each selected dimension may exchange order.</td>
-              <td><a href="../source/src/ParallelValidator.v"><code>ParallelValidator.v</code></a>, <a href="../source/src/ParallelCodegenCore.v"><code>ParallelCodegenCore.v</code></a></td>
-            </tr>
-            <tr>
-              <td>Innermost vector annotation</td>
-              <td>Uses the parallel certificate for an innermost loop and records the more restricted vector mode.</td>
-              <td>The parallel check succeeds and the selected generated loop is innermost.</td>
-              <td><a href="../source/src/ParallelCodegenCore.v"><code>ParallelCodegenCore.v</code></a>, <a href="../source/src/ParallelCodegenCorrect.v"><code>ParallelCodegenCorrect.v</code></a></td>
-            </tr>
-            <tr>
-              <td>Constant-bound unrolling</td>
-              <td>Expands sequential loops whose complete iteration range is known.</td>
-              <td>The expanded statements cover the original range exactly. Parallel loop annotations are retained and are not themselves unrolled.</td>
-              <td><a href="../source/polygen/LoopUnroll.v"><code>LoopUnroll.v</code></a>, <a href="../source/driver/VerifiedParallelCompilerConfig.v"><code>VerifiedParallelCompilerConfig.v</code></a></td>
-            </tr>
-            <tr>
-              <td>Block and remainder unrolling</td>
-              <td>Executes full blocks of a chosen factor and handles the remaining iterations separately.</td>
-              <td>The block and remainder ranges partition the original loop range.</td>
-              <td><a href="../source/polygen/LoopUnroll.v"><code>LoopUnroll.v</code></a></td>
-            </tr>
-            <tr>
-              <td>Unroll-and-jam</td>
-              <td>Block-unrolls an outer loop and fuses corresponding inner loops.</td>
-              <td>The unrolling is exact, and the validator accepts every exchange introduced by the fusion.</td>
-              <td><a href="../source/src/LoopJamValidator.v"><code>LoopJamValidator.v</code></a>, <a href="../source/src/LoopJamBridge.v"><code>LoopJamBridge.v</code></a>, <a href="../source/src/LoopJamLower.v"><code>LoopJamLower.v</code></a></td>
-            </tr>
-            <tr>
-              <td>Singleton-loop and expression cleanup</td>
-              <td>Removes one-iteration loops and simplifies generated loop syntax.</td>
-              <td>The cleaned loop has the same executions as the generated loop.</td>
-              <td><a href="../source/polygen/LoopSingletonCleanup.v"><code>LoopSingletonCleanup.v</code></a>, <a href="../source/polygen/LoopCleanup.v"><code>LoopCleanup.v</code></a>, <a href="../source/polygen/ParallelLoop.v"><code>ParallelLoop.v</code></a></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </section>
 
     <section id="instructions">

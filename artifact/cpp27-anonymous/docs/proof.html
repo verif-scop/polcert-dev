@@ -57,9 +57,10 @@
     <section id="top-theorems">
       <h2>Top-Level Theorems</h2>
       <p>
-        Four public theorems expose the guarantee for the reusable compiler,
-        checked configurations, the extracted executable, and sequential
-        targets.
+        The packaged executable is covered by
+        <code>extracted_parallel_compile_correct</code>. Its proof connects the
+        extracted compiler to the reusable compiler theorem; the remaining
+        entries expose the same guarantee at intermediate interfaces.
       </p>
       <table>
         <thead>
@@ -68,18 +69,18 @@
             <th>Use</th>
           </tr>
         </thead>
-        <tbody>
+          <tbody>
+            <tr>
+            <td><a href="proof/polcert.driver.ExtractedPipelineCorrect.html#extracted_parallel_compile_correct"><code>extracted_parallel_compile_correct</code></a></td>
+            <td>Main end-to-end theorem for the extracted sequential and parallel compiler used by <code>polopt</code>.</td>
+          </tr>
           <tr>
             <td><a href="proof/polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_correct"><code>VerifiedParallelCompilerConfig.compile_correct</code></a></td>
-            <td>Main end-to-end theorem for sequential and parallel targets.</td>
+            <td>Reusable end-to-end theorem for a raw sequential or parallel configuration.</td>
           </tr>
           <tr>
             <td><a href="proof/polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_verified_correct"><code>compile_verified_correct</code></a></td>
             <td>Correctness after the compiler configuration has passed its checks.</td>
-          </tr>
-          <tr>
-            <td><a href="proof/polcert.driver.ExtractedPipelineCorrect.html#extracted_parallel_compile_correct"><code>extracted_parallel_compile_correct</code></a></td>
-            <td>Connection from the extracted executable configuration to the reusable theorem.</td>
           </tr>
           <tr>
             <td><a href="proof/polcert.driver.VerifiedCompilerConfig.html#VerifiedCompilerConfig.compile_correct"><code>VerifiedCompilerConfig.compile_correct</code></a></td>
@@ -137,7 +138,7 @@
         <div class="number">7</div>
         <div>
           <h3>Compose the stage results at the compiler interface</h3>
-          <p><a href="proof/polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_correct"><code>VerifiedParallelCompilerConfig.compile_correct</code></a></p>
+          <p><a href="proof/polcert.driver.ExtractedPipelineCorrect.html#extracted_parallel_compile_correct"><code>extracted_parallel_compile_correct</code></a></p>
         </div>
       </div>
     </section>

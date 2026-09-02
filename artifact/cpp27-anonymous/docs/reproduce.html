@@ -16,11 +16,10 @@
     <a href="evaluation.html">Evaluation</a>
     <a href="reproduce.html" aria-current="page">Reproduce</a>
     <div class="minor">
-      <a href="#docker">Docker build</a>
-      <a href="#modes">Test modes</a>
-      <a href="#proof-only">Proof-only build</a>
-      <a href="#results">Recorded results</a>
-      <a href="../environment/README.md">Environment details</a>
+      <a href="#build">Build and Run</a>
+      <a href="#test-modes">Test Modes</a>
+      <a href="#proof-build">Proof-Only Build</a>
+      <a href="#recorded-results">Recorded Results</a>
     </div>
   </nav>
 
@@ -32,7 +31,7 @@
       checks.
     </p>
 
-    <section id="docker">
+    <section id="build">
       <h2>Build and Run</h2>
       <p>From the extracted archive root:</p>
       <pre><code>docker build -f environment/Dockerfile -t polcert-artifact .
@@ -51,7 +50,7 @@ docker run --rm polcert-artifact</code></pre>
       </p>
     </section>
 
-    <section id="modes">
+    <section id="test-modes">
       <h2>Test Modes</h2>
       <table>
         <thead>
@@ -63,11 +62,11 @@ docker run --rm polcert-artifact</code></pre>
         <tbody>
           <tr>
             <td><code>docker run --rm polcert-artifact</code></td>
-            <td>Run 25 compiler and executable checks.</td>
+            <td>Run the default compiler and executable checks.</td>
           </tr>
           <tr>
             <td><code>docker run --rm polcert-artifact full</code></td>
-            <td>Run all 30 artifact checks.</td>
+            <td>Run the complete artifact check set.</td>
           </tr>
           <tr>
             <td><code>docker run --rm polcert-artifact proof</code></td>
@@ -75,15 +74,15 @@ docker run --rm polcert-artifact</code></pre>
           </tr>
           <tr>
             <td><code>docker run --rm polcert-artifact bugs</code></td>
-            <td>Run the seven focused Pluto reliability cases.</td>
+            <td>Run the focused Pluto reliability cases.</td>
           </tr>
           <tr>
             <td><code>docker run --rm polcert-artifact performance</code></td>
-            <td>Run the selected before/after programs for all 62 performance kernels.</td>
+            <td>Run the recorded before/after performance programs.</td>
           </tr>
           <tr>
             <td><code>docker run --rm polcert-artifact ci</code></td>
-            <td>Run all seven CI test groups in sequence.</td>
+            <td>Run the CI test groups in sequence.</td>
           </tr>
           <tr>
             <td><code>docker run --rm polcert-artifact all</code></td>
@@ -99,7 +98,7 @@ docker run --rm polcert-artifact</code></pre>
       </p>
     </section>
 
-    <section id="proof-only">
+    <section id="proof-build">
       <h2>Proof-Only Build</h2>
       <p>
         For a host-side build, install the toolchain specified in
@@ -120,7 +119,7 @@ make extraction</code></pre>
       </p>
     </section>
 
-    <section id="results">
+    <section id="recorded-results">
       <h2>Recorded Results</h2>
       <p>
         Rebuilding is optional for document review. The archive already
