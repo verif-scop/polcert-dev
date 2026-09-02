@@ -22,6 +22,7 @@ body {
   color: var(--ink);
   background: #fff;
   font: 16px/1.58 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-wrap: break-word;
 }
 
 a { color: var(--blue); }
@@ -39,6 +40,7 @@ code {
 }
 
 pre {
+  max-width: 100%;
   overflow-x: auto;
   padding: 14px 16px;
   border: 1px solid var(--line);
@@ -79,6 +81,10 @@ nav a {
 }
 
 nav a:hover { color: var(--blue); }
+nav a[aria-current="page"] {
+  color: var(--blue);
+  font-weight: 700;
+}
 
 nav .minor {
   margin-top: 18px;
@@ -89,6 +95,7 @@ nav .minor {
 
 main {
   width: min(1120px, calc(100% - 56px));
+  min-width: 0;
   margin: 0 auto;
   padding: 44px 0 80px;
 }
@@ -126,6 +133,8 @@ li { margin: 5px 0; }
   margin: 26px 0 34px;
 }
 
+.reading-paths { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
 .route {
   padding: 16px;
   border: 1px solid var(--line);
@@ -141,6 +150,9 @@ li { margin: 5px 0; }
   display: grid;
   grid-template-columns: repeat(8, minmax(105px, 1fr));
   gap: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   margin: 24px 0;
   padding: 10px 0 18px;
@@ -295,6 +307,12 @@ table {
   max-height: 70vh;
   margin: 0;
   white-space: pre;
+}
+
+.compact-programs pre {
+  min-height: 220px;
+  max-height: none;
+  font-size: 0.84rem;
 }
 
 .case-side-by-side section {
@@ -655,7 +673,7 @@ td code {
   }
   nav a { display: inline-block; margin-right: 16px; }
   nav .minor { display: none; }
-  main { width: min(100% - 28px, 1120px); padding-top: 30px; }
+  main { width: min(calc(100% - 28px), 1120px); padding-top: 30px; }
   .route-list { grid-template-columns: 1fr; }
   .loop-comparison,
   .case-side-by-side,

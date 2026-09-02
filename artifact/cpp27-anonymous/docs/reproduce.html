@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reproduce PolCert Results</title>
+  <link rel="stylesheet" href="artifact.css">
+</head>
+<body>
+<div class="shell">
+  <nav aria-label="Supplement navigation">
+    <strong>PolCert Supplement</strong>
+    <a href="index.html">Overview</a>
+    <a href="compiler.html">Compiler</a>
+    <a href="proof.html">Proof</a>
+    <a href="evaluation.html">Evaluation</a>
+    <a href="reproduce.html" aria-current="page">Reproduce</a>
+    <div class="minor">
+      <a href="#docker">Docker build</a>
+      <a href="#modes">Test modes</a>
+      <a href="#proof-only">Proof-only build</a>
+      <a href="#results">Recorded results</a>
+      <a href="../environment/README.md">Environment details</a>
+    </div>
+  </nav>
+
+  <main>
+    <h1>Reproduce</h1>
+    <p class="lede">
+      The Docker image builds the packaged Pluto sources, the Rocq proofs, and
+      the extracted compiler, then runs the selected compiler and executable
+      checks.
+    </p>
+
+    <section id="docker">
+      <h2>Build and Run</h2>
+      <p>From the extracted archive root:</p>
+      <pre><code>docker build -f environment/Dockerfile -t polcert-artifact .
+docker run --rm polcert-artifact</code></pre>
+      <p>
+        The build needs network access to Ubuntu and opam package repositories
+        and an x86-64 Docker environment. On the preparation machine, a cold
+        build took about 40 minutes and the default checks took about 31
+        minutes. The final image was about 2.1 GB; cache state and hardware will
+        change these values.
+      </p>
+      <p>
+        On an ARM host, add <code>--platform linux/amd64</code>. For a low-memory
+        build, reduce <code>PLUTO_BUILD_JOBS</code>, <code>PROOF_JOBS</code>, or
+        <code>BUILD_JOBS</code> with Docker build arguments.
+      </p>
+    </section>
+
+    <section id="modes">
+      <h2>Test Modes</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Command</th>
+            <th>Expected work</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>docker run --rm polcert-artifact</code></td>
+            <td>Run 25 compiler and executable checks.</td>
+          </tr>
+          <tr>
+            <td><code>docker run --rm polcert-artifact full</code></td>
+            <td>Run all 30 artifact checks.</td>
+          </tr>
+          <tr>
+            <td><code>docker run --rm polcert-artifact proof</code></td>
+            <td>Clean and rebuild every proof and the extracted compiler.</td>
+          </tr>
+          <tr>
+            <td><code>docker run --rm polcert-artifact bugs</code></td>
+            <td>Run the seven focused Pluto reliability cases.</td>
+          </tr>
+          <tr>
+            <td><code>docker run --rm polcert-artifact ci</code></td>
+            <td>Run all seven CI test groups in sequence.</td>
+          </tr>
+          <tr>
+            <td><code>docker run --rm polcert-artifact all</code></td>
+            <td>Run the full artifact and all CI test groups.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        A successful run ends with the selected checks marked <code>PASS</code>
+        and exits with status 0. The
+        <a href="../environment/README.md">environment guide</a> lists the same
+        modes and resource controls.
+      </p>
+    </section>
+
+    <section id="proof-only">
+      <h2>Proof-Only Build</h2>
+      <p>
+        For a host-side build, install the toolchain specified in
+        <a href="../environment/Dockerfile"><code>environment/Dockerfile</code></a>,
+        then run:
+      </p>
+      <pre><code>cd source
+./configure x86_64-linux
+make depend
+make proof
+make check-admitted
+make extraction</code></pre>
+      <p>
+        This rebuilds all Rocq files, checks for unfinished proofs, and extracts
+        the OCaml compiler. The recorded proof report covers 197 Rocq files and
+        reports zero admitted markers, zero aborted proofs, zero unrealized
+        extraction axioms, and zero missing public-route theorems.
+      </p>
+    </section>
+
+    <section id="results">
+      <h2>Recorded Results</h2>
+      <p>
+        Rebuilding is optional for document review. The archive already
+        contains the complete <a href="../evidence/results/test-catalog.html">test catalog</a>,
+        <a href="../evidence/results/proof-report.md">proof report</a>,
+        <a href="../evidence/performance-comparisons/index.html">performance comparisons</a>,
+        and <a href="../evidence/rejected-optimizer-outputs/index.html">rejection cases</a>.
+      </p>
+    </section>
+  </main>
+</div>
+</body>
+</html>

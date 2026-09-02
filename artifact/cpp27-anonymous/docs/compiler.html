@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PolCert Compiler</title>
+  <link rel="stylesheet" href="artifact.css">
+</head>
+<body>
+<div class="shell">
+  <nav aria-label="Supplement navigation">
+    <strong>PolCert Supplement</strong>
+    <a href="index.html">Overview</a>
+    <a href="compiler.html" aria-current="page">Compiler</a>
+    <a href="proof.html">Proof</a>
+    <a href="evaluation.html">Evaluation</a>
+    <a href="reproduce.html">Reproduce</a>
+    <div class="minor">
+      <a href="#model">Polyhedral model</a>
+      <a href="#pipeline">Verified pipeline</a>
+      <a href="#transformations">Transformations</a>
+      <a href="#instructions">Instruction interface</a>
+      <a href="../evidence/results/test-catalog.html">Test catalog</a>
+    </div>
+  </nav>
+
+  <main>
+    <h1>Compiler</h1>
+    <p class="lede">
+      PolCert represents a bounded loop as statement instances, checks proposed
+      transformations over those instances, and reconstructs a target loop.
+    </p>
+
+    <section id="model">
+      <h2>The Polyhedral Model</h2>
+      <p>
+        PolCert represents each execution of a loop statement by its loop
+        indices. For example, one execution of <code>A[i][j] = B[i][j] + 1</code>
+        is identified by the integer point <code>(i,j)</code>. Affine
+        inequalities describe which points execute, affine access functions
+        describe which array cells they read and write, and a schedule assigns
+        coordinates that order the points.
+      </p>
+      <p>
+        Loop optimization changes the schedule or introduces new coordinates.
+        It must preserve every original statement instance and respect any
+        memory dependence that constrains execution order.
+      </p>
+    </section>
+
+    <section id="pipeline">
+      <h2>The Verified Pipeline</h2>
+      <div class="pipeline" role="img" aria-label="Detailed PolCert compilation pipeline">
+        <div class="stage verified"><b>Extract</b>source loop to instances</div>
+        <div class="stage verified"><b>Prepare</b>explicit bounds</div>
+        <div class="stage verified"><b>Split</b>optional ISS</div>
+        <div class="stage verified"><b>Schedule</b>check new order</div>
+        <div class="stage verified"><b>Tile</b>check grouping and order</div>
+        <div class="stage verified"><b>Generate</b>model to loops</div>
+        <div class="stage verified"><b>Parallelize</b>check selected loops</div>
+        <div class="stage verified"><b>Postpass</b>checked unrolling or jam</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Stage</th>
+            <th>Input</th>
+            <th>What the check establishes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Extraction</td>
+            <td>Bounded source loop</td>
+            <td>The model executes exactly the source statement instances in source order.</td>
+          </tr>
+          <tr>
+            <td>Index-set splitting</td>
+            <td>Proposed partition of instances</td>
+            <td>The parts cover the original set without overlap.</td>
+          </tr>
+          <tr>
+            <td>Affine scheduling</td>
+            <td>Proposed schedule</td>
+            <td>Every reversed pair can safely exchange order.</td>
+          </tr>
+          <tr>
+            <td>Tiling</td>
+            <td>Tile sizes and tiled schedule</td>
+            <td>Each source instance has one tiled coordinate and the tile order is safe.</td>
+          </tr>
+          <tr>
+            <td>Loop generation</td>
+            <td>Checked polyhedral program</td>
+            <td>The generated loop executes the checked instances.</td>
+          </tr>
+          <tr>
+            <td>Parallelization</td>
+            <td>Selected generated dimensions</td>
+            <td>Every allowed interleaving matches a valid sequential execution.</td>
+          </tr>
+          <tr>
+            <td>Loop postpass</td>
+            <td>Generated Loop program</td>
+            <td>Supported unrolling and jam rewrites preserve the generated program.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Every optional stage has a correctness theorem that connects its output
+        to its input. If a required check fails, the compiler emits no optimized
+        program. When an option is explicitly best-effort, its failed check may
+        retain the last accepted program.
+      </p>
+    </section>
+
+    <section id="running-example">
+      <h2>Running Example</h2>
+      <p>
+        The pointwise example begins with a two-dimensional iteration domain
+        <code>0 &lt;= i0 &lt; N</code>, <code>0 &lt;= i1 &lt; M</code>. In the output,
+        <code>i0</code> and <code>i1</code> enumerate tiles, while
+        <code>i2</code> and <code>i3</code> enumerate points inside each tile.
+        Integer division maps every source point to exactly one tile, and the
+        bounded point loops recover the original index values.
+      </p>
+      <div class="loop-comparison compact-programs">
+        <section>
+          <h3>Typed Input Program</h3>
+          <pre>context(N, M);
+
+for i0 in range(0, N) {
+  for i1 in range(0, M) {
+    A[i0][i1] = B[i0][i1] + 1;
+  }
+}</pre>
+        </section>
+        <section>
+          <h3>Accepted Verified Program</h3>
+          <pre>context(N, M);
+
+if ((1 &lt;= N &amp;&amp; 1 &lt;= M)) {
+  for i0 in range(0, ((N + 31) / 32)) {
+    for i1 in range(0, ((M + 31) / 32)) {
+      for i2 in range(max(0, (32 * i0)), min(N, ((32 * i0) + 32))) {
+        parallel for i3 in range(max(0, (32 * i1)), min(M, ((32 * i1) + 32))) {
+          A[i2][i3] = B[i2][i3] + 1;
+        }
+      }
+    }
+  }
+}</pre>
+        </section>
+      </div>
+      <p>
+        The parallel check establishes that different <code>i3</code>
+        iterations do not conflict. The
+        <a href="../evidence/results/cases/0616.html" target="_blank" rel="noopener">complete case page</a>
+        shows the exact generated bounds and its three matching executions.
+      </p>
+    </section>
+
+    <section id="transformations">
+      <h2>Supported Transformations</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Loop transformation</th>
+            <th>Change in the model</th>
+            <th>Checked condition</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Affine scheduling, including fusion and fission</td>
+            <td>Replace ordering coordinates.</td>
+            <td>No dependence is reversed.</td>
+          </tr>
+          <tr>
+            <td>Index-set splitting (ISS)</td>
+            <td>Replace one statement domain with disjoint parts.</td>
+            <td>The parts cover the original domain exactly.</td>
+          </tr>
+          <tr>
+            <td>Ordinary tiling</td>
+            <td>Add tile and point coordinates.</td>
+            <td>The coordinate mapping is complete and the selected band is permutable.</td>
+          </tr>
+          <tr>
+            <td>Two-level tiling</td>
+            <td>Add two nested groups of tile coordinates.</td>
+            <td>Both levels preserve instances and have a safe order.</td>
+          </tr>
+          <tr>
+            <td>Diamond tiling</td>
+            <td>Use coupled tile coordinates for wavefront-shaped tiles.</td>
+            <td>The same instance mapping and band-order obligations hold.</td>
+          </tr>
+          <tr>
+            <td>Parallelization</td>
+            <td>Allow iterations of selected generated loops to interleave.</td>
+            <td>Cross-iteration statement instances may exchange order.</td>
+          </tr>
+          <tr>
+            <td>Innermost concurrency</td>
+            <td>Apply parallel semantics only to an innermost loop.</td>
+            <td>The parallel check succeeds and the selected loop is innermost.</td>
+          </tr>
+          <tr>
+            <td>Constant and block unrolling</td>
+            <td>Expand or group loop iterations.</td>
+            <td>The expanded ranges cover the original range exactly.</td>
+          </tr>
+          <tr>
+            <td>Unroll-and-jam</td>
+            <td>Fuse corresponding inner loops after block unrolling.</td>
+            <td>The fused bodies may safely exchange order.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="instructions">
+      <h2>Reusable Instruction Interface</h2>
+      <p>
+        The validators reason about loop instances and memory effects through
+        the <a href="../source/polygen/InstrTy.v"><code>INSTR</code></a>
+        interface. They do not require instructions to be empty or tied to one
+        frontend. The text <code>.loop</code> examples use a lightweight
+        instruction model. Six additional examples instantiate typed scalar
+        and array operations in
+        <a href="../source/samples/CTypedLoopSamples.v"><code>CTypedLoopSamples.v</code></a>.
+      </p>
+      <p>
+        <a href="../evidence/results/test-catalog.html#typed-instruction-programs">
+          Browse the typed examples
+        </a>
+        for ISS, ordinary tiling, two-level tiling, diamond tiling, and
+        parallel-loop generation over concrete array updates.
+      </p>
+    </section>
+
+    <p class="footer">
+      Next: <a href="proof.html">read how these stage theorems compose</a>.
+    </p>
+  </main>
+</div>
+</body>
+</html>

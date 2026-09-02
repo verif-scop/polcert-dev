@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PolCert Proof Guide</title>
+  <link rel="stylesheet" href="artifact.css">
+</head>
+<body>
+<div class="shell">
+  <nav aria-label="Supplement navigation">
+    <strong>PolCert Supplement</strong>
+    <a href="index.html">Overview</a>
+    <a href="compiler.html">Compiler</a>
+    <a href="proof.html" aria-current="page">Proof</a>
+    <a href="evaluation.html">Evaluation</a>
+    <a href="reproduce.html">Reproduce</a>
+    <div class="minor">
+      <a href="#guarantee">Correctness statement</a>
+      <a href="#top-theorems">Top theorems</a>
+      <a href="#proof-path">Proof path</a>
+      <a href="#components">Component reading</a>
+      <a href="proof/index.html">Rocq proof index</a>
+    </div>
+  </nav>
+
+  <main>
+    <h1>Proof Guide</h1>
+    <p class="lede">
+      Start with the correctness statement and the seven-step proof path. The
+      component table then points to the main theorem and source files for each
+      substantial argument.
+    </p>
+
+    <section id="guarantee">
+      <h2>Correctness Statement</h2>
+      <p>
+        The main result is refinement. If compilation accepts a source loop,
+        every target execution has a matching source execution from the same
+        initial state. The two executions produce equal final states.
+      </p>
+      <div class="contract">
+        <p><code>compile cfg source = Okk target</code></p>
+        <p><code>ParallelLoop.semantics target input target_result</code></p>
+        <p><strong>implies</strong></p>
+        <p><code>exists source_result, Loop.semantics source input source_result</code></p>
+        <p><code>and State.eq target_result source_result</code></p>
+      </div>
+      <p>
+        Parallel loops use interleaving semantics: iterations may interleave
+        while preserving the order inside each iteration. The proof covers all
+        such target executions after a selected loop passes the independence
+        check.
+      </p>
+    </section>
+
+    <section id="top-theorems">
+      <h2>Top-Level Theorems</h2>
+      <p>
+        Four public theorems expose the guarantee for the reusable compiler,
+        checked configurations, the extracted executable, and sequential
+        targets.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Theorem</th>
+            <th>Use</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="proof/polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_correct"><code>VerifiedParallelCompilerConfig.compile_correct</code></a></td>
+            <td>Main end-to-end theorem for sequential and parallel targets.</td>
+          </tr>
+          <tr>
+            <td><a href="proof/polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_verified_correct"><code>compile_verified_correct</code></a></td>
+            <td>Correctness after the compiler configuration has passed its checks.</td>
+          </tr>
+          <tr>
+            <td><a href="proof/polcert.driver.ExtractedPipelineCorrect.html#extracted_parallel_compile_correct"><code>extracted_parallel_compile_correct</code></a></td>
+            <td>Connection from the extracted executable configuration to the reusable theorem.</td>
+          </tr>
+          <tr>
+            <td><a href="proof/polcert.driver.VerifiedCompilerConfig.html#VerifiedCompilerConfig.compile_correct"><code>VerifiedCompilerConfig.compile_correct</code></a></td>
+            <td>Sequential-target interface used by sequential routes.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="proof-path">
+      <h2>Proof Path</h2>
+      <div class="proof-step">
+        <div class="number">1</div>
+        <div>
+          <h3>Relate the source loop to its polyhedral instances</h3>
+          <p><a href="proof/polcert.src.ExtractorCorrect.html#ExtractorCorrect.extractor_correct"><code>ExtractorCorrect.extractor_correct</code></a></p>
+        </div>
+      </div>
+      <div class="proof-step">
+        <div class="number">2</div>
+        <div>
+          <h3>Make loop bounds explicit without changing execution</h3>
+          <p><a href="proof/polcert.src.StrengthenDomain.html#StrengthenDomain.instance_list_semantics_unstrengthen"><code>instance_list_semantics_unstrengthen</code></a></p>
+        </div>
+      </div>
+      <div class="proof-step">
+        <div class="number">3</div>
+        <div>
+          <h3>Check the proposed affine schedule</h3>
+          <p><a href="proof/polcert.src.AffineValidator.html#AffineValidator.validate_correct"><code>AffineValidator.validate_correct</code></a></p>
+        </div>
+      </div>
+      <div class="proof-step">
+        <div class="number">4</div>
+        <div>
+          <h3>Map every tiled instance to one source instance</h3>
+          <p><a href="proof/polcert.src.TilingRelation.html#TilingRelation.tiling_retiled_old_to_before_instance_correct_source"><code>tiling_retiled_old_to_before_instance_correct_source</code></a></p>
+        </div>
+      </div>
+      <div class="proof-step">
+        <div class="number">5</div>
+        <div>
+          <h3>Show that the checked tile order is safe</h3>
+          <p><a href="proof/polcert.src.TilingBandScheduleValidator.html#TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe"><code>semantic_componentwise_permutable_implies_reordering_safe</code></a></p>
+        </div>
+      </div>
+      <div class="proof-step">
+        <div class="number">6</div>
+        <div>
+          <h3>Generate loops and serialize every parallel execution</h3>
+          <p><a href="proof/polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.annotated_codegen_many_raw_semantics_ordered"><code>annotated_codegen_many_raw_semantics_ordered</code></a></p>
+        </div>
+      </div>
+      <div class="proof-step">
+        <div class="number">7</div>
+        <div>
+          <h3>Compose the stage results at the compiler interface</h3>
+          <p><a href="proof/polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_correct"><code>VerifiedParallelCompilerConfig.compile_correct</code></a></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="components">
+      <h2>Core Component Reading</h2>
+      <p>
+        The estimates count the listed theorem bodies and selected supporting
+        lemmas, not every definition in the repository.
+      </p>
+      <div class="wide-table">
+        <table class="compact-table">
+          <thead>
+          <tr>
+            <th>Component</th>
+            <th>Proof idea</th>
+            <th>Start here</th>
+            <th>Selected proof</th>
+          </tr>
+        </thead>
+          <tbody>
+            <tr>
+            <td>Extraction</td>
+            <td>Induct over the source loop and reconstruct its ordered statement instances.</td>
+            <td><a href="../source/src/ExtractorCorrect.v"><code>ExtractorCorrect.v</code></a><br><a href="proof/polcert.src.ExtractorCorrect.html#ExtractorCorrect.extractor_correct"><code>extractor_correct</code></a></td>
+            <td>about 700 lines</td>
+          </tr>
+            <tr>
+            <td>Index-set splitting</td>
+            <td>Coverage preserves every instance; disjointness prevents duplication.</td>
+            <td><a href="../source/src/ISSValidatorCorrect.v"><code>ISSValidatorCorrect.v</code></a><br><a href="proof/polcert.src.ISSValidatorCorrect.html#ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct"><code>checked_iss_complete_cut_shape_validate_semantics_correct</code></a></td>
+            <td>about 376 lines</td>
+          </tr>
+            <tr>
+            <td>Affine scheduling</td>
+            <td>Decompose the new order into adjacent exchanges and prove every reversed pair safe.</td>
+            <td><a href="../source/src/AffineValidator.v"><code>AffineValidator.v</code></a><br><a href="proof/polcert.src.AffineValidator.html#AffineValidator.validate_correct"><code>validate_correct</code></a></td>
+            <td>about 410 lines</td>
+          </tr>
+            <tr>
+            <td>Tiling</td>
+            <td>Prove a bijection between source and tiled coordinates, then prove the checked band order safe.</td>
+            <td><a href="../source/src/TilingRelation.v"><code>TilingRelation.v</code></a><br><a href="../source/src/TilingBandScheduleValidator.v"><code>TilingBandScheduleValidator.v</code></a></td>
+            <td>about 1,578 lines</td>
+          </tr>
+            <tr>
+            <td>Parallel loops</td>
+            <td>Map generated events to checked instances and reorder each interleaving into a sequential execution.</td>
+            <td><a href="../source/src/ParallelCodegenCorrect.v"><code>ParallelCodegenCorrect.v</code></a><br><a href="proof/polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.checked_annotated_codegen_many_correct_general_certified"><code>checked_annotated_codegen_many_correct_general_certified</code></a></td>
+            <td>about 725 lines</td>
+          </tr>
+            <tr>
+            <td>Unrolling and jam</td>
+            <td>Cover the original range exactly; validate the exchanges needed to fuse inner loops.</td>
+            <td><a href="../source/polygen/LoopUnroll.v"><code>LoopUnroll.v</code></a><br><a href="../source/src/LoopJamBridge.v"><code>LoopJamBridge.v</code></a></td>
+            <td>read by transformation</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="source-map">
+      <h2>Source Map</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Directory</th>
+            <th>Responsibility</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="../source/src/"><code>src/</code></a></td>
+            <td>Polyhedral model and validators for scheduling, ISS, tiling, and parallel loops.</td>
+          </tr>
+          <tr>
+            <td><a href="../source/polygen/"><code>polygen/</code></a></td>
+            <td>Source and target loop semantics, loop generation, and verified unrolling.</td>
+          </tr>
+          <tr>
+            <td><a href="../source/driver/"><code>driver/</code></a></td>
+            <td>Compiler configurations and end-to-end composition theorems.</td>
+          </tr>
+          <tr>
+            <td><a href="../source/syntax/"><code>syntax/</code></a></td>
+            <td>Concrete frontend instructions and extracted command-line interface.</td>
+          </tr>
+          <tr>
+            <td><a href="../source/samples/"><code>samples/</code></a></td>
+            <td>Typed instruction instantiations and reference computations.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Use the <a href="proof/index.html">Rocq proof index</a> after choosing a
+        component above. The generated pages are declaration-level reference,
+        while this page supplies the reading order.
+      </p>
+    </section>
+
+    <p class="footer">
+      Build status and route coverage are recorded in the
+      <a href="../evidence/results/proof-report.md">proof report</a>.
+    </p>
+  </main>
+</div>
+</body>
+</html>

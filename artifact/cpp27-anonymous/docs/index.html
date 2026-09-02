@@ -3,1020 +3,161 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PolCert Supplement Guide</title>
+  <title>PolCert Supplement</title>
   <link rel="stylesheet" href="artifact.css">
 </head>
 <body>
 <div class="shell">
-  <nav aria-label="Supplement guide sections">
-    <strong>PolCert Guide</strong>
-    <a href="#design">Compiler design</a>
-    <a href="#performance">Execution and performance</a>
-    <a href="#contract">Correctness guarantee</a>
-    <a href="#top-level">Top-level proof</a>
-    <a href="#proof-spine">Proof structure</a>
-    <a href="#components">Core proof reading</a>
-    <a href="#project-map">Project map</a>
-    <a href="#crosswalk">Proof and evidence</a>
-    <a href="#scope">Scope</a>
+  <nav aria-label="Supplement navigation">
+    <strong>PolCert Supplement</strong>
+    <a href="index.html" aria-current="page">Overview</a>
+    <a href="compiler.html">Compiler</a>
+    <a href="proof.html">Proof</a>
+    <a href="evaluation.html">Evaluation</a>
+    <a href="reproduce.html">Reproduce</a>
     <div class="minor">
-      <a href="proof/toc.html">Rocq module index</a>
-      <a href="proof/declarations.html">Declaration index</a>
+      <a href="../evidence/results/test-catalog.html">Test catalog</a>
+      <a href="proof/index.html">Rocq proof index</a>
       <a href="../source/README.md">Source map</a>
-      <a href="../evidence/README.md">Evidence map</a>
     </div>
   </nav>
 
   <main>
     <h1>End-to-End Verified Polyhedral Compilation</h1>
     <p class="lede">
-      PolCert checks loop optimizations proposed by an external optimizer and
-      generates code only after the checks succeed. This guide explains what
-      the compiler checks, what its main theorem guarantees, and where to read
-      each part of the proof.
+      PolCert accepts a bounded loop program and proposed loop optimizations.
+      It checks each transformation and generates a sequential or parallel
+      target loop only when the checks succeed.
     </p>
 
-    <div class="note">
-      <strong>Three terms used throughout this guide.</strong>
-      A <em>statement instance</em> is one execution of a statement at a
-      particular tuple of loop indices. A <em>schedule</em> assigns integer
-      coordinates that determine the order of those instances. The
-      <em>polyhedral model</em> describes loop bounds, schedules, and memory
-      accesses with integer equations and inequalities. Loop indices may be
-      multiplied only by constants; this restriction is called affine.
-    </div>
-
-    <section id="design">
-      <h2>Compiler Design</h2>
+    <section id="purpose">
+      <h2>What PolCert Does</h2>
       <p>
-        PolCert takes a bounded loop program and a choice of optimizations. An
-        external optimizer may propose a new execution order, a split of an
-        iteration domain, a tiling, or a parallel loop. PolCert checks each
-        proposal. If a required check fails, compilation stops. An optional
-        check may instead keep the last verified program, as specified by the
-        chosen configuration.
+        A polyhedral optimizer searches for profitable execution orders and
+        loop shapes. PolCert checks the proposed schedule, tiling, and parallel
+        loops against the program's iteration domains and memory accesses. The
+        main theorem covers the complete path from the source loop to the
+        generated target loop.
       </p>
-
-      <h3>Typical Verified Pipeline</h3>
-      <p>
-        A typical compilation validates an affine schedule, tiling, and one
-        parallel loop dimension before it generates the target loop.
-      </p>
-      <div
-        class="pipeline"
-        role="img"
-        aria-label="Typical verified pipeline from source loop to parallel target loop"
-      >
-        <div class="stage verified"><b>Source Loop</b>bounded loop nest</div>
-        <div class="stage verified"><b>Build Model</b>one point per statement instance</div>
-        <div class="stage verified"><b>Add Bounds</b>make loop constraints explicit</div>
-        <div class="stage inherited"><b>Check Order</b>validate the proposed schedule</div>
-        <div class="stage verified"><b>Check Tiles</b>group instances into blocks</div>
-        <div class="stage verified"><b>Check Parallelism</b>validate the selected dimension</div>
-        <div class="stage inherited"><b>Generate Loops</b>construct the target program</div>
-        <div class="stage verified"><b>Target Program</b>checked parallel annotation</div>
+      <div class="contract">
+        <p><strong>Accepted compilation guarantee.</strong></p>
+        <p>
+          Every execution of the generated program matches an execution of the
+          source program from the same input and produces the same result.
+        </p>
       </div>
-      <div class="legend" aria-label="Pipeline legend">
-        <span class="new">checked in this work</span>
-        <span class="old">reused verified component</span>
+    </section>
+
+    <section id="example">
+      <h2>One Compilation at a Glance</h2>
+      <p>
+        This recorded example tiles a two-dimensional array update and marks
+        the innermost point loop parallel. PolCert compiled both programs and
+        ran them three times with <code>M=96</code>, <code>N=96</code>, and
+        four OpenMP threads. All results matched.
+      </p>
+      <div class="pipeline" role="img" aria-label="Verified compilation pipeline">
+        <div class="stage verified"><b>Source Loop</b>typed array update</div>
+        <div class="stage verified"><b>Build Model</b>loop instances and accesses</div>
+        <div class="stage inherited"><b>Propose Order</b>optimizer output</div>
+        <div class="stage verified"><b>Check Order</b>dependence safety</div>
+        <div class="stage verified"><b>Check Tiling</b>complete instance mapping</div>
+        <div class="stage verified"><b>Check Parallelism</b>independent iterations</div>
+        <div class="stage inherited"><b>Generate Loops</b>verified code generation</div>
+        <div class="stage verified"><b>Target Loop</b>tiled and parallel</div>
       </div>
-      <p>
-        Other configurations add index-set splitting (ISS), a second tiling
-        level, diamond tiling, or another checked schedule after tiling.
-        An innermost-only concurrency configuration reuses the parallel
-        independence check.
-      </p>
-      <p class="primary-evidence">
-        <strong>
-          <a href="../evidence/results/test-catalog.html">
-            Browse tested transformations and their programs
-          </a>
-        </strong>
-        including affine scheduling, fusion and fission, ISS, tiling,
-        two-level and diamond tiling, and parallel-loop generation. Each
-        applicable case shows the actual input and accepted output, then runs
-        both with the same inputs and reports whether their results agree.
-      </p>
-      <p class="primary-evidence">
-        <strong>
-          <a href="../evidence/performance-comparisons/index.html">
-            Review end-to-end execution and performance
-          </a>
-        </strong>
-        across 62 generated whole-C kernels. The report places baseline and
-        optimized runtimes beside the selected checked route and the output
-        comparison.
-      </p>
-
-      <h3>What Each Stage Establishes</h3>
-      <table>
-        <thead>
-          <tr><th>Stage</th><th>Proposal or computation</th><th>Verified result</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Extraction</td>
-            <td>Represent every statement execution as an integer point.</td>
-            <td>Executing those points reproduces the source loop.</td>
-          </tr>
-          <tr>
-            <td>ISS</td>
-            <td>Split one set of statement instances into smaller sets.</td>
-            <td>Every original instance appears in exactly one part.</td>
-          </tr>
-          <tr>
-            <td>Affine scheduling</td>
-            <td>Assign new ordering coordinates to the same instances.</td>
-            <td>Any pair whose order changes is safe to exchange.</td>
-          </tr>
-          <tr>
-            <td>Tiling</td>
-            <td>Group instances into blocks called tiles.</td>
-            <td>Each instance appears once and the new block order is safe.</td>
-          </tr>
-          <tr>
-            <td>Loop generation</td>
-            <td>Reconstruct ordinary loops from the checked model.</td>
-            <td>The generated loops execute the checked statement instances.</td>
-          </tr>
-          <tr>
-            <td>Parallel annotation</td>
-            <td>Mark one or more generated loops as parallel.</td>
-            <td>Every possible parallel execution matches a valid sequential execution.</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="note">
-        <strong>Scheduling and tiling require different checks.</strong>
-        Scheduling changes only the order of a fixed set of instances. Tiling
-        also changes their coordinates by adding a tile number and a position
-        inside the tile. PolCert first proves that this coordinate change loses
-        or duplicates nothing, then checks that the tile order is safe.
-      </div>
-
-      <h3>Reusable Instruction Interface</h3>
-      <p>
-        PolCert does not hard-code one instruction language into its validators.
-        The <a href="../source/polygen/InstrTy.v"><code>INSTR</code></a>
-        interface supplies instruction semantics and memory effects. The
-        polyhedral checks then reason about loop instances and those effects.
-      </p>
-      <p>
-        The text <code>.loop</code> frontend uses the lightweight model in
-        <a href="../source/syntax/SInstr.v"><code>SInstr.v</code></a>. The
-        examples below instead use typed scalar and array instructions from
-        <a href="../source/src/CInstr.v"><code>CInstr.v</code></a>.
-      </p>
-
-      <h3 id="typed-loop-examples">Typed Loop Examples</h3>
-      <p>
-        <a href="../evidence/results/test-catalog.html#typed-instruction-programs">
-          Open the six typed pipeline cases
-        </a>
-        to inspect their complete records. Four representative cases are shown
-        below with the actual programs accepted by the verified pipeline.
-      </p>
-      <article class="typed-program-example">
-        <h4>Ordinary Tiling</h4>
-        <div class="typed-program-pair">
-          <section>
-            <h5>Typed Input Program</h5>
-            <pre>context(N, M);
+      <div class="loop-comparison compact-programs">
+        <section>
+          <h3>Input</h3>
+          <pre>context(N, M);
 
 for i0 in range(0, N) {
   for i1 in range(0, M) {
-    A[i0][i1] = (B[i0][i1] + 1);
+    A[i0][i1] = B[i0][i1] + 1;
   }
 }</pre>
-          </section>
-          <section>
-            <h5>Accepted Output Program</h5>
-            <pre>context(N, M);
+        </section>
+        <section>
+          <h3>Accepted Output</h3>
+          <pre>context(N, M);
 
 if ((1 &lt;= N &amp;&amp; 1 &lt;= M)) {
   for i0 in range(0, ((N + 31) / 32)) {
     for i1 in range(0, ((M + 31) / 32)) {
       for i2 in range(max(0, (32 * i0)), min(N, ((32 * i0) + 32))) {
-        for i3 in range(max(0, (32 * i1)), min(M, ((32 * i1) + 32))) {
-          A[i2][i3] = (B[i2][i3] + 1);
+        parallel for i3 in range(max(0, (32 * i1)), min(M, ((32 * i1) + 32))) {
+          A[i2][i3] = B[i2][i3] + 1;
         }
       }
     }
   }
 }</pre>
-          </section>
-        </div>
-        <p class="example-result">
-          Checked path: typed access extraction, ordinary tiling, and verified
-          loop generation.
-        </p>
-      </article>
-
-      <article class="typed-program-example">
-        <h4>Two-Level Tiling</h4>
-        <div class="typed-program-pair">
-          <section>
-            <h5>Typed Input Program</h5>
-            <pre>context(M, N, K);
-
-for i0 in range(0, M) {
-  for i1 in range(0, N) {
-    for i2 in range(0, K) {
-      C[i0][i1] = (C[i0][i1] + (A[i0][i2] * B[i2][i1]));
-    }
-  }
-}</pre>
-          </section>
-          <section>
-            <h5>Accepted Output Program</h5>
-            <pre>context(M, N, K);
-
-if ((1 &lt;= M &amp;&amp; (1 &lt;= N &amp;&amp; 1 &lt;= K))) {
-  for i0 in range(0, ((K + 255) / 256)) {
-    for i1 in range(0, ((N + 255) / 256)) {
-      for i2 in range(0, ((M + 255) / 256)) {
-        for i3 in range(max(0, (8 * i0)), min(((K + 31) / 32), ((8 * i0) + 8))) {
-          for i4 in range(max(0, (8 * i1)), min(((N + 31) / 32), ((8 * i1) + 8))) {
-            for i5 in range(max(0, (8 * i2)), min(((M + 31) / 32), ((8 * i2) + 8))) {
-              for i6 in range(max(0, (32 * i3)), min(K, ((32 * i3) + 32))) {
-                for i7 in range(max(0, (32 * i4)), min(N, ((32 * i4) + 32))) {
-                  for i8 in range(max((32 * i5), 0), min(((32 * i5) + 32), M)) {
-                    C[i8][i7] = (C[i8][i7] + (A[i8][i6] * B[i6][i7]));
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}</pre>
-          </section>
-        </div>
-        <p class="example-result">
-          Checked path: two successive tiling validations followed by verified
-          loop generation.
-        </p>
-      </article>
-
-      <article class="typed-program-example" id="iss-loop-example">
-        <h4>Index-Set Splitting</h4>
-        <div class="typed-program-pair">
-          <section>
-            <h5>Typed Input Program</h5>
-            <pre>context(RI_N);
-
-for i0 in range(0, RI_N) {
-  RI_A[i0] = (2 * RI_A[((RI_N - 1) - i0)]);
-}</pre>
-          </section>
-          <section>
-            <h5>Accepted Output Program</h5>
-            <pre>context(RI_N);
-
-for i0 in range(0, ((RI_N + 1) / 2)) {
-  RI_A[i0] = (2 * RI_A[((RI_N - 1) - i0)]);
-}
-for i0 in range(((RI_N + 1) / 2), RI_N) {
-  RI_A[i0] = (2 * RI_A[((RI_N - 1) - i0)]);
-}</pre>
-          </section>
-        </div>
-        <p class="example-result">
-          Checked path: a complete, non-overlapping split of the original
-          domain followed by verified loop generation.
-        </p>
-      </article>
-
-      <article class="typed-program-example">
-        <h4>Diamond Tiling</h4>
-        <div class="typed-program-pair">
-          <section>
-            <h5>Typed Input Program</h5>
-            <pre>context(T, N);
-
-for i0 in range(5, (T + -1)) {
-  for i1 in range(5, (N + -5)) {
-    A[(i0 + 1)][i1] =
-      (A[i0][(i1 - 1)] + A[(i0 - 2)][(i1 + 1)]);
-  }
-}</pre>
-          </section>
-          <section>
-            <h5>Accepted Output Program</h5>
-            <pre>context(T, N);
-
-if ((7 &lt;= T &amp;&amp; 11 &lt;= N)) {
-  for i0 in range(0, ((T + (N + 24)) / 32)) {
-    for i1 in range(max(max((((-2 * N) + ((32 * i0) + 12)) / 32), (((-32 * i0) + -21) / 32)), (((-2 * N) + 23) / 64)), min(min((((2 * T) + ((-32 * i0) + 28)) / 32), (((32 * i0) + 53) / 32)), (((2 * T) + 50) / 64))) {
-      for i2 in range(max(max(max(((-32 * i1) + -21), ((32 * i1) + 10)), 10), (32 * i0)), min(min(min(((2 * N) + ((32 * i1) + 20)), ((2 * T) + ((-32 * i1) + -3))), (T + (N + -7))), ((32 * i0) + 32))) {
-        for i3 in range(max(max((i2 + 5), ((-1 * T) + ((2 * i2) + 2))), (((-32 * i1) + ((3 * i2) + -30)) / 2)), min(min((N + (i2 + -5)), ((2 * i2) + -4)), (((-32 * i1) + ((3 * i2) + 2)) / 2))) {
-          for i4 in range(((2 * i2) + (-1 * i3)), ((2 * i2) + ((-1 * i3) + 1))) {
-            for i5 in range((i2 + (-1 * i4)), (i2 + ((-1 * i4) + 1))) {
-              A[(i4 + 1)][i5] = (A[i4][(i5 - 1)] + A[(i4 - 2)][(i5 + 1)]);
-            }
-          }
-        }
-      }
-    }
-  }
-}</pre>
-          </section>
-        </div>
-        <p class="example-result">
-          Checked path: diamond tiling followed by checked post-tiling affine
-          scheduling and verified loop generation.
-        </p>
-      </article>
+        </section>
+      </div>
       <p>
-        <a href="../source/samples/CTypedLoopSamples.v"><code>CTypedLoopSamples.v</code></a>
-        contains the four typed inputs. They are constructed directly in Rocq
-        rather than parsed from C. Small computations check that extraction
-        retains each program's loop depth and nonempty read/write accesses; the
-        <a
-          href="../evidence/results/test-catalog.html#typed-instruction-programs"
-        >six compiler runs</a> then exercise the optimization paths shown above.
-        Additional typed kernels cover
-        <a href="../source/samples/CSample1.c">matrix multiplication</a>,
-        <a href="../source/samples/CSample2.c">covariance</a>, and
-        <a href="../source/samples/CSample3.c">GEMVER</a>.
+        <a href="../evidence/results/cases/0616.html" target="_blank" rel="noopener">
+          Open the complete recorded example
+        </a>
+        for the exact generated bounds, programs, parameters, and run result.
       </p>
     </section>
 
-    <section id="performance">
-      <h2>End-to-End Execution and Performance</h2>
-      <p>
-        The generated whole-C campaign compiles both the unoptimized input loop
-        and a PolCert-accepted output, runs both programs with the same data,
-        and checks that their results agree. It also records runtimes for six
-        checked pipeline choices on 62 kernels.
-      </p>
+    <section id="results">
+      <h2>What Was Verified and Tested</h2>
       <dl class="performance-summary">
-        <div><dt>Compared kernels</dt><dd>62</dd></div>
-        <div><dt>Matching results</dt><dd>62 / 62</dd></div>
-        <div><dt>Non-identity routes selected</dt><dd>47</dd></div>
-        <div><dt>Selected parallel outputs</dt><dd>19</dd></div>
+        <div><dt>Documented test cases</dt><dd>1,003</dd></div>
+        <div><dt>Accepted program pairs</dt><dd>524 / 524 matched</dd></div>
+        <div><dt>Performance kernels</dt><dd>62 / 62 matched</dd></div>
+        <div><dt>Unfinished proof markers</dt><dd>0</dd></div>
       </dl>
       <p>
-        A separate catalog-wide check covers every saved, accepted before/after
-        Loop-pair record, not only these performance kernels. It executes each
-        unique program and parameter configuration once; duplicate records
-        reuse that result. Each applicable case page shows the two programs,
-        parameter values, run count, thread count where relevant, and whether
-        the results agree.
-        Non-executable validator objects and expected rejections state why this
-        before/after run is not available.
+        The tests cover affine scheduling, fusion and fission, index-set
+        splitting, ordinary and two-level tiling, diamond tiling, parallel
+        loops, constant unrolling, and checked unroll-and-jam. The catalog also
+        records 123 expected rejection cases, including seven optimizer
+        proposals examined in detail.
       </p>
-      <dl class="performance-summary">
-        <div><dt>Programs with matching results</dt><dd>524 / 524</dd></div>
-        <div><dt>Distinct program/parameter runs</dt><dd>202</dd></div>
-        <div><dt>Test pages showing execution</dt><dd>529</dd></div>
-        <div><dt>Result mismatches</dt><dd>0</dd></div>
-      </dl>
-      <p class="primary-evidence">
-        <strong>
-          <a href="../evidence/results/test-catalog.html">
-            Browse all test cases and their execution results
-          </a>
-        </strong>
-      </p>
-      <p>Five representative recorded cases are shown below.</p>
-      <div class="wide-table">
-        <table class="performance-table">
-          <thead>
-            <tr>
-              <th>Kernel</th><th>Selected checked route</th>
-              <th>Baseline</th><th>Optimized</th><th>Speedup</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td><code>pca</code></td><td>affine scheduling + tiling</td><td>1.0022 s</td><td>0.5571 s</td><td>1.799x</td></tr>
-            <tr><td><code>corcol</code></td><td>affine scheduling</td><td>1.7140 s</td><td>0.4251 s</td><td>4.032x</td></tr>
-            <tr><td><code>matmul</code></td><td>parallel, 4 threads</td><td>1.2752 s</td><td>0.3442 s</td><td>3.705x</td></tr>
-            <tr><td><code>mvt</code></td><td>ISS-enabled parallel route, 4 threads</td><td>0.8898 s</td><td>0.4368 s</td><td>2.037x</td></tr>
-            <tr><td><code>adi</code></td><td>identity fallback</td><td>3.0891 s</td><td>3.1687 s</td><td>0.975x</td></tr>
-          </tbody>
-        </table>
-      </div>
       <p>
-        These are machine-specific exploratory measurements, not the paper's
-        formal correctness evidence. Each pipeline candidate was timed once in
-        the recorded search. The ISS route name records an enabled option; it
-        does not by itself show that statement splitting occurred.
-      </p>
-      <p class="primary-evidence">
-        <strong>
-          <a href="../evidence/performance-comparisons/index.html">
-            Open the complete 62-kernel performance comparison
-          </a>
-        </strong>
-        for baseline and optimized times, selected routes, emitted parallel
-        loops, and the raw measurement records.
+        <a href="../evidence/results/test-catalog.html">Browse every test</a>,
+        <a href="../evidence/performance-comparisons/index.html">inspect all 62 performance comparisons</a>,
+        or
+        <a href="../evidence/rejected-optimizer-outputs/index.html">read the detailed rejection cases</a>.
       </p>
     </section>
 
-    <section id="contract">
-      <h2>Correctness Guarantee</h2>
-      <p>
-        The main result is <em>refinement</em>: every behavior of an accepted
-        target program is also allowed by the source program. Compilation may
-        reject. If it returns a target, every target execution has a matching
-        source execution from the same initial state. Their final states agree
-        on every memory cell represented by the concrete model.
-      </p>
-
-      <div class="contract">
-        <p><code>compile cfg source = Okk target</code></p>
-        <p><code>ParallelLoop.semantics target st st_target</code></p>
-        <p><strong>implies</strong></p>
-        <p><code>exists st_source, Loop.semantics source st st_source</code></p>
-        <p><code>and State.eq st_target st_source</code></p>
-      </div>
-
-      <p>
-        For a parallel loop, iterations may be interleaved in any way that
-        preserves the order inside each iteration. The compiler proves that
-        all such executions are safe; the target language does not assume it.
-      </p>
-    </section>
-
-    <section id="top-level">
-      <h2>Top-Level Proof</h2>
-      <p>
-        Several theorem names contain <code>compile</code> because the source
-        separates reusable proofs from the concrete executable and supports
-        both sequential and parallel targets. The four entries below are
-        interfaces to the same correctness argument.
-      </p>
-      <table>
-        <thead><tr><th>Theorem</th><th>Interface</th><th>Role</th></tr></thead>
-        <tbody>
-          <tr id="claim-e2e">
-            <td>
-              <a
-                href="proof/polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_correct"
-              ><code>VerifiedParallelCompilerConfig.compile_correct</code></a>
-            </td>
-            <td>Reusable compiler, parallel-capable target</td>
-            <td>
-              <strong>Main end-to-end theorem.</strong> Checks the configuration
-              and invokes the proof for the selected compilation path.
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <a
-                href="proof/polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_verified_correct"
-              ><code>compile_verified_correct</code></a>
-            </td>
-            <td>Already checked configuration</td>
-            <td>Shows that every supported configuration uses a proved compilation path.</td>
-          </tr>
-          <tr>
-            <td>
-              <a
-                href="proof/polcert.driver.ExtractedPipelineCorrect.html#extracted_parallel_compile_correct"
-              ><code>extracted_parallel_compile_correct</code></a>
-            </td>
-            <td>Concrete executable configuration</td>
-            <td>Connects the extracted command-line compiler to the reusable proof.</td>
-          </tr>
-          <tr>
-            <td>
-              <a
-                href="proof/polcert.driver.VerifiedCompilerConfig.html#VerifiedCompilerConfig.compile_correct"
-              ><code>VerifiedCompilerConfig.compile_correct</code></a>
-            </td>
-            <td>Reusable sequential target</td>
-            <td>
-              Proves the sequential configurations, which can also be embedded
-              in the common target language.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p>
-        These final proofs are short because they compose earlier results. The
-        main work proves that the model matches the source, that each proposed
-        transformation is legal, and that every parallel execution can be
-        related to a sequential one.
-      </p>
-    </section>
-
-    <section id="proof-spine">
-      <h2>Proof Structure</h2>
-      <p>
-        The steps below assemble the proof for the typical pipeline shown
-        above. The proof connects the source loop to the checked schedule,
-        tiling, generated loop, and parallel target.
-      </p>
-
-      <div class="proof-step">
-        <div class="number">1</div>
-        <div>
-          <h3>Translate the source loop without changing its behavior</h3>
-          <p>
-            <a
-              href="proof/polcert.src.ExtractorCorrect.html#ExtractorCorrect.extractor_correct"
-            ><code>ExtractorCorrect.extractor_correct</code></a>
-          </p>
+    <section id="reading">
+      <h2>Choose a Reading Path</h2>
+      <div class="route-list reading-paths">
+        <div class="route">
+          <strong><a href="compiler.html">Understand the compiler</a></strong>
+          <p>Polyhedral model, verified pipeline, supported transformations, and a running example.</p>
+        </div>
+        <div class="route">
+          <strong><a href="proof.html">Read the proof</a></strong>
+          <p>Main theorem, proof decomposition, component arguments, and direct source links.</p>
+        </div>
+        <div class="route">
+          <strong><a href="evaluation.html">Inspect the results</a></strong>
+          <p>Test organization, before/after programs, executions, rejections, and performance.</p>
+        </div>
+        <div class="route">
+          <strong><a href="reproduce.html">Rebuild and rerun</a></strong>
+          <p>Docker commands, expected output, running times, and targeted checks.</p>
         </div>
       </div>
-      <div class="proof-step">
-        <div class="number">2</div>
-        <div>
-          <h3>Make the loop bounds explicit without changing the instances</h3>
-          <p>
-            <a
-              href="proof/polcert.src.StrengthenDomain.html#StrengthenDomain.instance_list_semantics_unstrengthen"
-            ><code>StrengthenDomain.instance_list_semantics_unstrengthen</code></a>
-          </p>
-        </div>
-      </div>
-      <div class="proof-step">
-        <div class="number">3</div>
-        <div>
-          <h3>Check the proposed execution order</h3>
-          <p>
-            <a
-              href="proof/polcert.src.AffineValidator.html#AffineValidator.validate_correct"
-            ><code>AffineValidator.validate_correct</code></a>
-          </p>
-        </div>
-      </div>
-      <div class="proof-step">
-        <div class="number">4</div>
-        <div>
-          <h3>Match every tiled instance to one original instance</h3>
-          <p>
-            <a
-              href="proof/polcert.src.TilingRelation.html#TilingRelation.tiling_retiled_old_to_before_instance_correct_source"
-            ><code>tiling_retiled_old_to_before_instance_correct_source</code></a>
-          </p>
-        </div>
-      </div>
-      <div class="proof-step">
-        <div class="number">5</div>
-        <div>
-          <h3>Check that the order of tiles is safe</h3>
-          <p>
-            <a
-              href="proof/polcert.src.TilingBandScheduleValidator.html#TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe"
-            ><code>semantic_componentwise_permutable_implies_reordering_safe</code></a>
-          </p>
-        </div>
-      </div>
-      <div class="proof-step">
-        <div class="number">6</div>
-        <div>
-          <h3>Generate loops and justify every parallel execution</h3>
-          <p>
-            <a
-              href="proof/polcert.driver.ParallelPolOptCorrect.html#ParallelPolOptCorrect.checked_parallel_current_annotated_codegen_at_correct"
-            ><code>checked_parallel_current_annotated_codegen_at_correct</code></a>;
-            <a
-              href="proof/polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.annotated_codegen_many_raw_semantics_ordered"
-            ><code>annotated_codegen_many_raw_semantics_ordered</code></a>
-          </p>
-        </div>
-      </div>
-      <div class="proof-step">
-        <div class="number">7</div>
-        <div>
-          <h3>Compose the results into the public compiler theorem</h3>
-          <p>
-            <a
-              href="proof/polcert.driver.ParallelPolOptCorrect.html#ParallelPolOptCorrect.Opt_parallel_current_correct"
-            ><code>Opt_parallel_current_correct</code></a>;
-            <a
-              href="proof/polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_correct"
-            ><code>VerifiedParallelCompilerConfig.compile_correct</code></a>
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section id="components">
-      <h2>Core Proof Reading</h2>
-      <p>
-        Each entry gives the question being proved, the proof idea, the main
-        theorem, the source files, and an approximate amount of proof to read.
-      </p>
-
-      <article class="component" id="claim-extraction">
-        <h3>Building the Polyhedral Model</h3>
-        <dl>
-          <dt>Question</dt>
-          <dd>
-            Does the model contain exactly the statement instances executed by
-            the source loop?
-          </dd>
-          <dt>Representation</dt>
-          <dd>
-            Each instance records its statement, loop indices, parameters,
-            instruction, and original order.
-          </dd>
-          <dt>Proof idea</dt>
-          <dd>
-            The proof follows the structure of the source loop. It identifies
-            the instances produced by each iteration and joins them in source
-            order. Every segment of the model's execution can then be mapped
-            back to the source statement or loop that produced it.
-          </dd>
-          <dt>Main theorem</dt>
-          <dd>
-            <a
-              href="proof/polcert.src.ExtractorCorrect.html#ExtractorCorrect.extractor_correct"
-            ><code>ExtractorCorrect.extractor_correct</code></a>
-          </dd>
-          <dt>Selected reading</dt>
-          <dd>
-            700 proof-body lines: the reconstruction lemmas leading to
-            <code>extractor_correct</code>.
-          </dd>
-          <dt>Source</dt>
-          <dd>
-            <a href="../source/src/ExtractorFrontend.v"><code>ExtractorFrontend.v</code></a>,
-            <a href="../source/src/ExtractorFacts.v"><code>ExtractorFacts.v</code></a>,
-            <a href="../source/src/ExtractorCorrect.v"><code>ExtractorCorrect.v</code></a>
-          </dd>
-        </dl>
-      </article>
-
-      <article class="component" id="claim-iss">
-        <h3>Index-Set Splitting</h3>
-        <dl>
-          <dt>Question</dt>
-          <dd>Does splitting one set of instances add, remove, or duplicate work?</dd>
-          <dt>Validator</dt>
-          <dd>
-            Checks that every part has the expected form, belongs to the
-            original set, covers it, and does not overlap another part.
-          </dd>
-          <dt>Proof idea</dt>
-          <dd>
-            Coverage ensures that every original instance remains;
-            disjointness ensures that it appears only once. Joining the
-            executions of all parts therefore reconstructs the original
-            execution.
-          </dd>
-          <dt>Main theorem</dt>
-          <dd>
-            <a
-              href="proof/polcert.src.ISSValidatorCorrect.html#ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct"
-            ><code>checked_iss_complete_cut_shape_validate_semantics_correct</code></a>
-          </dd>
-          <dt>Selected reading</dt>
-          <dd>
-            376 proof-body lines: partition, injectivity, flattening, and the
-            checked ISS endpoint.
-          </dd>
-          <dt>Source</dt>
-          <dd>
-            <a href="../source/src/ISSRefinement.v"><code>ISSRefinement.v</code></a>,
-            <a href="../source/src/ISSCutSemantics.v"><code>ISSCutSemantics.v</code></a>,
-            <a href="../source/src/ISSValidatorCorrect.v"><code>ISSValidatorCorrect.v</code></a>
-          </dd>
-        </dl>
-      </article>
-
-      <article class="component" id="claim-affine">
-        <h3>Affine Scheduling</h3>
-        <dl>
-          <dt>Question</dt>
-          <dd>Is it safe to run the same statement instances in the proposed new order?</dd>
-          <dt>Validator</dt>
-          <dd>
-            Searches for two instances whose order is reversed even though
-            their memory accesses make that exchange unsafe.
-          </dd>
-          <dt>Proof idea</dt>
-          <dd>
-            If no unsafe reversed pair exists, the new order can be obtained
-            through safe exchanges of adjacent instances. Each exchange
-            preserves the state, so the complete reordered execution does too.
-          </dd>
-          <dt>Main theorem</dt>
-          <dd>
-            <a
-              href="proof/polcert.src.AffineValidator.html#AffineValidator.validate_correct"
-            ><code>AffineValidator.validate_correct</code></a>
-          </dd>
-          <dt>Selected reading</dt>
-          <dd>
-            410 proof-body lines: conflict checking, list lifting, and
-            <code>validate_correct</code>.
-          </dd>
-          <dt>Source</dt>
-          <dd><a href="../source/src/AffineValidator.v"><code>AffineValidator.v</code></a></dd>
-        </dl>
-      </article>
-
-      <article class="component" id="claim-tiling">
-        <h3>Tiling and Permutable Bands</h3>
-        <dl>
-          <dt>Question</dt>
-          <dd>
-            Does the tiled program execute every original instance exactly
-            once and in a safe order?
-          </dd>
-          <dt>Validators</dt>
-          <dd>
-            The first check relates an original loop index to its tile number
-            and position inside that tile. The second checks that the selected
-            dimensions form a permutable band: reordering them cannot reverse
-            an unsafe pair.
-          </dd>
-          <dt>Proof idea</dt>
-          <dd>
-            Integer division and remainder map each original index to one tiled
-            coordinate and back. This proves that tiling preserves the work. A
-            separate argument proves that the checked tile order is safe for
-            ordinary, two-level, and diamond layouts.
-          </dd>
-          <dt>Main theorems</dt>
-          <dd>
-            <a
-              href="proof/polcert.src.TilingRelation.html#TilingRelation.tiling_retiled_old_to_before_instance_correct_source"
-            ><code>tiling_retiled_old_to_before_instance_correct_source</code></a>;
-            <a
-              href="proof/polcert.src.TilingBandScheduleValidator.html#TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe"
-            ><code>semantic_componentwise_permutable_implies_reordering_safe</code></a>;
-            <a
-              href="proof/polcert.src.TilingBandDirectRuntime.html#TilingBandDirectRuntime.checked_tiling_sourceb_complete_direct_band_check_correct"
-            ><code>checked_tiling_sourceb_complete_direct_band_check_correct</code></a>
-          </dd>
-          <dt>Selected reading</dt>
-          <dd>
-            1,578 proof-body lines: 332 for the tiled-instance correspondence
-            and 1,246 for ordinary-band order safety.
-          </dd>
-          <dt>Source</dt>
-          <dd>
-            <a href="../source/src/TilingWitness.v"><code>TilingWitness.v</code></a>,
-            <a href="../source/src/TilingRelation.v"><code>TilingRelation.v</code></a>,
-            <a href="../source/src/TilingBandScheduleValidator.v"><code>TilingBandScheduleValidator.v</code></a>,
-            <a href="../source/src/TilingBandDirectRuntime.v"><code>TilingBandDirectRuntime.v</code></a>
-          </dd>
-        </dl>
-      </article>
-
-      <article class="component" id="claim-parallel">
-        <h3>Parallel Loops and Code Generation</h3>
-        <dl>
-          <dt>Question</dt>
-          <dd>
-            Does every possible execution of the generated parallel loop match
-            a source execution?
-          </dd>
-          <dt>Validator</dt>
-          <dd>
-            Checks that instances from different iterations of each selected
-            loop may safely exchange order.
-          </dd>
-          <dt>Proof idea</dt>
-          <dd>
-            The target model allows any interleaving that preserves the order
-            inside each iteration. The proof maps every generated event back to
-            a checked statement instance, then uses the validator result to
-            reorder the interleaved execution into an equivalent sequential
-            one. The existing sequential code-generation theorem finishes the
-            argument.
-          </dd>
-          <dt>Main theorems</dt>
-          <dd>
-            <a
-              href="proof/polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.annotated_codegen_many_raw_semantics_ordered"
-            ><code>annotated_codegen_many_raw_semantics_ordered</code></a>;
-            <a
-              href="proof/polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.checked_annotated_codegen_many_correct_general_certified"
-            ><code>checked_annotated_codegen_many_correct_general_certified</code></a>
-          </dd>
-          <dt>Selected reading</dt>
-          <dd>
-            725 proof-body lines: eligibility, generated-instance origin,
-            interleaving serialization, cleanup, and the checked endpoint.
-          </dd>
-          <dt>Source</dt>
-          <dd>
-            <a href="../source/polygen/ParallelLoop.v"><code>ParallelLoop.v</code></a>,
-            <a href="../source/src/ParallelValidator.v"><code>ParallelValidator.v</code></a>,
-            <a href="../source/src/RawCodegenOrigin.v"><code>RawCodegenOrigin.v</code></a>,
-            <a href="../source/src/ParallelCodegenCorrect.v"><code>ParallelCodegenCorrect.v</code></a>
-          </dd>
-        </dl>
-        <p>
-          The innermost-only parallel mode reuses the same independence check
-          and additionally requires the selected generated loop to be
-          innermost. Its target still has ordinary parallel-loop semantics.
-        </p>
-      </article>
-
-      <article class="component" id="claim-unroll">
-        <h3>Constant Unrolling and Unroll-and-Jam</h3>
-        <dl>
-          <dt>Question</dt>
-          <dd>Do the supported loop-unrolling rewrites preserve execution?</dd>
-          <dt>Transformations</dt>
-          <dd>
-            Constant unrolling expands a sequential loop with fixed bounds.
-            Block unrolling groups several iterations. Jam then fuses
-            corresponding inner loops when the required exchanges are safe.
-          </dd>
-          <dt>Proof idea</dt>
-          <dd>
-            The main blocks and any leftover iterations cover the original
-            range exactly. The jam check proves that the grouped loop bodies
-            can be exchanged as required before they are fused.
-          </dd>
-          <dt>Main theorems</dt>
-          <dd>
-            <a
-              href="proof/polcert.polygen.LoopUnroll.html#LoopUnroll.const_unroll_correct"
-            ><code>LoopUnroll.const_unroll_correct</code></a>;
-            <a
-              href="proof/polcert.polygen.LoopUnroll.html#LoopUnroll.block_unroll_correct"
-            ><code>LoopUnroll.block_unroll_correct</code></a>;
-            <a
-              href="proof/polcert.driver.VerifiedLoopPostpass.html#VerifiedLoopPostpass.apply_checked_unrolljam_correct"
-            ><code>VerifiedLoopPostpass.apply_checked_unrolljam_correct</code></a>
-          </dd>
-          <dt>Source</dt>
-          <dd>
-            <a href="../source/polygen/LoopUnroll.v"><code>LoopUnroll.v</code></a>,
-            <a href="../source/src/LoopJamBridge.v"><code>LoopJamBridge.v</code></a>,
-            <a href="../source/driver/VerifiedLoopPostpass.v"><code>VerifiedLoopPostpass.v</code></a>
-          </dd>
-        </dl>
-      </article>
-    </section>
-
-    <section id="project-map">
-      <h2>Project Map</h2>
-      <table>
-        <thead><tr><th>Path</th><th>Responsibility</th><th>Start with</th></tr></thead>
-        <tbody>
-          <tr>
-            <td><a href="../source/src/"><code>src/</code></a></td>
-            <td>The polyhedral model and the checks for schedules, tiling, and parallel loops.</td>
-            <td><a href="../source/src/PolyLang.v"><code>PolyLang.v</code></a></td>
-          </tr>
-          <tr>
-            <td><a href="../source/polygen/"><code>polygen/</code></a></td>
-            <td>Source and target loop languages, loop generation, and verified unrolling.</td>
-            <td><a href="../source/polygen/ParallelLoop.v"><code>ParallelLoop.v</code></a></td>
-          </tr>
-          <tr>
-            <td><a href="../source/driver/"><code>driver/</code></a></td>
-            <td>Complete compiler configurations and their top-level theorems.</td>
-            <td>
-              <a href="../source/driver/VerifiedParallelCompilerConfig.v">
-                <code>VerifiedParallelCompilerConfig.v</code>
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td><a href="../source/syntax/"><code>syntax/</code></a></td>
-            <td>Concrete instructions, the text frontend, and the extracted command-line tool.</td>
-            <td>
-              <a href="../source/syntax/SVerifiedParallelCompilerConfig.v">
-                <code>SVerifiedParallelCompilerConfig.v</code>
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td><a href="../source/samples/"><code>samples/</code></a></td>
-            <td>Typed instruction instances and reference C computations.</td>
-            <td>
-              <a href="../source/samples/CTypedLoopSamples.v">
-                <code>CTypedLoopSamples.v</code>
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td><a href="../source/tests/"><code>tests/</code></a></td>
-            <td>Loop examples, execution comparisons, and optimizer-rejection cases.</td>
-            <td>
-              <a href="../source/tests/end-to-end-c/README.md">
-                <code>end-to-end-c/README.md</code>
-              </a>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section id="crosswalk">
-      <h2>Proof and Evidence</h2>
-      <p>
-        Use the proof entry to inspect the argument and the recorded checks to
-        inspect the build result or executable coverage. The complete test
-        catalog is grouped by transformation and purpose.
-      </p>
-      <table>
-        <thead><tr><th>Claim</th><th>Proof entry</th><th>Recorded checks</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>End-to-end verified compilation</td>
-            <td><a href="#claim-e2e">main theorem and executable compiler theorem</a></td>
-            <td>
-              <a href="../evidence/results/proof-report.md">theorem and proof-build report</a>;
-              <a href="../evidence/results/test-catalog.html">program results by test case</a>;
-              <a href="../evidence/performance-comparisons/index.html">performance comparisons</a>
-            </td>
-          </tr>
-          <tr>
-            <td>Verified extraction</td>
-            <td><a href="#claim-extraction"><code>extractor_correct</code></a></td>
-            <td>
-              <a href="../evidence/results/proof-report.md">theorem and proof-build report</a>
-            </td>
-          </tr>
-          <tr>
-            <td>Index-set splitting</td>
-            <td><a href="#claim-iss">complete, non-overlapping split</a></td>
-            <td>
-              <a href="#iss-loop-example">source and generated Loop</a>;
-              <a href="../evidence/results/test-catalog.html#index-set-splitting-iss">
-                component validator tests
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td>Schedule checking and tiling</td>
-            <td>
-              <a href="#claim-affine">schedule proof</a>;
-              <a href="#claim-tiling">tiling proof</a>
-            </td>
-            <td>
-              <a href="../evidence/results/test-catalog.html#affine-schedule-validation">schedule tests</a>;
-              <a href="../evidence/results/test-catalog.html#one-level-and-direct-tiling-validation">tiling tests</a>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              Parallel eligibility, including innermost-restricted
-              configurations
-            </td>
-            <td>
-              <a href="#claim-parallel">parallel interleavings refine the
-              source; restricted configurations reuse the eligibility check
-              with ordinary loop semantics</a>
-            </td>
-            <td>
-              <a href="../evidence/results/test-catalog.html#parallel-loops">parallel-loop tests</a>
-            </td>
-          </tr>
-          <tr>
-            <td>Unrolling and supported loop fusion</td>
-            <td><a href="#claim-unroll">loop rewrite proofs</a></td>
-            <td>
-              <a href="../evidence/results/test-catalog.html#unroll-and-jam">unrolling and fusion tests</a>
-            </td>
-          </tr>
-          <tr>
-            <td>Unsafe optimizer effects cannot reach generated code</td>
-            <td>
-              <a href="#claim-affine">schedule proof</a>;
-              <a href="#claim-tiling">tiling proof</a>;
-              <a href="#claim-parallel">parallel proof</a>;
-              <a href="#claim-unroll">loop-fusion proof</a>
-            </td>
-            <td>
-              <a href="../evidence/rejected-optimizer-outputs/index.html">full rejection, local refusal, and certified fallback cases</a>;
-              <a href="../evidence/rejected-optimizer-outputs/BUG_REPORT_DRAFT.md">bug-report draft</a>
-            </td>
-          </tr>
-        </tbody>
-      </table>
     </section>
 
     <section id="scope">
-      <h2>Scope and Boundaries</h2>
+      <h2>Scope</h2>
       <p>
-        The theorem covers accepted structured-loop compilations to the
-        generated <code>ParallelLoop</code> model. It does not cover:
-      </p>
-      <ul>
-        <li>the optimizer's search algorithm, although its proposals are checked;</li>
-        <li>text parsing and printing;</li>
-        <li>the external C compiler, runtime system, and hardware;</li>
-        <li>transformations that change storage or the set of executed statement instances.</li>
-      </ul>
-      <p>
-        PolCert may also reject a legal optimization that its checks cannot
-        establish. Acceptance is proved correct; acceptance of every legal
-        optimization is not claimed.
+        The theorem covers accepted structured-loop compilations through the
+        generated sequential and parallel loop semantics. Parsing, printing,
+        the optimizer's search algorithm, the external C compiler, and
+        transformations that change storage or add or remove statement
+        instances remain outside the theorem. PolCert may reject a legal
+        proposal that its checks cannot establish.
       </p>
     </section>
-
-    <p class="footer">
-      Generated proof pages are under <a href="proof/toc.html"><code>docs/proof/</code></a>.
-      The Proof and Evidence table links each claim to its recorded checks.
-    </p>
   </main>
 </div>
 </body>

@@ -459,13 +459,14 @@ def verify_release(release_dir: Path) -> tuple[dict, dict]:
 
 def add_proof_navigation(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
-    if "../index.html" in text or "artifact-handbook-link" in text:
+    if "artifact-handbook-link" in text:
         return
     banner = (
         '<div id="artifact-handbook-link" style="padding:8px 12px;'
         'border-bottom:1px solid #cbd3d8;background:#f4f6f7;'
         'font:14px system-ui,sans-serif">'
-        '<a href="../index.html">Plain-language guide</a> &middot; '
+        '<a href="../proof.html">Proof guide</a> &middot; '
+        '<a href="../index.html">Supplement overview</a> &middot; '
         '<a href="toc.html">Modules</a> &middot; '
         '<a href="declarations.html">Declarations</a></div>'
     )
@@ -481,7 +482,18 @@ def prepare_docs(proof_html_dir: Path, destination: Path) -> None:
     )
     shutil.copytree(proof_html_dir, destination / "proof")
     (destination / "proof/proof.glob").unlink(missing_ok=True)
-    shutil.copy2(PACKAGE_DIR / "docs/index.html", destination / "index.html")
+    guide_pages = (
+        "index.html",
+        "compiler.html",
+        "proof.html",
+        "evaluation.html",
+        "reproduce.html",
+        "archive-full-guide.html",
+    )
+    for name in guide_pages:
+        source = PACKAGE_DIR / "docs" / name
+        require(source.is_file(), f"missing static guide page: {name}")
+        shutil.copy2(source, destination / name)
     shutil.copy2(PACKAGE_DIR / "docs/artifact.css", destination / "artifact.css")
     shutil.copy2(PACKAGE_DIR / "docs/proof-index.html", destination / "proof/index.html")
     for path in sorted((destination / "proof").glob("*.html")):
@@ -3909,7 +3921,7 @@ def prepare_test_catalog(
 
     def evidence_label(item: str) -> str:
         filename = Path(urlsplit(item).path).name
-        if item.endswith("docs/index.html#typed-loop-examples"):
+        if item.endswith("docs/compiler.html#instructions"):
             return "input/accepted shapes"
         return {
             "comparison.html": "before/after",
@@ -4178,7 +4190,9 @@ def prepare_test_catalog(
 <body>
 <main>
   <p class="breadcrumbs">
-    <a href="../../../docs/index.html" data-same-tab>Artifact overview</a>
+    <a href="../../../docs/index.html" data-same-tab>Overview</a>
+    <span>/</span>
+    <a href="../../../docs/evaluation.html" data-same-tab>Evaluation</a>
     <span>/</span>
     <a href="../test-catalog.html" data-same-tab>Test catalog</a>
     <span>/</span>
@@ -4504,7 +4518,7 @@ def prepare_test_catalog(
 </head>
 <body>
 <main>
-<p class="breadcrumbs"><a href="../../docs/index.html" data-same-tab>Artifact overview</a><span>/</span> Test catalog</p>
+<p class="breadcrumbs"><a href="../../docs/index.html" data-same-tab>Overview</a><span>/</span><a href="../../docs/evaluation.html" data-same-tab>Evaluation</a><span>/</span> Test catalog</p>
 <h1>Test Catalog</h1>
 <p class="lede">
   Use the categories to find tests for a transformation or compiler interface.
@@ -4561,7 +4575,7 @@ def prepare_test_catalog(
   <tbody>{chr(10).join(remote_rows)}</tbody>
 </table>
 </details>
-<p class="case-pager"><a href="../../docs/index.html" data-same-tab>Back to artifact overview</a></p>
+<p class="case-pager"><a href="../../docs/evaluation.html" data-same-tab>Back to evaluation</a></p>
 </main>
 <script>
 const input = document.getElementById('test-filter');
@@ -4806,7 +4820,7 @@ def prepare_performance_comparisons(source: Path, destination: Path) -> dict:
 </head>
 <body>
 <main>
-  <p><a href="../../docs/index.html#performance">Supplement guide</a></p>
+  <p class="breadcrumbs"><a href="../../docs/index.html">Overview</a><span>/</span><a href="../../docs/evaluation.html">Evaluation</a><span>/</span> Performance</p>
   <h1>End-to-End Performance Comparisons</h1>
   <p class="lede">
     Each row compares an unoptimized Loop program with a PolCert-accepted
@@ -5141,7 +5155,7 @@ def prepare_browser_text_views(package: Path) -> int:
 </head>
 <body>
 <main>
-  <p><a href="{escape(guide_href, quote=True)}">Supplement guide</a></p>
+  <p><a href="{escape(guide_href, quote=True)}">Supplement overview</a></p>
   <h1><code>{escape(label)}</code></h1>
   <pre>{escape(payload)}</pre>
 </main>
