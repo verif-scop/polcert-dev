@@ -5626,6 +5626,7 @@ def main() -> int:
         environment = package / "environment"
         shutil.copytree(PACKAGE_DIR / "environment", environment)
         shutil.copy2(PACKAGE_DIR / "DOCKERIGNORE", package / ".dockerignore")
+        shutil.copy2(PACKAGE_DIR / ".gitattributes", package / ".gitattributes")
         manifest = {
             "snapshot": "cpp-supplement-r3",
             "formal_source": {
