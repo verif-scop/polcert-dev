@@ -5625,6 +5625,18 @@ def main() -> int:
         shutil.copy2(PACKAGE_DIR / "PLUTO_MIT_LICENSE.txt", licenses / "Pluto-MIT.txt")
         environment = package / "environment"
         shutil.copytree(PACKAGE_DIR / "environment", environment)
+        artifact_bin = package / "bin"
+        artifact_bin.mkdir()
+        shutil.copy2(
+            PACKAGE_DIR / "bin/export_evaluation_data.py",
+            artifact_bin / "export_evaluation_data.py",
+        )
+        evaluation = package / "evaluation"
+        evaluation.mkdir()
+        shutil.copy2(
+            PACKAGE_DIR / "evaluation/completeness_manifest.json",
+            evaluation / "completeness_manifest.json",
+        )
         shutil.copy2(PACKAGE_DIR / "DOCKERIGNORE", package / ".dockerignore")
         shutil.copy2(PACKAGE_DIR / ".gitattributes", package / ".gitattributes")
         manifest = {

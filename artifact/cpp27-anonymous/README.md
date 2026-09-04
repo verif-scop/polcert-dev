@@ -45,6 +45,23 @@ Use the [evaluation guide](docs/evaluation.html) for representative results and
 the [test catalog](evidence/results/test-catalog.html) to inspect individual
 cases.
 
+To regenerate machine-readable aggregate data for optimization retention,
+compilation time, and the four confirmed miscompilation case studies, mount an
+output directory and run:
+
+```sh
+docker run --rm -v "$PWD/evaluation-results:/results" \
+  polcert-artifact evaluation-data
+```
+
+The command writes per-case CSV/JSON records, raw logs, and a compact
+`evaluation-summary.md`. For each transformation, the retention table counts
+the input/configuration pairs on which Pluto produces that effect, then checks
+for the same effect in PolOpt's validated output. Distinct inputs are reported
+separately, and successful no-ops are excluded. Timing defaults to three
+repetitions per case; use `evaluation-data --help` to select a subset or change
+the repetition count.
+
 ## Reproduction
 
 To serve the documentation locally:

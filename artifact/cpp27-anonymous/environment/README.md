@@ -29,6 +29,7 @@ are:
 | `docker run --rm polcert-artifact ci` | Run every CI test group in sequence. |
 | `docker run --rm polcert-artifact bugs` | Run the Pluto reliability checks, including the historical snapshot. |
 | `docker run --rm polcert-artifact performance` | Rebuild and run the selected before/after performance programs. |
+| `docker run --rm -v "$PWD/evaluation-results:/results" polcert-artifact evaluation-data` | Export per-case and aggregate optimization-retention, compilation-time, and miscompilation data. |
 | `docker run --rm polcert-artifact proof` | Clean and rebuild the proofs, unfinished-proof gate, and extraction. |
 | `docker run --rm polcert-artifact all` | Run `full` and every CI test group; do not repeat `proof`. |
 | `docker run --rm -it polcert-artifact shell` | Open a shell in the built environment. |

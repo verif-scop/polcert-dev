@@ -1,0 +1,47 @@
+{
+  "benchmark": {
+    "name": "Pluto loop regression corpus",
+    "input_dir": "tests/polopt-generated/inputs",
+    "expected_cases": 62,
+    "description": "The 62 loop programs used by the Pluto compatibility regression suite; many originate from PolyBench and related polyhedral-compilation examples."
+  },
+  "iss_live_grid": {
+    "inputs": [
+      "jacobi-2d-periodic.c",
+      "multi-stmt-periodic.c",
+      "heat-2dp.c"
+    ],
+    "configurations": [
+      {"name": "identity", "args": ["--identity"]},
+      {"name": "identity-tile", "args": ["--identity", "--tile"]},
+      {"name": "identity-parallel", "args": ["--identity", "--parallel"]},
+      {"name": "identity-tile-parallel", "args": ["--identity", "--tile", "--parallel"]}
+    ]
+  },
+  "miscompilation_cases": [
+    {
+      "name": "auto-affine-lp-cc-scaling",
+      "target": "test-pluto-miscompilation-auto-affine-lp",
+      "script": "tools/pluto_bugs/run_auto_affine_lp_cc_scaling.py",
+      "expected": "bad affine schedule rejected"
+    },
+    {
+      "name": "vanished-outer-parallel",
+      "target": "test-pluto-miscompilation-vanished-outer",
+      "script": "tools/pluto_bugs/run_vanished_outer_parallel.py",
+      "expected": "unsafe parallelization rejected"
+    },
+    {
+      "name": "notile-unrolljam-nonpermutable",
+      "target": "test-pluto-miscompilation-notile-unrolljam",
+      "script": "tools/pluto_bugs/run_notile_unrolljam_nonpermutable.py",
+      "expected": "unsafe unroll-and-jam rejected while the safe schedule is retained"
+    },
+    {
+      "name": "tiling-innerpar-satvec",
+      "target": "test-pluto-miscompilation-tiling-innerpar",
+      "script": "tools/pluto_bugs/run_tiling_innerpar_satvec.py",
+      "expected": "invalid tiled parallelization rejected"
+    }
+  ]
+}

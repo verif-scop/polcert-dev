@@ -82,6 +82,9 @@ COPY --from=pluto-historical-builder \
 RUN ldconfig
 COPY source /polcert
 COPY environment/run-tests.sh /usr/local/bin/run-polcert-artifact
+COPY bin/export_evaluation_data.py /usr/local/bin/export-polcert-evaluation
+COPY evaluation/completeness_manifest.json /usr/local/share/polcert-artifact/completeness_manifest.json
+RUN chmod 755 /usr/local/bin/export-polcert-evaluation
 
 ENV POLCERT_PLUTO=/pluto/tool/pluto \
     POLCERT_REAL_PLUTO=/pluto/tool/pluto \
