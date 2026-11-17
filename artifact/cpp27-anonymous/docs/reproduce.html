@@ -37,6 +37,13 @@
       <pre><code>docker build -f environment/Dockerfile -t polcert-artifact .
 docker run --rm polcert-artifact</code></pre>
       <p>
+        Without root access, rootless Podman runs the same image; pass
+        <code>--format docker</code> so that the Dockerfile's <code>SHELL</code>
+        instruction is kept:
+      </p>
+      <pre><code>podman build --format docker -f environment/Dockerfile -t polcert-artifact .
+podman run --rm polcert-artifact</code></pre>
+      <p>
         The build needs network access to Ubuntu and opam package repositories
         and an x86-64 Docker environment. On the preparation machine, a cold
         build took about 40 minutes and the default checks took about 31

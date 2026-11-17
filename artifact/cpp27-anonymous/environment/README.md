@@ -8,6 +8,14 @@ docker build -f environment/Dockerfile -t polcert-artifact .
 docker run --rm polcert-artifact
 ```
 
+Without root access, rootless Podman runs the same image; pass
+`--format docker` so that the Dockerfile's `SHELL` instruction is kept:
+
+```sh
+podman build --format docker -f environment/Dockerfile -t polcert-artifact .
+podman run --rm polcert-artifact
+```
+
 The build requires network access for Ubuntu and opam packages and requires an
 x86-64 Docker environment. Pluto itself is extracted and built from
 `third_party/pluto`; the build does not fetch an optimizer repository or use a

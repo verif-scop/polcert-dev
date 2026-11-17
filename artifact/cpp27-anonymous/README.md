@@ -79,6 +79,14 @@ docker build -f environment/Dockerfile -t polcert-artifact .
 docker run --rm polcert-artifact
 ```
 
+Without root access, rootless Podman runs the same image; pass
+`--format docker` so that the Dockerfile's `SHELL` instruction is kept:
+
+```sh
+podman build --format docker -f environment/Dockerfile -t polcert-artifact .
+podman run --rm polcert-artifact
+```
+
 The [reproduction guide](docs/reproduce.html) lists the available test modes,
 expected running times, proof-only commands, and recorded results. The archive
 stores the validated PolCert source under `source/`, generated Rocq pages under
