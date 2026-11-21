@@ -119,6 +119,8 @@ RUN fixed_revision="$(git -C /pluto rev-parse HEAD)" \
     && make -f Makefile.extr -j"${build_jobs}" polcert \
     && make -f Makefile.extr -j"${build_jobs}" polopt
 
+RUN chmod 755 /usr/local/bin/run-polcert-artifact /usr/local/lib/polcert/*.py
+
 ENV PYTHONUNBUFFERED=1
 
 ENTRYPOINT ["/usr/local/bin/run-polcert-artifact"]
