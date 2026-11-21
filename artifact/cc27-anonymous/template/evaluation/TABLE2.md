@@ -12,11 +12,8 @@ the submitted source and the fixed Pluto snapshot.
 - The stage breakdown comes from one additional profiled PolCert run per
   kernel.
 
-**Machine.** An AWS p4d.24xlarge instance, CPU only: Intel Xeon Platinum
-8275CL at 3.0 GHz, eight pinned cores, Docker on Amazon Linux 2023. The
-measurement container was pinned to eight physical cores of one socket.
-`timing-rerun/load.log` records the host's one-minute load average during the
-run (median 3.2 on 96 CPUs, including the measurement).
+**Machine.** Intel Xeon Platinum 8275CL at 3.0 GHz, eight cores.
+`timing-rerun/load.log` records the one-minute load average during the run.
 
 ## Table 2a: end-to-end wall time (s)
 
