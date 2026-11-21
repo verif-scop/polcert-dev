@@ -1,13 +1,25 @@
 # State.eq Claim Ledger
 
-Updated: 2026-08-26
+Updated: 2026-11-21
 
-This ledger binds the paper claims to the frozen v9 implementation, named proof
+This ledger binds the paper claims to the frozen implementation, named proof
 surfaces, executable routes, and artifact evidence. Source verification and a
 Docker review are separate gates. A source result is not reported as an artifact
 result until the exact candidate completes the offline review.
 
-## Frozen v9 implementation
+## Frozen implementation
+
+- PolCert branch: `freeze/cc2027`
+- Commit: `216315fefa0b59c9ab72f747e2f05a042aa8998b`
+- Pluto (optimizer): `8f180cefd38ce7559a250195f8f6f74e6477a276`
+- Pluto (historical bug witness): `3d04f2afae960bc45886440d2135614e47c73899`
+- Image ID:
+  `sha256:8b61612d28a4b3b03531d00140a9836a39416ec1b60d9ebd2357fe4a80a32226`
+
+The v9 identities below and the "v9 review passed" entries in the claim table
+are historical records of the previous freeze.
+
+## Previous freeze (v9)
 
 - PolCert tag:
   `state-eq-polyhedral-verification-complete-2026-08-26-v9`
