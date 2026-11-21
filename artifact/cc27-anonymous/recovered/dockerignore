@@ -1,0 +1,10 @@
+**
+!source
+!source/**
+!third_party
+!third_party/**
+!environment
+!environment/**
+!evaluation
+!evaluation/**
+!.dockerignore
