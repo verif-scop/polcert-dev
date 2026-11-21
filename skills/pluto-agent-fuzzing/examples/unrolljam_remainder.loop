@@ -1,0 +1,5 @@
+for i in range(0, 20) {
+  for j in range(0, 20) {
+    C[i][j] = ((A[i][j] + A[i][j]) + B[j]);
+  }
+}
