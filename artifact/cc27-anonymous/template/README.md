@@ -12,7 +12,7 @@ read the proofs or the results.
 | `docs/proof/` | Browsable Rocq sources of the semantic spine and the proof reading guides (`docs/proof/index.html`). |
 | `third_party/pluto/` | Source archives of the fixed Pluto used for compilation and of the historical Pluto in which the bugs were found. |
 | `environment/` | `Dockerfile` and test entry points. |
-| `evaluation/` | Data behind Tables 1 and 2: the recorded collection, the rerun of every Table 1 pair on the submitted source, and timing records. |
+| `evaluation/` | Data behind Tables 1 and 2: the recorded collection, the rerun of every Table 1 pair on the submitted source, and the compilation-time measurement of the submitted source. |
 | `bugs/` | The miscompilation study (Table 3 and the code-generation bugs): one directory per bug with a reproducer and the recorded outcome. |
 
 ## Reading the proofs

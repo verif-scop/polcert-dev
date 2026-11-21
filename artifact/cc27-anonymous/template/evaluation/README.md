@@ -2,9 +2,9 @@
 
 | Directory | Contents |
 | --- | --- |
-| `recorded/` | The recorded collection: paired retention records, per-case evidence archives, timing records and protocol, and the five recorded bugs. |
+| `recorded/` | The recorded collection: paired retention records, per-case evidence archives, the five recorded bugs, and an earlier timing measurement that the paper does not report. |
 | `rerun/` | Every Table 1 pair rerun on the submitted source with the fixed Pluto snapshot, the index-set splitting collection, the build and test logs, and the scripts that compute the table. |
-| `timing-rerun/` | Compilation-time measurements of the submitted source (Table 2 candidate; see `TABLE2.md`). |
+| `timing-rerun/` | The compilation-time measurement of the submitted source that the paper's Table 2 reports (see `TABLE2.md`). |
 
 ## Table 1: optimization retention
 
@@ -48,4 +48,5 @@ are in `source/evaluation/manifests/`.
 
 ## Table 2: compilation overhead
 
-See `TABLE2.md`.
+`TABLE2.md` gives the reported numbers, the machine, and the files they come
+from.
