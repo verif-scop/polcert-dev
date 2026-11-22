@@ -325,6 +325,17 @@ def sanitize_recorded_archives(recorded, identity):
     return changed_members
 
 
+def build_fuzzing(stage, cfg):
+    src = Path(cfg["fuzzing_dir"]).expanduser()
+    dest = stage / "fuzzing"
+    shutil.copytree(src, dest)
+    for script in (dest / "scripts").glob("*"):
+        script.chmod(0o755)
+
+
+STAGES = ("Affine scheduling", "Tiling", "Parallelization", "Code generation")
+
+
 def build_bugs(stage, cfg):
     catalog = json.loads((TEMPLATE / "bugs/catalog.json").read_text())
     reports = Path(cfg["bug_reports"]).expanduser()
@@ -350,26 +361,36 @@ def build_bugs(stage, cfg):
         "(commit 2b6fd99 of 2026-11-05) and, unless the report says otherwise, on",
         "release 0.13.1. The historical snapshot in `third_party/pluto/historical.tar.xz`",
         "contains the defects; the fixed snapshot repairs or refuses them.", "",
-        "## Rejected by PolCert (Table 3)", "",
-        "| Defect | Validator | Outcome | Directory |", "| --- | --- | --- | --- |",
+        "The thirteen miscompilations are grouped by the stage of Table 3 in which the",
+        "defect lies. The PolCert column names the check that applies and its outcome.",
+        "In code generation, PolCert generates loops with its verified generator and",
+        "marks only certified coordinates as parallel. It does not use Pluto's",
+        "generated C or loop annotations, so those reports reproduce with upstream",
+        "Pluto alone.",
     ]
-    for _, entry, _ in rows_rejected:
-        lines.append("| %s | %s | %s | [`rejected/%s`](rejected/%s/README.md) |" % (
-            entry["table_row"], entry["validator"].replace("_", "\\_"), entry["outcome"],
-            entry["dir"], entry["dir"]))
+    rows = [(group, entry) for group, group_rows in (("rejected", rows_rejected),
+                                                     ("codegen", rows_codegen))
+            for _, entry, _ in group_rows]
+    for stage_name in STAGES:
+        selected = [(g, e) for g, e in rows if e["stage"] == stage_name]
+        lines += ["", "## %s (%d)" % (stage_name, len(selected)), "",
+                  "| Defect | PolCert | Directory |", "| --- | --- | --- |"]
+        for group, entry in selected:
+            if "validator" in entry:
+                polcert = "%s: %s" % (entry["validator"].replace("_", "\\_"),
+                                      entry["outcome"])
+            else:
+                polcert = "own generator"
+            defect = entry["table_row"] if group == "rejected" else entry["summary"]
+            lines.append("| %s | %s | [`%s/%s`](%s/%s/README.md) |" % (
+                defect, polcert, group, entry["dir"], group, entry["dir"]))
+    if sum(len(rows_) for rows_ in (rows_rejected, rows_codegen)) != 13:
+        raise SystemExit("bug catalog: expected 13 miscompilations")
     lines += [
-        "", "`docker run --rm polcert-artifact bugs` replays all seven with the historical",
-        "and the fixed Pluto snapshots and exits with status 0 when every outcome",
-        "matches the table.", "",
-        "## In Pluto's code generation and annotation", "",
-        "PolCert generates loops with its verified generator and marks only certified",
-        "coordinates as parallel; it does not use Pluto's generated C, loop annotations or",
-        "unroll-and-jam. These reports reproduce with upstream Pluto alone.", "",
-        "| Defect | Directory |", "| --- | --- |",
+        "", "`docker run --rm polcert-artifact bugs` replays, with the historical and",
+        "the fixed Pluto snapshots, every case whose README says \"Replayed by `bugs`",
+        "mode\". It exits with status 0 when every outcome matches its README.",
     ]
-    for _, entry, _ in rows_codegen:
-        lines.append("| %s | [`codegen/%s`](codegen/%s/README.md) |" % (
-            entry["summary"], entry["dir"], entry["dir"]))
     (bugs / "README.md").write_text("\n".join(lines) + "\n")
 
 
@@ -471,6 +492,7 @@ def build(cfg, stage):
 
     build_evaluation(stage, cfg, identity)
     build_bugs(stage, cfg)
+    build_fuzzing(stage, cfg)
     sanitize_tree(stage / "bugs", identity, keep_suffixes=())
 
     files = []

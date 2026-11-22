@@ -6,7 +6,8 @@
       "table_row": "Scaling in the scheduling LP",
       "validator": "V_aff",
       "outcome": "stage fails",
-      "polcert": "The affine validator rejects the proposed schedule and compilation stops with an error. Replayed by `bugs` mode (`recorded-five/run_auto_affine_lp_cc_scaling`)."
+      "polcert": "The affine validator rejects the proposed schedule and compilation stops with an error. Replayed by `bugs` mode (`recorded-five/run_auto_affine_lp_cc_scaling`).",
+      "stage": "Affine scheduling"
     },
     {
       "dir": "dfp-skew",
@@ -14,7 +15,8 @@
       "table_row": "Skewing in DFP scheduling",
       "validator": "V_aff",
       "outcome": "stage fails",
-      "polcert": "With the historical Pluto run with `--dfp`, polopt reports \"Scheduler validation failed\" and exits with status 2. The fixed Pluto refuses the input itself. Without `--dfp` the same input compiles and its final state matches the source. Replayed by `bugs` mode (`added/`, case `dfp-skew`)."
+      "polcert": "With the historical Pluto run with `--dfp`, polopt reports \"Scheduler validation failed\" and exits with status 2. The fixed Pluto refuses the input itself. Without `--dfp` the same input compiles and its final state matches the source. Replayed by `bugs` mode (`added/`, case `dfp-skew`).",
+      "stage": "Affine scheduling"
     },
     {
       "dir": "identity-tile-scalar-row",
@@ -22,7 +24,8 @@
       "table_row": "Scalar row tiled as a loop",
       "validator": "V_tile",
       "outcome": "stage fails",
-      "polcert": "With the historical Pluto, the tiling validator rejects the proposal (\"Tiling validation rejected or unavailable\", status 2). With the fixed Pluto the proposal is accepted and the final state matches the source at 1, 4 and 8 threads. Replayed by `bugs` mode (`added/`, case `identity-tile-scalar-row`)."
+      "polcert": "With the historical Pluto, the tiling validator rejects the proposal (\"Tiling validation rejected or unavailable\", status 2). With the fixed Pluto the proposal is accepted and the final state matches the source at 1, 4 and 8 threads. Replayed by `bugs` mode (`added/`, case `identity-tile-scalar-row`).",
+      "stage": "Tiling"
     },
     {
       "dir": "mixed-depth-tiling",
@@ -30,7 +33,8 @@
       "table_row": "Mixed-depth band tiling",
       "validator": "V_tile",
       "outcome": "stage fails",
-      "polcert": "The tiling validator rejects the tiled schedule while the preceding affine schedule is accepted. Replayed by `bugs` mode (`recorded-five/run_tiling_mixed_depth_cross_band`)."
+      "polcert": "The tiling validator rejects the tiled schedule while the preceding affine schedule is accepted. Replayed by `bugs` mode (`recorded-five/run_tiling_mixed_depth_cross_band`).",
+      "stage": "Tiling"
     },
     {
       "dir": "diamond-jacobi1d",
@@ -38,7 +42,8 @@
       "table_row": "Diamond intra-tile order",
       "validator": "V_aff after tiling",
       "outcome": "stage fails",
-      "polcert": "With the historical Pluto, post-tiling affine validation fails (status 2) for Jacobi-1D with tile size 4 and FDTD-1D with tile size 2. With the fixed Pluto both compile and their final states match the source. Replayed by `bugs` mode (`added/`, cases `diamond-jacobi1d`, `diamond-fdtd1d`)."
+      "polcert": "With the historical Pluto, post-tiling affine validation fails (status 2) for Jacobi-1D with tile size 4 and FDTD-1D with tile size 2. With the fixed Pluto both compile and their final states match the source. Replayed by `bugs` mode (`added/`, cases `diamond-jacobi1d`, `diamond-fdtd1d`).",
+      "stage": "Tiling"
     },
     {
       "dir": "innerpar-after-tiling",
@@ -46,7 +51,8 @@
       "table_row": "Inner-parallel hint after tiling",
       "validator": "V_par",
       "outcome": "hint dropped",
-      "polcert": "The parallel validator does not certify the hinted loop; compilation continues without the hint and produces a sequential loop whose state matches the source. With `--parallel-strict` the stage fails. Replayed by `bugs` mode (`recorded-five/run_tiling_innerpar_satvec`)."
+      "polcert": "The parallel validator does not certify the hinted loop; compilation continues without the hint and produces a sequential loop whose state matches the source. With `--parallel-strict` the stage fails. Replayed by `bugs` mode (`recorded-five/run_tiling_innerpar_satvec`).",
+      "stage": "Parallelization"
     },
     {
       "dir": "unrolljam-nonpermutable",
@@ -54,7 +60,8 @@
       "table_row": "Jam of a non-permutable band",
       "validator": "fusion check",
       "outcome": "jam dropped",
-      "polcert": "The verified fusion check rejects the jam; the unrolled copies stay separate and the output is correct. Replayed by `bugs` mode (`recorded-five/run_notile_unrolljam_nonpermutable`)."
+      "polcert": "The verified fusion check rejects the jam; the unrolled copies stay separate and the output is correct. Replayed by `bugs` mode (`recorded-five/run_notile_unrolljam_nonpermutable`).",
+      "stage": "Code generation"
     }
   ],
   "codegen": [
@@ -62,37 +69,45 @@
       "dir": "vanished-outer-parallel",
       "report": "pluto-05-parallel-annotation-moves-to-a-dependence-ca.md",
       "summary": "Parallel annotation moves to a dependence-carrying loop",
-      "polcert": "PolCert does not use Pluto's loop annotations. Its output for this input has no nontrivial parallel loop and its state matches the source. Replayed by `bugs` mode (`recorded-five/run_vanished_outer_parallel`)."
+      "polcert": "PolCert does not use Pluto's loop annotations. Its output for this input has no nontrivial parallel loop and its state matches the source. Replayed by `bugs` mode (`recorded-five/run_vanished_outer_parallel`).",
+      "stage": "Code generation"
     },
     {
       "dir": "cloog-modulo-guard",
       "report": "cloog-01-c-output-prints-the-floor-modulo-as-c-a-guar.md",
       "summary": "CLooG prints the floor modulo as C `%`",
-      "polcert": "PolCert accepts the same schedule and generates its own loops; the output is correct."
+      "polcert": "PolCert accepts the same schedule and generates its own loops; the output is correct.",
+      "stage": "Code generation"
     },
     {
       "dir": "cloog-stride-bound",
       "report": "cloog-02-strides-1-computes-a-wrong-value-for-a-singl.md",
       "summary": "CLooG computes a wrong bound for a single-iteration strided loop",
-      "polcert": "PolCert accepts the same schedule and generates its own loops; the output is correct."
+      "polcert": "PolCert accepts the same schedule and generates its own loops; the output is correct.",
+      "stage": "Code generation"
     },
     {
       "dir": "parallel-mark-assignment",
       "report": "pluto-10-omp-parallel-placed-on-a-loop-with-a-write-w.md",
       "summary": "`omp parallel` placed on a loop with a write-write dependence",
-      "polcert": "The parallel validator finds no certifiable coordinate; the hint is dropped and the sequential output is correct."
+      "polcert": "The parallel validator finds no certifiable coordinate; the hint is dropped and the sequential output is correct.",
+      "stage": "Code generation",
+      "validator": "V_par",
+      "outcome": "hint dropped"
     },
     {
       "dir": "unrolljam-remainder-private-iterator",
       "report": "pluto-11-default-flags-unroll-and-jam-remainder-loop.md",
       "summary": "Unroll-and-jam remainder reads an OpenMP-private iterator",
-      "polcert": "PolCert does not use Pluto's unroll-and-jam or generated C. On the constant-bound kernel its parallel output matches the source; on the parametric variant the combination of unroll-and-jam and parallelization is refused (status 2) and no program is emitted."
+      "polcert": "PolCert does not use Pluto's unroll-and-jam or generated C. On the constant-bound kernel its parallel output matches the source; on the parametric variant the combination of unroll-and-jam and parallelization is refused (status 2) and no program is emitted.",
+      "stage": "Code generation"
     },
     {
       "dir": "unrolljam-inner-parallel",
       "report": "pluto-12-unroll-and-jam-of-an-outer-loop-keeps-omp-pa.md",
       "summary": "Unroll-and-jam keeps `omp parallel` on the inner loop",
-      "polcert": "PolCert unrolls the outer loop but keeps the jammed copies as separate certified parallel loops; the output matches the source with 8 threads."
+      "polcert": "PolCert unrolls the outer loop but keeps the jammed copies as separate certified parallel loops; the output matches the source with 8 threads.",
+      "stage": "Code generation"
     }
   ]
 }

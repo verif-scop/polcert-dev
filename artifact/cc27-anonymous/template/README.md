@@ -13,7 +13,8 @@ read the proofs or the results.
 | `third_party/pluto/` | Source archives of the fixed Pluto used for compilation and of the historical Pluto in which the bugs were found. |
 | `environment/` | `Dockerfile` and test entry points. |
 | `evaluation/` | Data behind Tables 1 and 2: the recorded collection, the rerun of every Table 1 pair on the submitted source, and the compilation-time measurement of the submitted source. |
-| `bugs/` | The miscompilation study (Table 3 and the code-generation bugs): one directory per bug with a reproducer and the recorded outcome. |
+| `bugs/` | The thirteen miscompilations of Table 3: one directory per bug with a reproducer and the recorded outcome. |
+| `fuzzing/` | The agent skill used in the miscompilation study to audit Pluto with PolCert as the oracle: instructions, two scripts, and two example programs. |
 
 ## Reading the proofs
 
@@ -32,7 +33,7 @@ From the extracted archive root:
 ```sh
 docker build -f environment/Dockerfile -t polcert-artifact .
 docker run --rm polcert-artifact          # main compiler and validator checks
-docker run --rm polcert-artifact bugs     # replay the rejected miscompilations
+docker run --rm polcert-artifact bugs     # replay the recorded miscompilation outcomes
 ```
 
 Without root access, rootless Podman runs the same image; pass
